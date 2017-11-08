@@ -1,0 +1,28 @@
+{
+  "name": "Google Calendar Selector",
+  "version": "0.0.1",
+  "manifest_version": 2,
+  "description": "Save and restore groups of calendars selected",
+  "_icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "default_locale": "en",
+  "background": {
+    "scripts": ["src/background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://calendar.google.com/*"],
+      "css": [
+        "src/inject/inject.css"
+      ],
+      "js": [
+        "lib/jquery/jquery.min.js",
+        "src/calendar_manager.js", "src/inject/inject.js"
+      ]
+    }
+  ]
+}
