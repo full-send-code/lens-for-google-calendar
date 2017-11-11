@@ -109,6 +109,18 @@
         .filter(c => c.disable())
     },
 
+    deleteGroup: function(group_name){
+      var groups = CM.groups = CM.groups || {};
+      groups.__last_saved = groups.__last_saved || [];
+
+      console.log('deleting calendar group:', group_name, '=>', groups[group_name]);
+
+      groups.__last_saved = groups.__last_saved.filter(name => name !== group_name)
+      delete groups[group_name];
+
+      return groups[group_name];
+    },
+
     enableUser: function(name){
       // name is a regex string
       var re = RegExp(name, 'i');

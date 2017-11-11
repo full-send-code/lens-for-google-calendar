@@ -1,0 +1,54 @@
+<html>
+    <head>
+        <!-- Material Design Lite -->
+        <script src="lib/mdl/material.min.js"></script>
+        <link rel="stylesheet" href="lib/mdl/material.min.css">
+        <link rel="stylesheet" href="src/inject/inject.css">
+        <!-- Material Design icon font -->
+        <!-- <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons"> -->
+        <link rel="stylesheet" href="lib/mdl/icon_family_Material+Icons">
+        
+        <script src="lib/jquery/jquery.min.js"></script>
+        <script src="src/calendar_manager.js"></script>
+
+        <script>
+         chrome.storage = {
+             sync: {
+                 set: (obj, cb) => cb && cb(),
+                 get: (name, cb) => cb && cb({groups: null}),
+             }
+         }
+
+         $(document).ready(()=>{
+             insertButton($('#container'))
+
+             /* $('div.saved').append(makeGroupButton('test', {
+              *     onClick: ()=>alert('clicked on test'),
+              *     onDelete: ()=>alert('test delted'),
+              * }))*/
+         })
+        </script>
+
+        <script src="src/inject/inject.js"></script>
+
+    </head>
+    <body>
+        <!-- Accent-colored raised button with ripple -->
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+            Button
+        </button>
+        <!-- Colored FAB button -->
+        <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored">
+            <i class="material-icons">add</i>
+        </button>
+
+        <button class="mdl-chip demo-chip" id="chip_1234">
+            <span class="mdl-chip__text">Chip Text</span>
+            <a href="#" class="mdl-chip__action"><i class="material-icons">cancel</i></a>
+        </button>
+
+        <div id="container">
+        </div>
+        <div class="mdl-tooltip" for="chip_1234">hi</div>
+    </body>
+</html>
