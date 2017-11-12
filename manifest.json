@@ -26,7 +26,10 @@
       "js": [
         "lib/jquery/jquery.min.js",
         "lib/mdl/material.js",
-        "src/calendar_manager.js", "src/inject/inject.js"
+        "src/calendar_manager.js",
+        "lib/vue/vue.js",
+        "lib/vue/vuetify.js",
+        "src/inject/inject.js"
       ]
     }
   ]

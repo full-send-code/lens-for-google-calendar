@@ -11,6 +11,19 @@
       clt: ["José Aponte", "Julliette Ehlert", "Raghvendra Gupta", "Ryan Rossier", "Todd Greenwood",  "Jeff Gombala"],
     },
 
+    // used for loading groups from storage without changing the groups reference above
+    setGroups: function(new_groups) {
+      CM.groups = new_groups
+      CM._updated()
+    },
+
+    // set CM.onGroupsChange function to get updates
+    _updated: function(){
+      if(typeof CM.onGroupsChange === 'function'){
+        CM.onGroupsChange()
+      }
+    },
+
     createCalendarController: function(li_item){
       var label_el = $('label', li_item);
       var checkbox_el = $("div[role='checkbox']", li_item);
@@ -94,7 +107,7 @@
         .filter(c => c.disable())
     },
 
-    setGroup: function(group_name){
+    showGroup: function(group_name){
       // CM.disableAll();
       // setTimeout(() => {
         var enabled = CM.enableGroup(group_name);
@@ -117,6 +130,8 @@
 
       groups.__last_saved = groups.__last_saved.filter(name => name !== group_name)
       delete groups[group_name];
+
+      CM._updated()
 
       return groups[group_name];
     },
@@ -160,6 +175,7 @@
       groups.__last_saved.push(group_name);
 
       console.log('saved calendars:', group_name, '=>', groups[group_name]);
+      CM._updated()
       return groups[group_name];
     },
 
@@ -172,7 +188,7 @@
       var group_name = CM.groups.__last_saved.pop();
 
       if(group_name){
-        CM.setGroup(group_name)
+        CM.showGroup(group_name)
       } else {
         console.error('nothing to restore');
       }

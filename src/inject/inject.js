@@ -17,10 +17,18 @@ if(chrome && chrome.extension){
 console.log(window.CalendarManager && CalendarManager.groups)
 
 var snackbar
+var vm
 function insertButton(insertLoc){
   $('head').append(
-    $('<link rel="stylesheet" type="text/css" />').attr('href', "https://fonts.googleapis.com/icon?family=Material+Icons")
+    $('<link rel="stylesheet" type="text/css" />')
+      .attr('href', "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons")
   )
+  $('head').append(
+    $('<link rel="stylesheet" type="text/css" />')
+      .attr('href', "https://unpkg.com/vuetify/dist/vuetify.min.css")
+  )
+
+  // $('body').append($('<script src="https://vuejs.org/js/vue.js"></script>'))
 
   snackbar = $.parseHTML(`
     <div id="snackbar" class="mdl-js-snackbar mdl-snackbar">
@@ -37,84 +45,122 @@ function insertButton(insertLoc){
       .querySelectorAll('header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)')[0]
 
   var div = $.parseHTML(`
-<div>
-  <div>
-  Calendar groups:
-  </div>
-  <div class='builtin' style='float:left'>
-  </div>
-  <div class='saved' style='float:left; margin-left: 10px'>
-  </div>
-</div>
+<v-app id="calendar_app">
+  <main>
+    <v-layout row>
+      <v-flex xs8 class="py-2">
+        <div class="btn-toggle">
+          <template  v-for="button in buttons">
+            <v-tooltip bottom open-delay="1000" transition="false">
+              <v-btn small slot="activator" @click="btn_clicked(button)">{{ button.text }}</v-btn>
+              <span>{{ button.tooltip }}</span>
+            </v-tooltip>
+          </template>
+        </div>
+      </v-flex>
+
+      <v-flex xs4 class="pa-0 ma-0">
+        <v-select 
+          v-bind:items="dropdown"
+          label="Load preset..."
+          editable
+          small
+          return-object
+          item-value="text"
+          v-on:input="select_input"
+        >
+        </v-select>
+      </v-flex>
+    </v-layout>
+  </main>
+</v-app>
 `)
 
-  // $('div.builtin', div).append(makeButton('Save', {
+  // $('div.builtin', div).append(makeButton('Load', {
+  //   tooltip: 'Load a calendar group by name <br>(alternative to clicking on pill)',
   //   onClick: () => {
-  //     console.log('clicked on save button')
+  //     var group_name = prompt('Load group by name/regex (current selection will be auto-saved)')
+  //     if(!group_name)
+  //       return
+
   //     CalendarManager.saveCalendarSelections()
-  //     renderGroupButtons(div)
+  //     CalendarManager.showGroup(group_name)
   //   }
   // }))
 
-  $('div.builtin', div).append(makeButton('User', {
-    tooltip: 'Enable a user by name or regexp',
-    onClick: () => {
-      console.log('clicked on enable user button')
-      var user_name = prompt('Enable user by name/regex (current selection will be auto-saved)')
-      if(!user_name)
-        return
-      CalendarManager.enableUser(user_name)
-    }
-  }))
 
-  $('div.builtin', div).append(makeButton('Save As', {
-    tooltip: 'Save current calendars as a<br>named group',
-    onClick: () => {
-      var group_name = prompt('Save Group name')
-      if(!group_name)
-        return
-
-      CalendarManager.saveCalendarSelections(group_name)
-      renderGroupButtons(div)
-      storeGroups()
-    }
-  }))
-
-  $('div.builtin', div).append(makeButton('Restore', {
-    tooltip: 'Restore previous calendars<br>(set by Load & Clear)',
-    onClick: () => {
-      console.log('clicked on restore button')
-      CalendarManager.restoreCalendarSelections()
-    }
-  }))
-
-  $('div.builtin', div).append(makeButton('Load', {
-    tooltip: 'Load a calendar group by name <br>(alternative to clicking on pill)',
-    onClick: () => {
-      var group_name = prompt('Load group by name/regex (current selection will be auto-saved)')
-      if(!group_name)
-        return
-
-      CalendarManager.saveCalendarSelections()
-      CalendarManager.setGroup(group_name)
-    }
-  }))
-
-  $('div.builtin', div).append(makeButton('Clear', {
-    tooltip: 'Clear all calendars',
-    onClick: () => {
-      CalendarManager.saveCalendarSelections()
-      CalendarManager.disableAll()
-      CalendarManager.enableUser('ilya')
-    }
-  }))
 
   $(insertAfter).after(div)
 
-  loadGroups(div)
+  console.log('groups in live', CalendarManager.groups)
 
-  // append buttons for all built-in
-  renderGroupButtons(div)
+  vm = new Vue({
+    el: '#calendar_app',
+    data: {
+      groups: CalendarManager.groups,
+      buttons: [
+        {text: 'User', tooltip: 'Enable a user by name or regexp', click: ()=>{
+          console.log('clicked on enable user button')
+          var user_name = prompt('Enable user by name/regex (current selection will be auto-saved)')
+          if(!user_name)
+            return
+          CalendarManager.enableUser(user_name)          
+        }},
+        {text: "Save As", tooltip: 'Save current calendars as a<br>named preset', click: ()=>{
+          var group_name = prompt('Save Group name')
+          if(!group_name)
+            return
+
+          CalendarManager.saveCalendarSelections(group_name)
+          // renderGroupButtons(div)
+          storeGroups()
+        }},
+        {text: "Restore", tooltip: 'Restore previous calendars<br>(set by Load & Clear)', click: ()=>{
+          console.log('clicked on restore button')
+          CalendarManager.restoreCalendarSelections()          
+        }},
+        {text: "Clear", tooltip: 'Clear all calendars', click: ()=>{
+          CalendarManager.saveCalendarSelections()
+          CalendarManager.disableAll()
+          CalendarManager.enableUser('ilya')
+        }},
+      ]
+    },
+    methods: {
+      select_input: function(value) {
+        console.log('input', value.text, value)
+        // console.log(this)
+
+        var group_name = value.text
+        if(!group_name)
+          return
+
+        CalendarManager.saveCalendarSelections()
+        CalendarManager.showGroup(group_name)
+      },
+      btn_clicked: function(button){
+        console.log('clicked on', button.text, button)
+        if(button.click){
+          button.click()
+        }
+      },
+    },
+    computed: {
+      dropdown: function() {
+        return Object.keys(this.groups)
+          .filter(group_name => !group_name.match(/^(saved_|__)/))
+          .map(group_name => {return {text: group_name}})
+      },
+    }
+  })
+
+  // .application on v-app doesn't play well with existing google calendar CSS
+  $('#calendar_app').removeClass('application')
+
+  loadGroups()
+
+  // // append buttons for all built-in
+  // renderGroupButtons()
 }
 
 function makeHTML(str){
@@ -127,68 +173,29 @@ function makeHTML(str){
   return html;
 };
 
-function makeButton(name, {clazz, tooltip, onClick}){
-  var id = 'button-' + Math.floor(Math.random()*100000)
-  var button = makeHTML(`
-<button id="${id}" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
-    <span class="mdl-chip__text">${name}</span>
-</button>
-<div class="mdl-tooltip" for="${id}">${tooltip}</div>
-`)
+function renderGroupButtons(){
+  vm.groups = Object.assign({}, CalendarManager.groups)
 
-  if(!tooltip){
-    button.splice(1,1) // TODO: this is very fragile
-  }
+  // $('div.saved', div).empty()
 
-  if(clazz)
-    $(button).addClass(clazz)
-
-  $(button).click(onClick)
-
-  return button
-}
-
-function makeGroupButton(name, {clazz, members = [], onClick, onDelete}){
-  var id = 'button-' + Math.floor(Math.random()*100000)
-  var button = makeHTML(`
-<button id="${id}" class="mdl-chip mdl-chip--deletable">
-    <span class="mdl-chip__text">${name}</span>
-    <span class="mdl-chip__action"><i class="material-icons">cancel</i></span>
-</button>
-<div class="mdl-tooltip" for="${id}">${members.join('<br>')}</div>
-`)
-
-  if(clazz)
-    $(button).addClass(clazz)
-
-  // attach event handlers
-  $(button).click(onClick)
-  $('.mdl-chip__action', button).click(onDelete)
-
-  return button
-}
-
-function renderGroupButtons(div){
-  $('div.saved', div).empty()
-
-  Object.keys(CalendarManager.groups)
-    .filter(group_name => !group_name.match(/^(saved_|__)/) )
-    .forEach(group_name=>{
-      var button = makeGroupButton(group_name, {
-        members: CalendarManager.groups[group_name],
-        onClick: ()=>{
-          console.log('loading group', group_name, CalendarManager.groups[group_name])
-          CalendarManager.setGroup(group_name)
-        },
-        onDelete: ()=>{
-          console.log('deleting group', group_name)
-          CalendarManager.deleteGroup(group_name)
-          renderGroupButtons(div)
-          storeGroups()
-        }
-      })
-      $('div.saved', div).append(button)
-    })
+  // Object.keys(CalendarManager.groups)
+  //   .filter(group_name => !group_name.match(/^(saved_|__)/) )
+  //   .forEach(group_name=>{
+  //     var button = makeGroupButton(group_name, {
+  //       members: CalendarManager.groups[group_name],
+  //       onClick: ()=>{
+  //         console.log('loading group', group_name, CalendarManager.groups[group_name])
+  //         CalendarManager.showGroup(group_name)
+  //       },
+  //       onDelete: ()=>{
+  //         console.log('deleting group', group_name)
+  //         CalendarManager.deleteGroup(group_name)
+  //         renderGroupButtons(div)
+  //         storeGroups()
+  //       }
+  //     })
+  //     $('div.saved', div).append(button)
+  //   })
 }
 
 function message(message){
@@ -209,13 +216,14 @@ function storeGroups(){
   })
 }
 
-function loadGroups(div){
+function loadGroups(){
   chrome.storage.sync.get('groups', (items) => {
     var groups = items.groups
-    console.log('groups loaded from storage', groups)
-    if(groups)
-      CalendarManager.groups = groups
-    renderGroupButtons(div)
+    if(groups && Object.keys(groups).length > 0){
+      CalendarManager.setGroups(groups)
+    }
+    renderGroupButtons()
+    console.log('groups loaded from storage', CalendarManager.groups)
     message('Groups loaded: ' + Object.keys(CalendarManager.groups).join(', '))
   })
 }
