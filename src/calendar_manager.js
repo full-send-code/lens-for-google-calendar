@@ -5,10 +5,6 @@
 
   var CM = {
     groups: {
-      et: ['Ahmed Albaiti', 'Myhanh Dao', 'Weston Headley'],
-      normal: ["Ilya Braude", "Ahmed Albaiti", "Holidays in United States", "Jeff Gombala", "Julliette Ehlert", "Kalisha Narine", "Marlon Joseph", "Medullan Holidays", "Raghvendra Gupta", "Ryan Rossier", "Time Off", "Timothy Dwight", "Wesley Boland", "Weston Headley"],
-      movers: ["Ahmed Albaiti", "Myhanh Dao", "Ryan Rossier", "Weston Headley", "Jeff Gombala"],
-      clt: ["José Aponte", "Julliette Ehlert", "Raghvendra Gupta", "Ryan Rossier", "Todd Greenwood",  "Jeff Gombala"],
     },
 
     // used for loading groups from storage without changing the groups reference above
