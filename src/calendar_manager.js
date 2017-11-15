@@ -20,7 +20,7 @@
     // set CM.onGroupsChange function to get updates
     _updated: function(){
       if(typeof CM.onGroupsChange === 'function'){
-        CM.onGroupsChange()
+        CM.onGroupsChange(CM.groups)
       }
     },
 
