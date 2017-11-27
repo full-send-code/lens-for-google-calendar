@@ -25,10 +25,8 @@ function insertButton(insertLoc){
   )
   $('head').append(
     $('<link rel="stylesheet" type="text/css" />')
-      .attr('href', "https://unpkg.com/vuetify/dist/vuetify.min.css")
+      .attr('href', chrome.runtime.getURL('lib/vue/slim.css'))
   )
-
-  // $('body').append($('<script src="https://vuejs.org/js/vue.js"></script>'))
 
   snackbar = $.parseHTML(`
     <div id="snackbar" class="mdl-js-snackbar mdl-snackbar">
@@ -37,7 +35,6 @@ function insertButton(insertLoc){
   `)[1]
   componentHandler.upgradeElements(snackbar)
   $('body').append(snackbar)
-
 
 
   // insert the extension UI
@@ -89,7 +86,6 @@ function insertButton(insertLoc){
                    </v-list-tile-action>
                  </template>
                </v-select>
-
              </v-menu>
            </span>
          </v-flex>
@@ -191,13 +187,10 @@ function insertButton(insertLoc){
     }
   })
 
+  // needed to ensure that Vue picks up changes to groups
   CalendarManager.onGroupsChange = function(groups){
     vm.groups = Object.assign({}, groups)
   }
-
-
-  // .application on v-app doesn't play well with existing google calendar CSS
-  $('#calendar_app').removeClass('application')
 
   loadGroups()
 }

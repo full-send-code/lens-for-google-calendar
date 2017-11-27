@@ -2,3 +2,21 @@
  * Place your custom CSS styles here.
  **/
 
+/* vuetify fix to properly align 'presets' menu button */
+.menu,
+::before,
+::after {
+  -webkit-box-sizing: inherit;
+          box-sizing: inherit;
+}
+
+/* remove min-height from application--wrap */
+.application--wrap {
+  min-height: 0vh !important;
+}
+
+
+/* remove background from theme */
+.application.theme--light {
+  background: transparent !important;
+}
