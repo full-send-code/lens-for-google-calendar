@@ -54,9 +54,13 @@ function insertUI(insertLoc){
                  <v-btn
                      small
                      slot="activator" @click="btn_clicked(button)"
-                     :class="['gcs', 'gcs-' + button.class_id, {'show-kbd-hint': highlight_kb_shortcuts}]"
+                     :class="['gcs', 'gcs-' + button.class_id]"
                  >
-                   {{ button.text }}
+                   {{ button.text.substr(0, button.text.indexOf('&')) }}
+                   <span :class="{'kbd-hint': highlight_kb_shortcuts}">
+                     {{ button.text.substr(button.text.indexOf('&')+1, 1) }}
+                   </span>
+                   {{ button.text.substr(button.text.indexOf('&')+2) }}
                  </v-btn>
                  <span>{{ button.tooltip }}</span>
                </v-tooltip>
@@ -68,7 +72,12 @@ function insertUI(insertLoc){
                      v-model="presets_menu_open"
                      ref="presets_menu"
              >
-               <v-btn small slot="activator" @click="presets_open()" class="gcs-presets">Presets</v-btn>
+               <v-btn small slot="activator" @click="presets_open()" class="gcs gcs-presets">
+                 <span :class="{'kbd-hint': highlight_kb_shortcuts}">
+                   P
+                 </span>
+                 resets
+               </v-btn>
                <v-select
                  class="select"
                  v-bind:items="dropdown"
@@ -146,14 +155,14 @@ function insertUI(insertLoc){
   vm = new Vue({
     el: '#calendar_app',
     data: {
-      highlight_kb_shortcuts: true,
+      highlight_kb_shortcuts: false,
       presets_menu_open: false,
       groups: CalendarManager.groups,
       buttons: [
-        {text: 'User', tooltip: 'Enable a user by name or regexp', click: ui.enable_user, class_id: 'user'},
-        {text: "Save As", tooltip: 'Save current calendars as a named preset', click: ui.save_as, class_id: 'save_as'},
-        {text: "Restore", tooltip: 'Restore previous calendars (set by Load & Clear)', click: ui.restore, class_id: 'restore'},
-        {text: "Clear", tooltip: 'Clear all calendars', click: ui.clear, class_id: 'clear'},
+        {text: '&User', tooltip: 'Enable a user by name or regexp', click: ui.enable_user, class_id: 'user'},
+        {text: "&Save As", tooltip: 'Save current calendars as a named preset', click: ui.save_as, class_id: 'save_as'},
+        {text: "&Restore", tooltip: 'Restore previous calendars (set by Load & Clear)', click: ui.restore, class_id: 'restore'},
+        {text: "&Clear", tooltip: 'Clear all calendars', click: ui.clear, class_id: 'clear'},
       ]
     },
     methods: {
@@ -255,27 +264,37 @@ function loadGroups(){
 }
 
 function setupKeyboardShortcuts(){
-  Mousetrap.bind('ctrl+alt', function(e, combo) {
-    console.log(combo, 'down')
-    // message(combo + ' down')
+  function showShorcuts(){
+    vm.$set(vm, 'highlight_kb_shortcuts', true)
+  }
+
+  function hideShortcuts(){
+    vm.$set(vm, 'highlight_kb_shortcuts', false)
+  }
+
+  Mousetrap.bind(['ctrl+alt', 'alt+ctrl'], function(e, combo) {
+    showShorcuts()
   }, 'keydown')
 
   Mousetrap.bind('ctrl', function(e, combo) {
-    console.log(combo, 'up')
-    // message(combo + ' up')
+    hideShortcuts()
   }, 'keyup')
 
   Mousetrap.bind('ctrl+alt+u', function(e, combo) {
     $('.btn.gcs-user').click()
+    hideShortcuts()
   })
   Mousetrap.bind('ctrl+alt+s', function(e, combo) {
     $('.btn.gcs-save_as').click()
+    hideShortcuts()
   })
   Mousetrap.bind('ctrl+alt+r', function(e, combo) {
     $('.btn.gcs-restore').click()
+    hideShortcuts()
   })
   Mousetrap.bind('ctrl+alt+c', function(e, combo) {
     $('.btn.gcs-clear').click()
+    hideShortcuts()
   })
   Mousetrap.bind('ctrl+alt+p', function(e, combo) {
     // emulate a press on the "Presets" button
@@ -284,6 +303,7 @@ function setupKeyboardShortcuts(){
     // ui.presets_open(vm)
 
     $('.btn.gcs-presets').click()
+    hideShortcuts()
   })
 }
 
