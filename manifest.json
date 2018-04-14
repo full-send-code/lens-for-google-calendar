@@ -1,6 +1,6 @@
 {
   "name": "Calendar Selector for Google Calendar",
-  "version": "0.0.3",
+  "version": "0.0.4.0",
   "manifest_version": 2,
   "description": "Save and restore groups of calendars selected",
   "permissions": [
@@ -32,6 +32,7 @@
         "src/calendar_manager.js",
         "lib/vue/vue.js",
         "lib/vue/vuetify.js",
+        "lib/mousetrap/mousetrap.min.js",
         "src/inject/inject.js"
       ]
     }

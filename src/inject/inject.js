@@ -18,7 +18,8 @@ console.log(window.CalendarManager && CalendarManager.groups)
 
 var snackbar
 var vm
-function insertButton(insertLoc){
+var ui
+function insertUI(insertLoc){
   $('head').append(
     $('<link rel="stylesheet" type="text/css" />')
       .attr('href', "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons")
@@ -50,7 +51,13 @@ function insertButton(insertLoc){
            <span class="btn-toggle">
              <template  v-for="button in buttons">
                <v-tooltip bottom open-delay="1000" transition="false">
-                 <v-btn small slot="activator" @click="btn_clicked(button)">{{ button.text }}</v-btn>
+                 <v-btn
+                     small
+                     slot="activator" @click="btn_clicked(button)"
+                     :class="['gcs', 'gcs-' + button.class_id, {'show-kbd-hint': highlight_kb_shortcuts}]"
+                 >
+                   {{ button.text }}
+                 </v-btn>
                  <span>{{ button.tooltip }}</span>
                </v-tooltip>
              </template>
@@ -61,7 +68,7 @@ function insertButton(insertLoc){
                      v-model="presets_menu_open"
                      ref="presets_menu"
              >
-               <v-btn small slot="activator" @click="presets_open()">Presets</v-btn>
+               <v-btn small slot="activator" @click="presets_open()" class="gcs-presets">Presets</v-btn>
                <v-select
                  class="select"
                  v-bind:items="dropdown"
@@ -99,47 +106,59 @@ function insertButton(insertLoc){
 
   console.log('groups in live', CalendarManager.groups)
 
+  ui = {
+    enable_user: ()=>{
+      console.log('clicked on enable user button')
+      var user_name = prompt('Enable user by name/regex (current selection will be auto-saved)')
+      if(!user_name)
+        return
+      CalendarManager.enableUser(user_name)
+    },
+    save_as: ()=>{
+      var group_name = prompt('Save Group name')
+      if(!group_name)
+        return
+
+      CalendarManager.saveCalendarSelections(group_name)
+      storeGroups()
+    },
+    restore: ()=>{
+      console.log('clicked on restore button')
+      CalendarManager.restoreCalendarSelections()
+    },
+    clear: ()=>{
+      CalendarManager.saveCalendarSelections()
+      CalendarManager.disableAll()
+      CalendarManager.enableUser('ilya')
+    },
+    presets_open: (vm) => {
+      console.log('presets_open', vm)
+      setTimeout(()=>{ // timeout to allow the menu to be rendered first
+        /* console.log(this.$refs.select)*/
+        if(vm.$refs.presets_menu.isActive){
+          vm.$refs.select.focusInput()
+          vm.$refs.select.showMenu()
+        }
+      }, 100)
+    }
+  }
+
   vm = new Vue({
     el: '#calendar_app',
     data: {
+      highlight_kb_shortcuts: true,
       presets_menu_open: false,
       groups: CalendarManager.groups,
       buttons: [
-        {text: 'User', tooltip: 'Enable a user by name or regexp', click: ()=>{
-          console.log('clicked on enable user button')
-          var user_name = prompt('Enable user by name/regex (current selection will be auto-saved)')
-          if(!user_name)
-            return
-          CalendarManager.enableUser(user_name)
-        }},
-        {text: "Save As", tooltip: 'Save current calendars as a named preset', click: ()=>{
-          var group_name = prompt('Save Group name')
-          if(!group_name)
-            return
-
-          CalendarManager.saveCalendarSelections(group_name)
-          storeGroups()
-        }},
-        {text: "Restore", tooltip: 'Restore previous calendars (set by Load & Clear)', click: ()=>{
-          console.log('clicked on restore button')
-          CalendarManager.restoreCalendarSelections()
-        }},
-        {text: "Clear", tooltip: 'Clear all calendars', click: ()=>{
-          CalendarManager.saveCalendarSelections()
-          CalendarManager.disableAll()
-          CalendarManager.enableUser('ilya')
-        }},
+        {text: 'User', tooltip: 'Enable a user by name or regexp', click: ui.enable_user, class_id: 'user'},
+        {text: "Save As", tooltip: 'Save current calendars as a named preset', click: ui.save_as, class_id: 'save_as'},
+        {text: "Restore", tooltip: 'Restore previous calendars (set by Load & Clear)', click: ui.restore, class_id: 'restore'},
+        {text: "Clear", tooltip: 'Clear all calendars', click: ui.clear, class_id: 'clear'},
       ]
     },
     methods: {
       presets_open: function(){
-        setTimeout(()=>{ // timeout to allow the menu to be rendered first
-          /* console.log(this.$refs.select)*/
-          if(this.$refs.presets_menu.isActive){
-            this.$refs.select.focusInput()
-            this.$refs.select.showMenu()
-          }
-        }, 100)
+        ui.presets_open(this)
       },
       select_input: function(value) {
         console.log('input', value.text, value)
@@ -212,7 +231,7 @@ function message(message){
     timeout: 5000,
     // actionHandler: handler,
     // actionText: 'Undo'
-  });
+  })
 }
 
 function storeGroups(){
@@ -235,5 +254,38 @@ function loadGroups(){
   })
 }
 
+function setupKeyboardShortcuts(){
+  Mousetrap.bind('ctrl+alt', function(e, combo) {
+    console.log(combo, 'down')
+    // message(combo + ' down')
+  }, 'keydown')
 
-insertButton()
+  Mousetrap.bind('ctrl', function(e, combo) {
+    console.log(combo, 'up')
+    // message(combo + ' up')
+  }, 'keyup')
+
+  Mousetrap.bind('ctrl+alt+u', function(e, combo) {
+    $('.btn.gcs-user').click()
+  })
+  Mousetrap.bind('ctrl+alt+s', function(e, combo) {
+    $('.btn.gcs-save_as').click()
+  })
+  Mousetrap.bind('ctrl+alt+r', function(e, combo) {
+    $('.btn.gcs-restore').click()
+  })
+  Mousetrap.bind('ctrl+alt+c', function(e, combo) {
+    $('.btn.gcs-clear').click()
+  })
+  Mousetrap.bind('ctrl+alt+p', function(e, combo) {
+    // emulate a press on the "Presets" button
+    // vm.$refs.presets_menu.activate()
+    // vm.$set(vm, 'presets_menu_open', true)
+    // ui.presets_open(vm)
+
+    $('.btn.gcs-presets').click()
+  })
+}
+
+insertUI()
+setupKeyboardShortcuts()
