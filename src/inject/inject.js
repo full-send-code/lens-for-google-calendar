@@ -24,10 +24,14 @@ function insertUI(insertLoc){
     $('<link rel="stylesheet" type="text/css" />')
       .attr('href', "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons")
   )
-  $('head').append(
-    $('<link rel="stylesheet" type="text/css" />')
-      .attr('href', chrome.runtime.getURL('lib/vue/slim.css'))
-  )
+  try {
+    $('head').append(
+      $('<link rel="stylesheet" type="text/css" />')
+        .attr('href', chrome.runtime.getURL('lib/vue/slim.css'))
+    )
+  } catch(e) {
+    // not running in an extension environment
+  }
 
   snackbar = $.parseHTML(`
     <div id="snackbar" class="mdl-js-snackbar mdl-snackbar">
@@ -36,11 +40,6 @@ function insertUI(insertLoc){
   `)[1]
   componentHandler.upgradeElements(snackbar)
   $('body').append(snackbar)
-
-
-  // insert the extension UI
-  var insertAfter = insertLoc || document
-      .querySelectorAll('header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)')[0]
 
   var div = $.parseHTML(`
 <v-app id="calendar_app">
@@ -111,7 +110,14 @@ function insertUI(insertLoc){
 </v-app>
 `)
 
-  $(insertAfter).after(div)
+  // insert the extension UI
+  if(insertLoc){
+    $(insertLoc).append(div)
+  } else {
+    var insertAfter = document
+        .querySelectorAll('header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)')[0]
+    $(insertAfter).after(div)
+  }
 
   console.log('groups in live', CalendarManager.groups)
 
@@ -244,23 +250,31 @@ function message(message){
 }
 
 function storeGroups(){
-  chrome.storage.sync.set({
-    groups: CalendarManager.groups
-  }, () => {
-    console.log('groups saved to storage', Object.keys(CalendarManager.groups))
-    message('Groups saved to storage: ' + Object.keys(CalendarManager.groups).join(', '))
-  })
+  try {
+    chrome.storage.sync.set({
+      groups: CalendarManager.groups
+    }, () => {
+      console.log('groups saved to storage', Object.keys(CalendarManager.groups))
+      message('Groups saved to storage: ' + Object.keys(CalendarManager.groups).join(', '))
+    })
+  } catch(e) {
+    console.error('Failed to save groups to sync storage: ' + e.message)
+  }
 }
 
 function loadGroups(){
-  chrome.storage.sync.get('groups', (items) => {
-    var groups = items.groups
-    if(groups && Object.keys(groups).length > 0){
-      CalendarManager.setGroups(groups)
-    }
-    console.log('groups loaded from storage', CalendarManager.groups)
-    // message('Groups loaded: ' + Object.keys(CalendarManager.groups).join(', '))
-  })
+  try {
+    chrome.storage.sync.get('groups', (items) => {
+      var groups = items.groups
+      if(groups && Object.keys(groups).length > 0){
+        CalendarManager.setGroups(groups)
+      }
+      console.log('groups loaded from storage', CalendarManager.groups)
+      // message('Groups loaded: ' + Object.keys(CalendarManager.groups).join(', '))
+    })
+  } catch(e) {
+    console.error('Failed to load groups from sync storage: ' + e.message)
+  }
 }
 
 function setupKeyboardShortcuts(){
