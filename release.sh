@@ -2,7 +2,7 @@
 
 # built for Mac
 
-RELEASE=$(date '+%Y-%m-%dT%H:%M:%S')
+RELEASE=${1:-$(date '+%Y-%m-%dT%H:%M:%S')}
 DIST=dist
 
 mkdir -p $DIST

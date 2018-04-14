@@ -1,6 +1,6 @@
 {
   "name": "Calendar Selector for Google Calendar",
-  "version": "0.0.4.0",
+  "version": "0.0.4",
   "manifest_version": 2,
   "description": "Save and restore groups of calendars selected",
   "permissions": [
