@@ -280,22 +280,27 @@ function setupKeyboardShortcuts(){
     hideShortcuts()
   }, 'keyup')
 
-  Mousetrap.bind('ctrl+alt+u', function(e, combo) {
-    $('.btn.gcs-user').click()
-    hideShortcuts()
+
+  const parseShortcutText = (text) => {
+    return {
+      pre:      text.substr(0, text.indexOf('&')),
+      shortcut: text.substr(text.indexOf('&')+1, 1),
+      post:     text.substr(text.indexOf('&')+2),
+    }
+  }
+
+  vm.buttons.forEach((button)=>{
+    const parts = parseShortcutText(button.text)
+    console.log(parts)
+    const shortcut = parts.shortcut.toLowerCase()
+
+    Mousetrap.bind(`ctrl+alt+${shortcut}`, function(e, combo) {
+      console.log('pressed', combo)
+      $(`.btn.gcs-${button.class_id}`).click()
+      hideShortcuts()
+    })
   })
-  Mousetrap.bind('ctrl+alt+s', function(e, combo) {
-    $('.btn.gcs-save_as').click()
-    hideShortcuts()
-  })
-  Mousetrap.bind('ctrl+alt+r', function(e, combo) {
-    $('.btn.gcs-restore').click()
-    hideShortcuts()
-  })
-  Mousetrap.bind('ctrl+alt+c', function(e, combo) {
-    $('.btn.gcs-clear').click()
-    hideShortcuts()
-  })
+
   Mousetrap.bind('ctrl+alt+p', function(e, combo) {
     // emulate a press on the "Presets" button
     // vm.$refs.presets_menu.activate()
