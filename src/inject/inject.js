@@ -41,6 +41,32 @@ function insertUI(insertLoc){
   componentHandler.upgradeElements(snackbar)
   $('body').append(snackbar)
 
+  Vue.component('gcs-button', {
+    inherit: true,
+    props: ['text', 'tooltip', 'class_id'],
+    data: function () {
+      return {
+      }
+    },
+    template: `
+<v-tooltip bottom open-delay="1000" transition="false">
+  <v-btn
+      small
+      slot="activator"
+      :class="['gcs', 'gcs-' + class_id]"
+      v-on="$listeners"
+  >
+    {{ text.substr(0, text.indexOf('&')) }}
+    <span :class="{'kbd-hint': this.$root.highlight_kb_shortcuts}">
+      {{ text.substr(text.indexOf('&')+1, 1) }}
+    </span>
+    {{ text.substr(text.indexOf('&')+2) }}
+  </v-btn>
+  <span>{{ tooltip }}</span>
+</v-tooltip>`
+  })
+
+
   var div = $.parseHTML(`
 <v-app id="calendar_app">
   <main>
@@ -48,22 +74,15 @@ function insertUI(insertLoc){
        <v-layout row>
          <v-flex md6 class="pt-3">
            <span class="btn-toggle">
-             <template  v-for="button in buttons">
-               <v-tooltip bottom open-delay="1000" transition="false">
-                 <v-btn
-                     small
-                     slot="activator" @click="btn_clicked(button)"
-                     :class="['gcs', 'gcs-' + button.class_id]"
-                 >
-                   {{ button.text.substr(0, button.text.indexOf('&')) }}
-                   <span :class="{'kbd-hint': highlight_kb_shortcuts}">
-                     {{ button.text.substr(button.text.indexOf('&')+1, 1) }}
-                   </span>
-                   {{ button.text.substr(button.text.indexOf('&')+2) }}
-                 </v-btn>
-                 <span>{{ button.tooltip }}</span>
-               </v-tooltip>
-             </template>
+             <gcs-button
+               v-for="button in buttons"
+               :key="button.text"
+               v-bind:text="button.text"
+               v-bind:tooltip="button.tooltip"
+               v-bind:class_id="button.class_id"
+               another-attr
+               @click="button.click()"
+             ></gcs-button>
 
              <v-menu bottom
                      offset-y
@@ -71,12 +90,13 @@ function insertUI(insertLoc){
                      v-model="presets_menu_open"
                      ref="presets_menu"
              >
-               <v-btn small slot="activator" @click="presets_open()" class="gcs gcs-presets">
-                 <span :class="{'kbd-hint': highlight_kb_shortcuts}">
-                   P
-                 </span>
-                 resets
-               </v-btn>
+               <gcs-button
+                 slot="activator"
+                 class_id="presets"
+                 @click="presets_open()"
+                 :tooltip="'Manage preset groups'"
+                 text="Presets">
+               </gcs-button>
                <v-select
                  class="select"
                  v-bind:items="dropdown"
@@ -87,6 +107,7 @@ function insertUI(insertLoc){
                  hide-details
                  item-value="text"
                  ref="select"
+                 @keyup.esc="presets_menu_open = false"
                  @input="select_input"
                >
                  <template slot="item" slot-scope="data">
@@ -200,12 +221,6 @@ function insertUI(insertLoc){
           }, 800)
         }
       },
-      btn_clicked: function(button){
-        console.log('clicked on', button.text, button)
-        if(button.click){
-          button.click()
-        }
-      },
     },
     computed: {
       dropdown: function() {
@@ -274,6 +289,10 @@ function loadGroups(){
     })
   } catch(e) {
     console.error('Failed to load groups from sync storage: ' + e.message)
+    CalendarManager.setGroups({
+      'group 1': ['a', 'b'],
+      'group 2': ['x', 'y', 'z'],
+    })
   }
 }
 
