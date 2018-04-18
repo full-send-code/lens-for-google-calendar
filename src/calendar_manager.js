@@ -4,6 +4,8 @@
   };
 
   var CM = {
+    __exclude_re: /^(saved_|__)/,
+
     groups: {
     },
 
@@ -11,6 +13,21 @@
     setGroups: function(new_groups) {
       CM.groups = new_groups
       CM._updated()
+    },
+
+    // returns a copy of the groups object
+    exportGroups: function(include_internal = false, groups = null){
+      const _groups = groups || JSON.parse(JSON.stringify(CM.groups))
+
+      if(!include_internal){
+        Object.keys(_groups)
+          .filter(group_name => group_name.match(CM.__exclude_re))
+          .forEach(excluded_group_name => {
+            delete _groups[excluded_group_name]
+          })
+      }
+
+      return _groups
     },
 
     // set CM.onGroupsChange function to get updates

@@ -16,6 +16,18 @@ if(chrome && chrome.extension){
 }
 console.log(window.CalendarManager && CalendarManager.groups)
 
+const parseShortcutText = (text) => {
+  return {
+    enabled: text.indexOf('&') >= 0,
+    pre:     text.substr(0, text.indexOf('&')),
+    key:     text.substr(text.indexOf('&')+1, 1),
+    post:    text.substr(text.indexOf('&')+2),
+    label:   text.replace('&', ''),
+    text:    text,
+  }
+}
+
+
 var snackbar
 var vm
 var ui
@@ -44,49 +56,101 @@ function insertUI(insertLoc){
 
   Vue.component('label-kb-shortcut', {
     props: ['text'],
-    template: `
-<span>
-    {{ text.substr(0, text.indexOf('&')) }}
-    <span :class="{'kbd-hint': this.$root.highlight_kb_shortcuts}">
-{{ text.substr(text.indexOf('&')+1, 1) }}</span>{{ text.substr(text.indexOf('&')+2) }}
-</span>
-`
+    created: function(){
+      // register this shortcut and action
+      console.log('label-kb-shortcut created', this.shortcut)
+
+      if(this.shortcut.enabled){
+        this.$root.keyboardActions.push({
+          component: this,
+          modifier: 'ctrl+alt',
+          key: this.shortcut.key.toLowerCase(),
+          action: (...args) => {
+            this.$emit('kbd', ...args)
+          }
+        })
+      }
+    },
+    computed: {
+      shortcut: function(){
+        const shortcut = parseShortcutText(this.text)
+        return shortcut
+      }
+    },
+    render: function(h){
+      if(!this.shortcut.enabled){
+        return h('span', this.text)
+      } else {
+        return h('span', [
+          h('span', this.shortcut.pre),
+          h('span', {
+            'class': {
+              'kbd-hint': this.$root.highlight_kb_shortcuts
+            }
+          }, this.shortcut.key),
+          h('span', this.shortcut.post),
+        ])
+      }
+    }
   })
 
   Vue.component('gcs-button', {
     inherit: true,
-    props: ['text', 'tooltip', 'class_id'],
+    props: ['text', 'tooltip'],
     data: function () {
       return {
       }
     },
+    methods: {
+      keyAction: function(){
+        // find the button element from there and click it
+        this.$el.getElementsByTagName('button')[0].click()
+      }
+    },
     template: `
-<v-tooltip bottom open-delay="1000" transition="false">
-  <v-btn
-      small
-      slot="activator"
-      :class="['gcs', 'gcs-' + class_id]"
-      v-on="$listeners"
-    >
-    <label-kb-shortcut :text="text"/>
-  </v-btn>
-  <span>{{ tooltip }}</span>
-</v-tooltip>`
+ <v-tooltip bottom open-delay="1000" transition="false">
+   <v-btn
+       small
+       slot="activator"
+       :class="['gcs']"
+       v-on="$listeners"
+     >
+     <label-kb-shortcut :text="text" @kbd="keyAction"/>
+   </v-btn>
+   <span>{{ tooltip }}</span>
+ </v-tooltip>`
   })
 
-  Vue.component('dialog', {
+  Vue.component('export-dialog', {
+    props: ['groups'],
+    data: function(){
+      return {
+        showDialog: false,
+      }
+    },
+    computed: {
+      content: function(){
+        return JSON.stringify(CalendarManager.exportGroups(false, this.groups), null, 2)
+      },
+    },
     template: `
-<v-dialog v-model="dialog" max-width="500px">
-  <gcs-button slot="activator" text="dialog"></gcs-button>
-  <v-card>
-    <v-card-title>
-      dialog title
+<v-dialog v-model="showDialog" max-width="500px">
+  <gcs-button slot="activator" text="&export"></gcs-button>
+  <v-card class="grey lighten-5">
+    <v-card-title class="headline">
+    Presets
     </v-card-title>
     <v-card-text>
-      dialog contents
+      <v-container grid-list-md>
+        <v-layout row wrap>
+          <v-flex xs8>
+            <v-text-field box multi-line readonly v-model="content"></v-text-field>
+          </v-flex>
+        </v-layout>
+      </v-container>
     </v-card-text>
   <v-card-actions>
-    <v-btn color="primary" flat @click.stop="dialog2=false">Close</v-btn>
+    <v-btn color="primary" flat @click.stop="showDialog = false">Close</v-btn>
     </v-card-actions>
   </v-card>
 </v-dialog>`
@@ -105,8 +169,6 @@ function insertUI(insertLoc){
                :key="button.text"
                v-bind:text="button.text"
                v-bind:tooltip="button.tooltip"
-               v-bind:class_id="button.class_id"
-               another-attr
                @click="button.click()"
              ></gcs-button>
 
@@ -116,12 +178,19 @@ function insertUI(insertLoc){
                      v-model="presets_menu_open"
                      ref="presets_menu"
              >
+       <v-layout row class="white">
+         <v-flex md12 class="text-xs-right">
+           <span class="btn-toggle">
+             <gcs-button text="import"></gcs-button>
+             <export-dialog :groups="groups"></export-dialog>
+           </span>
+         </v-flex>
+       </v-layout>
                <gcs-button
                  slot="activator"
-                 class_id="presets"
                  @click="presets_open()"
                  tooltip="Manage preset groups"
-                 text="Presets">
+                 text="&Presets">
                </gcs-button>
                <v-select
                  class="select"
@@ -149,6 +218,7 @@ function insertUI(insertLoc){
                  </template>
                </v-select>
              </v-menu>
+
            </span>
          </v-flex>
        </v-layout>
@@ -211,11 +281,12 @@ function insertUI(insertLoc){
       highlight_kb_shortcuts: false,
       presets_menu_open: false,
       groups: CalendarManager.groups,
+      keyboardActions: [],
       buttons: [
-        {text: '&User', tooltip: 'Enable a user by name or regexp', click: ui.enable_user, class_id: 'user'},
-        {text: "&Save As", tooltip: 'Save current calendars as a named preset', click: ui.save_as, class_id: 'save_as'},
-        {text: "&Restore", tooltip: 'Restore previous calendars (set by Load & Clear)', click: ui.restore, class_id: 'restore'},
-        {text: "&Clear", tooltip: 'Clear all calendars', click: ui.clear, class_id: 'clear'},
+        {text: '&User', tooltip: 'Enable a user by name or regexp', click: ui.enable_user},
+        {text: "&Save As", tooltip: 'Save current calendars as a named preset', click: ui.save_as},
+        {text: "&Restore", tooltip: 'Restore previous calendars (set by Load & Clear)', click: ui.restore},
+        {text: "&Clear", tooltip: 'Clear all calendars', click: ui.clear},
       ]
     },
     methods: {
@@ -250,8 +321,7 @@ function insertUI(insertLoc){
     },
     computed: {
       dropdown: function() {
-        return Object.keys(this.groups)
-          .filter(group_name => !group_name.match(/^(saved_|__)/))
+        return Object.keys(CalendarManager.exportGroups(false, this.groups))
           .map(group_name => {
             return {
               text: group_name,
@@ -295,8 +365,8 @@ function storeGroups(){
     chrome.storage.sync.set({
       groups: CalendarManager.groups
     }, () => {
-      console.log('groups saved to storage', Object.keys(CalendarManager.groups))
-      message('Groups saved to storage: ' + Object.keys(CalendarManager.groups).join(', '))
+      console.log('groups saved to storage', Object.keys(CalendarManager.exportGroups()))
+      message('Presets saved to storage: ' + Object.keys(CalendarManager.exportGroups()).join(', '))
     })
   } catch(e) {
     console.error('Failed to save groups to sync storage: ' + e.message)
@@ -316,8 +386,7 @@ function loadGroups(){
   } catch(e) {
     console.error('Failed to load groups from sync storage: ' + e.message)
     CalendarManager.setGroups({
-      'group 1': ['a', 'b'],
-      'group 2': ['x', 'y', 'z'],
+      "__last_saved":["saved_1523544210288","saved_1523544212408","dev group","qa team","conference rooms"],"conference rooms":["conf 1", "conf 2"],"dev group":["dev 1", "dev 2", "dev 3"],"qa team":["qa 1"],
     })
   }
 }
@@ -339,37 +408,44 @@ function setupKeyboardShortcuts(){
     hideShortcuts()
   }, 'keyup')
 
+  // wrapper for MouseTrap.bind to do our own bidding
+  const bindKey = function(...args){
+    // find the callback and wrap it
+    for(let index in args){
+      if(typeof args[index] == 'function'){
+        const callback = args[index];
 
-  const parseShortcutText = (text) => {
-    return {
-      pre:      text.substr(0, text.indexOf('&')),
-      shortcut: text.substr(text.indexOf('&')+1, 1),
-      post:     text.substr(text.indexOf('&')+2),
+        args[index] = function(...args){
+          callback.call(this, ...args)
+
+          hideShortcuts()
+        }
+
+        break
+      }
     }
+
+    return Mousetrap.bind(...args)
   }
 
-  vm.buttons.forEach((button)=>{
-    const parts = parseShortcutText(button.text)
-    console.log(parts)
-    const shortcut = parts.shortcut.toLowerCase()
-
-    Mousetrap.bind(`ctrl+alt+${shortcut}`, function(e, combo) {
-      console.log('pressed', combo)
-      $(`.btn.gcs-${button.class_id}`).click()
-      hideShortcuts()
+  vm.keyboardActions.forEach((keyAction) => {
+    bindKey(`${keyAction.modifier}+${keyAction.key}`, function(e, combo) {
+      keyAction.action(e, combo)
     })
   })
 
-  Mousetrap.bind('ctrl+alt+p', function(e, combo) {
-    // emulate a press on the "Presets" button
-    // vm.$refs.presets_menu.activate()
-    // vm.$set(vm, 'presets_menu_open', true)
-    // ui.presets_open(vm)
+  // bindKey('ctrl+alt+t', function(e, combo) {
+  //   $('.btn.gcs-options').click()
+  //   vm.dialog_content = JSON.stringify(CalendarManager.exportGroups(), null, 2)
+  // })
 
-    $('.btn.gcs-presets').click()
-    hideShortcuts()
-  })
+  // bindKey('ctrl+alt+e', function(e, combo) {
+  //   // export presets
+
+  // })
 }
 
 insertUI()
-setupKeyboardShortcuts()
+// do this in the future after all components are registered:
+setTimeout(setupKeyboardShortcuts, 1000)
+
