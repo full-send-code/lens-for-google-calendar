@@ -41,6 +41,18 @@ function insertUI(insertLoc){
   componentHandler.upgradeElements(snackbar)
   $('body').append(snackbar)
 
+
+  Vue.component('label-kb-shortcut', {
+    props: ['text'],
+    template: `
+<span>
+    {{ text.substr(0, text.indexOf('&')) }}
+    <span :class="{'kbd-hint': this.$root.highlight_kb_shortcuts}">
+{{ text.substr(text.indexOf('&')+1, 1) }}</span>{{ text.substr(text.indexOf('&')+2) }}
+</span>
+`
+  })
+
   Vue.component('gcs-button', {
     inherit: true,
     props: ['text', 'tooltip', 'class_id'],
@@ -55,15 +67,29 @@ function insertUI(insertLoc){
       slot="activator"
       :class="['gcs', 'gcs-' + class_id]"
       v-on="$listeners"
-  >
-    {{ text.substr(0, text.indexOf('&')) }}
-    <span :class="{'kbd-hint': this.$root.highlight_kb_shortcuts}">
-      {{ text.substr(text.indexOf('&')+1, 1) }}
-    </span>
-    {{ text.substr(text.indexOf('&')+2) }}
+    >
+    <label-kb-shortcut :text="text"/>
   </v-btn>
   <span>{{ tooltip }}</span>
 </v-tooltip>`
+  })
+
+  Vue.component('dialog', {
+    template: `
+<v-dialog v-model="dialog" max-width="500px">
+  <gcs-button slot="activator" text="dialog"></gcs-button>
+  <v-card>
+    <v-card-title>
+      dialog title
+    </v-card-title>
+    <v-card-text>
+      dialog contents
+    </v-card-text>
+  <v-card-actions>
+    <v-btn color="primary" flat @click.stop="dialog2=false">Close</v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>`
   })
 
 
@@ -94,7 +120,7 @@ function insertUI(insertLoc){
                  slot="activator"
                  class_id="presets"
                  @click="presets_open()"
-                 :tooltip="'Manage preset groups'"
+                 tooltip="Manage preset groups"
                  text="Presets">
                </gcs-button>
                <v-select
