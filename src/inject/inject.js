@@ -1,16 +1,10 @@
 if(chrome && chrome.extension){
   chrome.extension.sendMessage({}, function(response) {
     var readyStateCheckInterval = setInterval(function() {
-	  if (document.readyState === "complete") {
-	    clearInterval(readyStateCheckInterval);
-
-	    // ----------------------------------------------------------
-	    // This part of the script triggers when page is done loading
-	    console.log("Hello. This message was sent from scripts/inject.js after document ready");
-	    // ----------------------------------------------------------
-
-        // insertButton()
-	  }
+      if (document.readyState === "complete") {
+        clearInterval(readyStateCheckInterval);
+        // do stuff here...
+      }
     }, 10);
   });
 }
@@ -32,6 +26,10 @@ var snackbar
 var vm
 var ui
 function insertUI(insertLoc){
+  if(vm){
+    console.warn('calendar selector menu UI already loaded')
+  }
+
   $('head').append(
     $('<link rel="stylesheet" type="text/css" />')
       .attr('href', "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons")
@@ -58,7 +56,7 @@ function insertUI(insertLoc){
     props: ['text'],
     created: function(){
       // register this shortcut and action
-      console.log('label-kb-shortcut created', this.shortcut)
+      // console.log('label-kb-shortcut created', this.shortcut)
 
       if(this.shortcut.enabled){
         this.$root.keyboardActions.push({
@@ -130,11 +128,11 @@ function insertUI(insertLoc){
     },
     computed: {
       content: function(){
-        return JSON.stringify(this.groups, null, 2)
+        return JSON.stringify(this.groups, null)
       },
     },
     template: `
-<v-dialog v-model="showDialog" max-width="500px">
+<v-dialog v-model="showDialog" max-width="750px">
   <gcs-button slot="activator" text="&export"></gcs-button>
   <v-card class="grey lighten-5">
     <v-card-title class="headline">
@@ -143,7 +141,7 @@ function insertUI(insertLoc){
     <v-card-text>
       <v-container grid-list-md>
         <v-layout row wrap>
-          <v-flex xs8>
+          <v-flex xs10>
             <v-text-field box multi-line readonly v-model="content"></v-text-field>
           </v-flex>
         </v-layout>

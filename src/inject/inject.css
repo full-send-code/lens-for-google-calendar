@@ -10,6 +10,15 @@
           box-sizing: inherit;
 }
 
+/* vuetify fix to properly display dialogs*/
+.card__text, .input-group__details,
+::before,
+::after {
+          box-sizing: border-box;
+}
+
+
+
 /* remove min-height from application--wrap */
 .application--wrap {
   min-height: 0vh !important;
