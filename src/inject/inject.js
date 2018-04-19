@@ -130,7 +130,7 @@ function insertUI(insertLoc){
     },
     computed: {
       content: function(){
-        return JSON.stringify(CalendarManager.exportGroups(false, this.groups), null, 2)
+        return JSON.stringify(this.groups, null, 2)
       },
     },
     template: `
@@ -261,7 +261,6 @@ function insertUI(insertLoc){
     clear: ()=>{
       CalendarManager.saveCalendarSelections()
       CalendarManager.disableAll()
-      CalendarManager.enableUser('ilya')
     },
     presets_open: (vm) => {
       console.log('presets_open', vm)
@@ -280,7 +279,7 @@ function insertUI(insertLoc){
     data: {
       highlight_kb_shortcuts: false,
       presets_menu_open: false,
-      groups: CalendarManager.groups,
+      allGroups: CalendarManager.groups,
       keyboardActions: [],
       buttons: [
         {text: '&User', tooltip: 'Enable a user by name or regexp', click: ui.enable_user},
@@ -321,7 +320,8 @@ function insertUI(insertLoc){
     },
     computed: {
       dropdown: function() {
-        return Object.keys(CalendarManager.exportGroups(false, this.groups))
+        console.log('this.groups', this.groups)
+        return Object.keys(this.groups)
           .map(group_name => {
             return {
               text: group_name,
@@ -329,12 +329,16 @@ function insertUI(insertLoc){
             }
           })
       },
-    }
+      groups: function() {
+        return CalendarManager.exportGroups(false, this.allGroups)
+      },
+    },
   })
 
-  // needed to ensure that Vue picks up changes to groups
+  // needed to ensure that Vue picks up changes to groups, but only store the
+  // user groups/presets, not internal ones
   CalendarManager.onGroupsChange = function(groups){
-    vm.groups = Object.assign({}, groups)
+    vm.allGroups = Object.assign({}, groups)
   }
 
   loadGroups()
@@ -365,7 +369,8 @@ function storeGroups(){
     chrome.storage.sync.set({
       groups: CalendarManager.groups
     }, () => {
-      console.log('groups saved to storage', Object.keys(CalendarManager.exportGroups()))
+      console.log('groups saved to storage', Object.keys(CalendarManager.groups))
+      console.log(vm)
       message('Presets saved to storage: ' + Object.keys(CalendarManager.exportGroups()).join(', '))
     })
   } catch(e) {
@@ -385,9 +390,11 @@ function loadGroups(){
     })
   } catch(e) {
     console.error('Failed to load groups from sync storage: ' + e.message)
-    CalendarManager.setGroups({
-      "__last_saved":["saved_1523544210288","saved_1523544212408","dev group","qa team","conference rooms"],"conference rooms":["conf 1", "conf 2"],"dev group":["dev 1", "dev 2", "dev 3"],"qa team":["qa 1"],
-    })
+    setTimeout(()=>{
+      CalendarManager.setGroups({
+        "__last_saved":["saved_1523544210288","saved_1523544212408","dev group","qa team","conference rooms"],"conference rooms":["conf 1", "conf 2"],"dev group":["dev 1", "dev 2", "dev 3"],"qa team":["qa 1"],
+      })
+    }, 10)
   }
 }
 
@@ -433,16 +440,6 @@ function setupKeyboardShortcuts(){
       keyAction.action(e, combo)
     })
   })
-
-  // bindKey('ctrl+alt+t', function(e, combo) {
-  //   $('.btn.gcs-options').click()
-  //   vm.dialog_content = JSON.stringify(CalendarManager.exportGroups(), null, 2)
-  // })
-
-  // bindKey('ctrl+alt+e', function(e, combo) {
-  //   // export presets
-
-  // })
 }
 
 insertUI()
