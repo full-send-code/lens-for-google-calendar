@@ -34,3 +34,11 @@
 /*  box-shadow: inset 0 -2px 0 white, inset 0 -4px 0 red;*/
   box-shadow: inset 0 2px 0 white, inset 0 -2px 0 red;
 }
+
+
+
+.cs-overlay {
+  position: absolute;
+  background: #fff;
+  opacity: 0.85;
+}
