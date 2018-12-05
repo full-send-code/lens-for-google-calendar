@@ -1,1 +1,1 @@
-setTimeout( () => chrome.browserAction.disable(), 5000 )
+// setTimeout( () => chrome.browserAction.disable(), 5000 )

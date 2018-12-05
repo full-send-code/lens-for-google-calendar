@@ -588,7 +588,7 @@
     },
 
     saveCalendarSelections: function(group_name){
-      var active = CM.getVisibleOtherCalendars()
+      var active = calendars
           .filter(c => c.isChecked());
 
       var group_name = (group_name || "saved_" + Date.now()).toLowerCase();
@@ -724,8 +724,3 @@ async function test2(){
   console.log('done toggling all calendars')
   console.log('done test2')
 }
-
-
-// TODOs:
-// - properly save and restore
-
