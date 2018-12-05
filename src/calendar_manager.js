@@ -5,11 +5,13 @@
 
   class Overlay {
     // 8 is the width of the scrollbar
-    constructor(targetEl, opts = {disabled: false, widthAdjustment: -8}){
+    constructor(targetEl, opts = {}){
       this.targetEl = targetEl
-      this.opts = opts
+      this.opts = Object.assign({disabled: false, widthAdjustment: -8}, opts)
       this.overlay = null
       this.overlayEl = jQuery("<div></div>")
+
+      this.showCount = 0
     }
 
     show() {
@@ -27,12 +29,21 @@
       }
 
       this.overlay.show()
+      this.showCount++
+
       return this.overlay
     }
 
     hide() {
-      if(this.overlay){
+      if(this.opts.disabled) {
+        return
+      }
+
+      this.showCount--
+
+      if(this.overlay && this.showCount <= 0 ){
         this.overlay.hide()
+        this.showCount = 0
       }
     }
   }
@@ -43,8 +54,6 @@
       this.el = el
       this.label_el = $('label', el)
       this.checkbox_el = $("div[role='checkbox']", el)
-
-      this.scrollPosition = null
 
       this.calendar = calendar
     }
@@ -58,22 +67,25 @@
       return CalendarList.getScrollContainer()
     }
 
-    saveScrollPosition() {
-      // ensure that the element is visible so we can reliably scroll back to it
-      // NOTE: once cal.el is offscreen, the scroll container (using virtual scrolling), will destroy it
-      //       so it cannot be relied upon over time
-      this.el.scrollIntoViewIfNeeded() // this is a Webkit-only method!
+    async calculateScrollPosition() {
+      // ensure that the element is visible so we can reliably scroll
+      // back to it
+      // NOTE: once cal.el is offscreen, the scroll
+      // container (using virtual scrolling), will destroy it so it
+      // cannot be relied upon over time
+      this.el.scrollIntoView({behavior: 'auto', block: 'center'})
 
-      // save the scroll position of the element
-      this.scrollPosition = this.getScrollContainer().scrollTop
+      // return the scroll position of the element
+      return this.getScrollContainer().scrollTop
     }
 
     async scrollTo() {
       const scrollContainer = this.getScrollContainer()
+      const scrollPosition = this.calendar.scrollPosition
 
-      console.log(this.calendar.name, 'jumping to', this.scrollPosition, 'from', scrollContainer.scrollTop)
-      await scrollElementTo(scrollContainer, this.scrollPosition)
-      
+      console.log(this.calendar.name, 'jumping from', scrollContainer.scrollTop, 'to', scrollPosition)
+      await scrollElementTo(scrollContainer, scrollPosition)
+
       // give the virtual scroller some time to render
       await sleep(100)
     }
@@ -87,6 +99,7 @@
         checked: false,
 
         dom: null,
+        scrollPosition: null,
       })
 
       this.setEl(li_item)
@@ -102,8 +115,21 @@
       })
     }
 
+    get attached() {
+      return this.dom.isAttached()
+    }
+
     getEl() {
       return this.dom.el
+    }
+
+    async saveScrollPosition() {
+      this.scrollPosition = await this.dom.calculateScrollPosition()
+      console.log('saved scroll position:', this.name, this.scrollPosition)
+    }
+
+    isChecked() {
+      return this.checked
     }
 
     /* NOTE: methods below assume that `this.dom.el` is a valid/existing DOM element */
@@ -111,10 +137,6 @@
     toggle(){
       this.dom.label_el.click();
       return this.isChecked()
-    }
-
-    isChecked() {
-      return this.dom.checkbox_el.attributes['aria-checked'].value === "true"
     }
 
     enable(){
@@ -142,6 +164,24 @@
       super(...args)
 
       this.byName = {}
+
+      this.initialized = false
+    }
+
+    async initialize(){
+      if(!this.initialized){
+        await this.discoverCalendarScrollPositions()
+
+        // add listener to re-sync dom when the user clicks on the calendar list manually
+        CalendarList.getScrollContainer().addEventListener('click', (event) => {
+          if(event.isTrusted){
+            // timeout to give the original click event time to change state
+            setTimeout( () => this.refreshVisibleCalendarDOMs(), 500 )
+          }
+        }, {passive: true})
+
+        this.initialized = true
+      }
     }
 
     push(...calendars /* :[Calendar] */){
@@ -156,36 +196,205 @@
           existingCal = cal
         }
 
-        // update existing calendar with element from new one to
+        // automatically update existing calendar with element from new one to
         // recalculate IF this element is not attached to the DOM tree already
-        if(!existingCal.dom.isAttached()) {
+        if(cal.dom.isAttached()) {
           existingCal.setEl(cal.getEl())
-          existingCal.dom.saveScrollPosition()
-          
-          console.log('saving scroll', cal.name, existingCal.dom.scrollPosition)
+        }
+
+        // TODO: it's hacky to try to keep maintaining state like that
+        // a better solution is to keep state (scrollPosition) outside of the Calendar instances themselves
+        // Rewrite CalendarList is just having id2calendar and id2scrollPosition maps
+        if(cal.scrollPosition !== null) {
+          existingCal.scrollPosition = cal.scrollPosition
         }
       }
 
       return this.length
     }
 
-    updateDOM(...calendars) {
-      for(let cal of calendars){
-        let existingCal = this.get(cal.name)
-
-        // update existing calendar with element from new one to
-        // recalculate IF this element is not attached to the DOM tree already
-        if(!existingCal.dom.isAttached()) {
-          existingCal.setEl(cal.getEl())
-        }
-      }
-    }
-
     get(name) {
       return this.byName[name]
     }
 
-    // const cals = CalendarManager.getVisibleOtherCalendars()
+    refreshVisibleCalendarDOMs(...cals) {
+      let visible = CalendarManager.getVisibleOtherCalendars()
+      if(cals.length){
+        let nameFilter = cals.map( c => c.name )
+        visible = visible.filter( c => nameFilter.indexOf(c.name) >= 0 )
+      }
+      this.push(...visible) // will ensure that valid doms overwrite invalid doms
+      return visible
+    }
+
+    async ensureValidDOM(calendar, opts = {restoreScroll: true}) {
+      // at this point we'll try to do some scrolling
+
+      let scrollContainer, savedScrollPosition
+      if(opts.restoreScroll){
+        scrollContainer = CalendarList.getScrollContainer()
+        savedScrollPosition = scrollContainer.scrollTop
+      }
+      overlay.show()
+
+      const result = await this._ensureValidDOM(calendar)
+
+      if(opts.restoreScroll){
+        // scroll back to where we came from
+        await scrollElementTo(scrollContainer, savedScrollPosition)
+      }
+      overlay.hide()
+
+      return result
+    }
+
+    async _ensureValidDOM(calendar, opts = {restoreScroll: true}) {
+      // already have valid dom, do nothing
+      if(calendar.dom.isAttached()){
+        return true
+      }
+
+      // we might be scrolled to the element already, try to refresh
+      this.refreshVisibleCalendarDOMs()
+      if(calendar.dom.isAttached()){
+        return true
+      }
+
+      // try scrolling to calendar, and refresh
+      await calendar.dom.scrollTo()
+      this.refreshVisibleCalendarDOMs()
+      if(calendar.dom.isAttached()){
+        return true
+      }
+
+      // our scroll position could be wrong, so rediscover all scroll positions,
+      // rescroll, and refresh
+      await this.discoverCalendarScrollPositions()
+      await sleep(100)
+      console.log('new cal scroll position:', calendar.scrollPosition)
+      await calendar.dom.scrollTo()
+      this.refreshVisibleCalendarDOMs()
+      if(calendar.dom.isAttached()){
+        return true
+      }
+
+      // if we get here, we can't find the calendar entry in the scroll list
+      return false
+    }
+
+    async toggleAll(cals, opts = {restoreScroll: true}) {
+      await this.initialize()
+
+      let scrollContainer, savedScrollPosition
+      if(opts.restoreScroll){
+        scrollContainer = CalendarList.getScrollContainer()
+        savedScrollPosition = scrollContainer.scrollTop
+      }
+      overlay.show()
+
+      const results = {}
+
+      for(let cal of cals){
+        let enabled = await this.toggle(cal, {restoreScroll: false})
+        results[cal.name] = enabled
+      }
+
+      console.log('post-toggle states:', results)
+
+      if(opts.restoreScroll){
+        // scroll back to where we came from
+        await scrollElementTo(scrollContainer, savedScrollPosition)
+      }
+      overlay.hide()
+
+      return results
+    }
+
+    async toggle(cal, opts = {restoreScroll: true}) {
+      await this.initialize()
+
+      const valid = await this.ensureValidDOM(cal, opts)
+
+      if(!valid){
+        console.error('Could not find valid DOM node for calendar entry', cal.name, cal)
+        return
+      }
+
+      let result = cal.toggle()
+
+      await sleep(200) // wait for the checkbox to change state
+      console.log('refreshing DOMSs')
+      this.refreshVisibleCalendarDOMs(cal) // refresh internal checked state from the DOM
+
+      return cal.isChecked()
+    }
+
+    async enable(filterFn) {
+      await this.initialize()
+
+      if(typeof filterFn != 'function'){
+        return
+      }
+
+      const cals = this
+            .filter(filterFn)
+            .filter(c => !c.isChecked())
+
+      await this.toggleAll(cals)
+
+      // check state of all calendars
+      const failed = this
+            .filter(filterFn)
+            .filter(c => !c.isChecked())
+
+      if(failed.length){
+        console.error('failed to enable calendars:', failed)
+
+        console.log('retrying...')
+        this.enable(filterFn)
+      }
+    }
+
+    async disable(filterFn) {
+      await this.initialize()
+
+      if(typeof filterFn != 'function'){
+        return
+      }
+
+      const cals = this
+            .filter(filterFn)
+            .filter(c => c.isChecked())
+
+      await this.toggleAll(cals)
+
+      // check state of all calendars
+      const failed = this
+            .filter(filterFn)
+            .filter(c => c.isChecked())
+
+      if(failed.length){
+        console.error('failed to disable calendars:', failed)
+      }
+    }
+
+    async toggleByName(calNames, opts){
+      if(!Array.isArray(calNames)){
+        calNames = [calNames]
+      }
+
+      const cals = this.filter( (cal) => {
+        // TODO: can be optimized by removing matched name from calNames
+        return calNames.indexOf(cal.name) >= 0
+      })
+
+      await this.toggleAll(cals, opts)
+    }
+
+    async discoverCalendarScrollPositions() {
+      await CalendarList.discoverCalendarScrollPositions(this)
+    }
+
 
     static getScrollContainer(){
       const childHeader = Array.from(jQuery('body h1')).filter(node => node.innerText == "Drawer")[0]
@@ -195,27 +404,28 @@
     }
 
 
-    static async discoverCalendarScrollPositions(calendars, opts = {restoreOriginalScroll: true}){
-      calendars = calendars || new CalendarManager.CalendarList()
+    static async discoverCalendarScrollPositions(calendars, opts = {}){
+      opts = Object.assign({restoreOriginalScroll: true, scrollIncrement: 50}, opts)
 
+      calendars = calendars || new CalendarManager.CalendarList()
       const scrollContainer = CalendarList.getScrollContainer()
 
       overlay.show()
 
-      await scan(scrollContainer, opts, function detect_calendars(){
+      await scan(scrollContainer, opts, async function detect_calendars(){
         console.log('current scroll position:', scrollContainer.scrollTop)
+
+        // wait for dom to render
+        await sleep(100)
+
         const cals = CalendarManager.getVisibleOtherCalendars()
 
-        console.log('currently see:', CalendarManager.getVisibleOtherCalendars().map(c=>c.name))
+        console.log('currently see:', cals.map(c=>c.name))
 
-        calendars.push(...cals)
-
-        // for(let cal of cals){
-        //   calendars.push(cal)          
-        //   // cal.newToggle = () => {
-        //   //   newToggleCalendar(cal, {restoreScroll: false})
-        //   // }
-        // }
+        for(let cal of cals){
+          await cal.saveScrollPosition()
+          calendars.push(cal)
+        }
       })
 
       overlay.hide()
@@ -224,11 +434,6 @@
       return calendars
     }
   }
-
-  const overlay = new Overlay(CalendarList.getScrollContainer(), {
-    disabled: true // disable for now since we're doing animation
-  })
-
 
   var CM = {
     __exclude_re: /^(saved_|__)/,
@@ -294,14 +499,23 @@
     // },
 
     getCalendarsForGroup: function(group_name){
+      // var names = CM.groups[group_name.toLowerCase()];
+      // if(!names) {
+      //   console.error('group not found:', group_name);
+      //   return [];
+      // }
+
+      // return calendars
+      //   .filter(c => names.indexOf(c.name) >= 0)
+      //   // .op(CM.addAlwaysEnabledCalendars())
+
       var names = CM.groups[group_name.toLowerCase()];
       if(!names) {
         console.error('group not found:', group_name);
         return [];
       }
 
-      return CM.getVisibleOtherCalendars()
-        .filter(c => names.indexOf(c.name) >= 0)
+      return c => names.indexOf(c.name) >= 0
         // .op(CM.addAlwaysEnabledCalendars())
     },
 
@@ -312,33 +526,35 @@
         return [];
       }
 
-      return CM.getVisibleOtherCalendars()
-        .filter(c => names.indexOf(c.name) < 0)
+      return c => names.indexOf(c.name) < 0
+
+      // return calendars
+      //   .filter(c => names.indexOf(c.name) < 0)
     },
 
-    enableGroup: function(group_name){
-      return CM.getCalendarsForGroup(group_name)
-        .filter(c => c.enable())
+    enableGroup: async function(group_name){
+      return calendars.enable(CM.getCalendarsForGroup(group_name))
     },
 
-    disableNonGroup: function(group_name){
-      return CM.getCalendarsNotInGroup(group_name)
-        .filter(c => c.disable())
+    disableNonGroup: async function(group_name){
+      return calendars.disable(CM.getCalendarsNotInGroup(group_name))
     },
 
-    showGroup: function(group_name){
+    showGroup: async function(group_name){
       // CM.disableAll();
       // setTimeout(() => {
-        var enabled = CM.enableGroup(group_name);
-        console.log('enabled:', group_name, '=>', enabled.map(c => c.name));
+        var enabled = await CM.enableGroup(group_name);
+        // console.log('enabled:', group_name, '=>', enabled.map(c => c.name));
       // }, 1000);
 
-      CM.disableNonGroup(group_name);
+      await CM.disableNonGroup(group_name);
     },
 
-    disableGroup: function(group_name){
-      return CM.getCalendarsForGroup(group_name)
-        .filter(c => c.disable())
+    disableGroup: async function(group_name){
+      return calendars.disable(CM.getCalendarsForGroup(group_name))
+
+      // return CM.getCalendarsForGroup(group_name)
+      //   .filter(c => c.disable())
     },
 
     deleteGroup: function(group_name){
@@ -358,23 +574,13 @@
     enableUser: function(name){
       // name is a regex string
       var re = RegExp(name, 'i');
-      var cals = CM.getVisibleOtherCalendars()
-          .filter(c => c.name.match(re));
-
-      var enabled = cals.filter(c => c.enable()); // enables and filters in one step
-      console.log('enabled:', enabled.map(c => c.name));
-      return enabled;
+      calendars.enable(c => c.name.match(re))
     },
 
     disableUser: function(name){
       // name is a regex string
       var re = RegExp(name, 'i');
-      var cals = CM.getVisibleOtherCalendars()
-          .filter(c => c.name.match(re));
-
-      var disabled = cals.filter(c => c.disable()); // enables and filters in one step
-      console.log('disabled:', disabled.map(c => c.name));
-      return disabled;
+      calendars.disable(c => c.name.match(re));
     },
 
     disableAll: function(){
@@ -415,25 +621,32 @@
   };
 
   CM.Calendar = Calendar
+  CM.CalendarDOM = CalendarDOM
   CM.CalendarList = CalendarList
+  CM.Overlay = Overlay
 
   window.CalendarManager = window.CalendarManager || CM;
   console.log('CalendarManager loaded');
 })();
 
 const calendars = new CalendarManager.CalendarList()
+CalendarManager.calendars = calendars
+
+const overlay = new CalendarManager.Overlay(CalendarManager.CalendarList.getScrollContainer(), {
+  disabled: true // disable for now since we're doing animation
+})
+CalendarManager.overlay = overlay
 
 async function scan(el, opts, scrollIncrementedCb){
   let savedPosition = el.scrollTop
+  await scrollElementTo(el, 0)
 
-  el.scrollTop = 0
-
-  await scrollThroughElement(el, 100, scrollIncrementedCb)
+  await scrollThroughElement(el, opts, scrollIncrementedCb)
   console.log('done scanning')
 
   // if true, revert to original scroll position after the scan
   if(opts.restoreOriginalScroll){
-    el.scrollTop = savedPosition
+    await scrollElementTo(el, savedPosition)
   }
 }
 
@@ -443,13 +656,20 @@ function sleep(ms){
   })
 }
 
-async function scrollElementTo(el, scrollTop, opts = {animate: true}){
+async function scrollElementTo(el, scrollTop, opts = {}){
+  opts = Object.assign({animate: true, animateDuration: 500}, opts)
+
   return new Promise((resolve, reject) => {
+    console.log('scrolling to:', scrollTop)
+
     jQuery(el).animate({
       scrollTop: scrollTop
     }, {
-      duration: opts.animate ? 400 : 0,
-      complete: resolve,
+      duration: opts.animate ? opts.animateDuration : 0,
+      complete: ()=>{
+        console.log('scroll to', scrollTop, 'complete')
+        resolve()
+      },
     })
 
     // non-animated version:
@@ -466,78 +686,46 @@ async function scrollElementTo(el, scrollTop, opts = {animate: true}){
   })
 }
 
-async function scrollThroughElement(el, waitTime, scrollIncrementedCb){
-  waitTime = waitTime || 100
+async function scrollThroughElement(el, opts = {}, scrollIncrementedCb){
+  opts = Object.assign({scrollIncrement: 50}, opts)
 
   while(el.scrollTop < (el.scrollHeight - el.clientHeight)){
-    await scrollElementTo(el, el.scrollTop + 50, {animate: false})
-    await sleep(waitTime)
+    await scrollElementTo(el, el.scrollTop + opts.scrollIncrement, {animate: false})
 
     if(typeof scrollIncrementedCb == 'function'){
-      await scrollIncrementedCb() // is await appropriate here?
+      await scrollIncrementedCb()
     }
+  }
+
+  // do one last scan
+  if(typeof scrollIncrementedCb == 'function'){
+    await scrollIncrementedCb()
   }
 }
 
 
-async function newToggleCalendar(calendar, opts = {restoreScroll: true}){
-  // calendar = globalCalendarsByName[calendar.name]
-
-  function findMatchingAtCurrentScroll(calendar){
-    const cals = CalendarManager.getVisibleOtherCalendars()
-    console.log(`looking for ${calendar.name} in ${cals.map(cal => cal.name)}`)
-
-    const matching = cals.filter(cal => cal.name == calendar.name)
-    return matching
+async function test1(){
+  console.log('starting test1')
+  for(let cal of calendars){
+    console.log('toggling', cal.name)
+    await calendars.toggle(cal, {restoreScroll: false})
+    console.log('toggled', cal.name)
+    await sleep(1000)
   }
+  console.log('done test1')
+}
 
-  // determine if we need to scroll at all, and if found, ensures we
-  // have a valid dom element to operate on
-  let matching = findMatchingAtCurrentScroll(calendar)
-  let found = !!matching.length
+async function test2(){
+  console.log('starting test2')
+  console.log('toggling all calendars')
 
-  if(found){
-    // no need to scroll, toggle directly
-    matching.forEach(cal => cal.toggle())
-  } else {
-    overlay.show()
+  await calendars.toggleAll(calendars)
 
-    // target calendar not in view, we need to scroll
-    const savedScrollPosition = cal.getScrollContainer().scrollTop
-    await calendar.dom.scrollTo()
-
-    let matching = findMatchingAtCurrentScroll(calendar)
-    matching.forEach(cal => cal.toggle())
-
-    console.log('found cal entry:', !!matching.length)
-
-    // if entry is not found, refresh calendar listings and try again
-    if(!matching.length){
-      console.log("didn't find a matching calendar entry, refreshing list...")
-      await CalendarList.discoverCalendarScrollPositions(calendars)
-      // calendar = globalCalendarsByName[calendar.name]
-      console.log("list refreshed, trying toggle again")
-
-      await calendar.dom.scrollTo()
-
-      let matching = findMatchingAtCurrentScroll(calendar)
-      matching.forEach(cal => cal.toggle())
-
-      console.log('found cal entry (giving up if not found):', !!matching.length)
-    }
-
-    if(opts.restoreScroll){
-      // scroll back to where we came from
-      await scrollElementTo(scrollContainer, savedScrollPosition)
-    }
-
-    overlay.hide()
-  }
+  console.log('done toggling all calendars')
+  console.log('done test2')
 }
 
 
-// await CalendarManager.CalendarList.discoverCalendarScrollPositions(calendars)
+// TODOs:
+// - properly save and restore
 
-// 12/3/18 TODO
-// - integrate listAllOthersCalendars() and newToggleCalendar() functions into the normal code flow
-// - can't rely on DOM status for functions like isChecked, so those will need to get rewritten to eval immediately and save the result
