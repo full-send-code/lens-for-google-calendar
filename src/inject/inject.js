@@ -152,7 +152,7 @@ function insertUI(insertLoc){
     },
     template: `
 <v-dialog v-model="showDialog" max-width="750px" @keydown.esc="close()" transition="slide-y-transition" origin="top center 0">
-  <gcs-button slot="activator" text="&export"></gcs-button>
+  <gcs-button slot="activator" text="e&xport"></gcs-button>
   <v-card class="grey lighten-5">
     <v-card-title class="headline">
     Export Presets
@@ -243,12 +243,12 @@ function insertUI(insertLoc){
   console.log('groups in live', CalendarManager.groups)
 
   ui = {
-    enable_user: ()=>{
-      console.log('clicked on enable user button')
-      var user_name = prompt('Enable user by name/regex (current selection will be auto-saved)')
-      if(!user_name)
+    enable_calendar: ()=>{
+      console.log('clicked on enable calendar button')
+      var calendar_name = prompt('Enable calendar by name (case insensitive regex)')
+      if(!calendar_name)
         return
-      CalendarManager.enableUser(user_name)
+      CalendarManager.enableCalendar(calendar_name)
     },
     save_as: ()=>{
       var group_name = prompt('Save Group name')
@@ -367,7 +367,7 @@ function insertUI(insertLoc){
         allGroups: CalendarManager.groups,
         keyboardActions: [],
         buttons: [
-          {text: '&User', tooltip: 'Enable a user by name or regexp', click: ui.enable_user},
+          {text: '&Enable', tooltip: 'Enable a calendar by name or regexp', click: ui.enable_calendar},
           {text: "&Save As", tooltip: 'Save current calendars as a named preset', click: ui.save_as},
           {text: "&Restore", tooltip: 'Restore previous calendars (set by Load & Clear)', click: ui.restore},
           {text: "&Clear", tooltip: 'Clear all calendars', click: ui.clear},
@@ -425,7 +425,7 @@ function insertUI(insertLoc){
     })
 
     // needed to ensure that Vue picks up changes to groups, but only store the
-    // user groups/presets, not internal ones
+    // calendar groups/presets, not internal ones
     CalendarManager.onGroupsChange = function(groups){
       vm.allGroups = Object.assign({}, groups)
     }

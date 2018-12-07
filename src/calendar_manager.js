@@ -571,20 +571,20 @@
       return groups[group_name];
     },
 
-    enableUser: function(name){
+    enableCalendar: function(name){
       // name is a regex string
       var re = RegExp(name, 'i');
       calendars.enable(c => c.name.match(re))
     },
 
-    disableUser: function(name){
+    disableCalendar: function(name){
       // name is a regex string
       var re = RegExp(name, 'i');
       calendars.disable(c => c.name.match(re));
     },
 
     disableAll: function(){
-      return CM.disableUser('.')
+      return CM.disableCalendar('.')
     },
 
     saveCalendarSelections: function(group_name){
