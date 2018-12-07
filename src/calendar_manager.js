@@ -218,7 +218,7 @@
     }
 
     refreshVisibleCalendarDOMs(...cals) {
-      let visible = CalendarManager.getVisibleOtherCalendars()
+      let visible = CalendarManager.getVisibleCalendars()
       if(cals.length){
         let nameFilter = cals.map( c => c.name )
         visible = visible.filter( c => nameFilter.indexOf(c.name) >= 0 )
@@ -418,7 +418,7 @@
         // wait for dom to render
         await sleep(100)
 
-        const cals = CalendarManager.getVisibleOtherCalendars()
+        const cals = CalendarManager.getVisibleCalendars()
 
         console.log('currently see:', cals.map(c=>c.name))
 
@@ -473,15 +473,24 @@
       return Array.from($("div[aria-label='Other calendars']").querySelectorAll("li[role='listitem']"))
     },
 
-    getOtherCalendars: function(){
+    // friendlier name:
+    getVisibleOtherCalendars: function(){
       return CM.getOtherCalendarsElements().map(Calendar.create)
     },
 
-    // friendlier name:
-    getVisibleOtherCalendars: function(){
-      return CM.getOtherCalendars()
+    getMyCalendarsElements: function(){
+      return Array.from($("div[aria-label='My calendars']").querySelectorAll("li[role='listitem']"))
     },
 
+    getVisibleMyCalendars: function(){
+      return CM.getMyCalendarsElements().map(Calendar.create)
+    },
+
+
+    // gets all 'my' and 'other' visible alendars
+    getVisibleCalendars: function(){
+      return CM.getVisibleMyCalendars().concat(CM.getVisibleOtherCalendars())
+    },
 
     // /* usage:
     //  * calendarsArray.op(addAlwaysEnabledCalendars())
