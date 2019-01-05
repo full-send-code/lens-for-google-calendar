@@ -83,7 +83,7 @@
       const scrollContainer = this.getScrollContainer()
       const scrollPosition = this.calendar.scrollPosition
 
-      console.log(this.calendar.name, 'jumping from', scrollContainer.scrollTop, 'to', scrollPosition)
+      // console.log(this.calendar.name, 'jumping from', scrollContainer.scrollTop, 'to', scrollPosition)
       await scrollElementTo(scrollContainer, scrollPosition)
 
       // give the virtual scroller some time to render
@@ -125,7 +125,7 @@
 
     async saveScrollPosition() {
       this.scrollPosition = await this.dom.calculateScrollPosition()
-      console.log('saved scroll position:', this.name, this.scrollPosition)
+      // console.log('saved scroll position:', this.name, this.scrollPosition)
     }
 
     isChecked() {
@@ -271,7 +271,7 @@
       // rescroll, and refresh
       await this.discoverCalendarScrollPositions()
       await sleep(100)
-      console.log('new cal scroll position:', calendar.scrollPosition)
+      // console.log('new cal scroll position:', calendar.scrollPosition)
       await calendar.dom.scrollTo()
       this.refreshVisibleCalendarDOMs()
       if(calendar.dom.isAttached()){
@@ -299,7 +299,7 @@
         results[cal.name] = enabled
       }
 
-      console.log('post-toggle states:', results)
+      // console.log('post-toggle states:', results)
 
       if(opts.restoreScroll){
         // scroll back to where we came from
@@ -323,7 +323,7 @@
       let result = cal.toggle()
 
       await sleep(200) // wait for the checkbox to change state
-      console.log('refreshing DOMSs')
+      // console.log('refreshing DOMSs')
       this.refreshVisibleCalendarDOMs(cal) // refresh internal checked state from the DOM
 
       return cal.isChecked()
@@ -413,14 +413,14 @@
       overlay.show()
 
       await scan(scrollContainer, opts, async function detect_calendars(){
-        console.log('current scroll position:', scrollContainer.scrollTop)
+        // console.log('current scroll position:', scrollContainer.scrollTop)
 
         // wait for dom to render
         await sleep(100)
 
         const cals = CalendarManager.getVisibleCalendars()
 
-        console.log('currently see:', cals.map(c=>c.name))
+        // console.log('currently see:', cals.map(c=>c.name))
 
         for(let cal of cals){
           await cal.saveScrollPosition()
@@ -430,7 +430,7 @@
 
       overlay.hide()
 
-      console.log('all calendars', calendars.map(cal => cal.name))
+      // console.log('all calendars', calendars.map(cal => cal.name))
       return calendars
     }
   }
@@ -651,7 +651,7 @@ async function scan(el, opts, scrollIncrementedCb){
   await scrollElementTo(el, 0)
 
   await scrollThroughElement(el, opts, scrollIncrementedCb)
-  console.log('done scanning')
+  // console.log('done scanning')
 
   // if true, revert to original scroll position after the scan
   if(opts.restoreOriginalScroll){
@@ -669,14 +669,14 @@ async function scrollElementTo(el, scrollTop, opts = {}){
   opts = Object.assign({animate: true, animateDuration: 500}, opts)
 
   return new Promise((resolve, reject) => {
-    console.log('scrolling to:', scrollTop)
+    // console.log('scrolling to:', scrollTop)
 
     jQuery(el).animate({
       scrollTop: scrollTop
     }, {
       duration: opts.animate ? opts.animateDuration : 0,
       complete: ()=>{
-        console.log('scroll to', scrollTop, 'complete')
+        // console.log('scroll to', scrollTop, 'complete')
         resolve()
       },
     })
@@ -710,26 +710,4 @@ async function scrollThroughElement(el, opts = {}, scrollIncrementedCb){
   if(typeof scrollIncrementedCb == 'function'){
     await scrollIncrementedCb()
   }
-}
-
-
-async function test1(){
-  console.log('starting test1')
-  for(let cal of calendars){
-    console.log('toggling', cal.name)
-    await calendars.toggle(cal, {restoreScroll: false})
-    console.log('toggled', cal.name)
-    await sleep(1000)
-  }
-  console.log('done test1')
-}
-
-async function test2(){
-  console.log('starting test2')
-  console.log('toggling all calendars')
-
-  await calendars.toggleAll(calendars)
-
-  console.log('done toggling all calendars')
-  console.log('done test2')
 }
