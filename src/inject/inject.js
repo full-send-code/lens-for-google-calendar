@@ -275,7 +275,7 @@ function insertUI(insertLoc){
           vm.$refs.select.showMenu()
         }
       }, 100)
-    }
+    },
   }
 
 
@@ -324,6 +324,7 @@ function insertUI(insertLoc){
                  hide-details
                  item-value="text"
                  ref="select"
+                 :filter="custom_preset_filter"
                  @keyup.esc="presets_menu_open = false"
                  @input="select_input"
                >
@@ -405,6 +406,14 @@ function insertUI(insertLoc){
         import_presets: function(groups){
           CalendarManager.setGroups(groups)
           storeGroups()
+        },
+        custom_preset_filter: function(item, queryText, itemText){
+          var hasValue = val => val != null ? val : ''
+
+          var text = hasValue(itemText);
+          var query = hasValue(queryText);
+
+          return text.toString().toLowerCase().startsWith(query.toString().toLowerCase());
         }
       },
       computed: {
