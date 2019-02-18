@@ -669,7 +669,7 @@ async function scrollElementTo(el, scrollTop, opts = {}){
   opts = Object.assign({animate: true, animateDuration: 500}, opts)
 
   return new Promise((resolve, reject) => {
-    // console.log('scrolling to:', scrollTop)
+    cm_debug('scrollIncrementTo', 'scrolling to:', scrollTop)
 
     jQuery(el).animate({
       scrollTop: scrollTop
@@ -698,16 +698,47 @@ async function scrollElementTo(el, scrollTop, opts = {}){
 async function scrollThroughElement(el, opts = {}, scrollIncrementedCb){
   opts = Object.assign({scrollIncrement: 50}, opts)
 
-  while(el.scrollTop < (el.scrollHeight - el.clientHeight)){
+  cm_debug('scrollThroughIncrement', {scrollTop: el.scrollTop, scrollHeight: el.scrollHeight, clientHeight: el.clientHeight, 'scrollHeight-clientHeight': el.scrollHeight - el.clientHeight})
+
+  const delta = .000002 // pixels
+  const eq = (a, b) => { return Math.abs(a-b) < delta }
+
+  let lastScrollTop = -1
+
+  // stop scrolling when a 'scrollTo' results in no changes to the scroll position
+  while( !eq(lastScrollTop, el.scrollTop) ){
+    cm_debug('scrollThroughIncrement', 'looping', {scrollTop: el.scrollTop, scrollHeight: el.scrollHeight, clientHeight: el.clientHeight, 'scrollHeight-clientHeight': el.scrollHeight - el.clientHeight})
+
+    cm_debug('scrollThroughIncrement', 'scrolling to', el.scrollTop + opts.scrollIncrement)
+
     await scrollElementTo(el, el.scrollTop + opts.scrollIncrement, {animate: false})
 
+    cm_debug('scrollThroughIncrement', 'should equal "scroll to" above:', el.scrollTop)
+
+    lastScrollTop = el.scrollTop
+
     if(typeof scrollIncrementedCb == 'function'){
+      // NOTE: this function can further scroll the element when
+      // centering the calendar in the visible window
       await scrollIncrementedCb()
     }
+
+    cm_debug('scrollThroughIncrement', 'scrollTop after increment callback: ', el.scrollTop)
   }
 
   // do one last scan
+  cm_debug('scrollThroughIncrement', 'doing last scan')
   if(typeof scrollIncrementedCb == 'function'){
     await scrollIncrementedCb()
+  }
+}
+
+let cm_debug_enabled = false
+function cm_debug(...args){
+  if(args[0]){
+    args[0] = `[${args[0]}]`
+  }
+  if(cm_debug_enabled){
+    console.log(...args)
   }
 }
