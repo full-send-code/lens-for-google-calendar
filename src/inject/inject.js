@@ -243,30 +243,30 @@ function insertUI(insertLoc){
   console.log('groups in live', CalendarManager.groups)
 
   ui = {
-    enable_calendar: ()=>{
+    enable_calendar: async ()=>{
       console.log('clicked on enable calendar button')
       var calendar_name = prompt('Enable calendar by name (case insensitive regex)')
       if(!calendar_name)
         return
-      CalendarManager.enableCalendar(calendar_name)
+      await CalendarManager.enableCalendar(calendar_name)
     },
-    save_as: ()=>{
+    save_as: async ()=>{
       var group_name = prompt('Save Group name')
       if(!group_name)
         return
 
-      CalendarManager.saveCalendarSelections(group_name)
+      await CalendarManager.saveCalendarSelections(group_name)
       storeGroups()
     },
-    restore: ()=>{
+    restore: async ()=>{
       console.log('clicked on restore button')
-      CalendarManager.restoreCalendarSelections()
+      await CalendarManager.restoreCalendarSelections()
     },
-    clear: ()=>{
-      CalendarManager.saveCalendarSelections()
-      CalendarManager.disableAll()
+    clear: async ()=>{
+      await CalendarManager.saveCalendarSelections()
+      await CalendarManager.disableAll()
     },
-    presets_open: (vm) => {
+    presets_open: async (vm) => {
       console.log('presets_open', vm)
       setTimeout(()=>{ // timeout to allow the menu to be rendered first
         /* console.log(this.$refs.select)*/
