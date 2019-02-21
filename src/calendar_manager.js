@@ -335,7 +335,7 @@
       const results = {}
 
       for(let cal of cals){
-        let enabled = await this.toggle(cal, {restoreScroll: false})
+        let enabled = await this.toggleSingle(cal, {restoreScroll: false})
         results[cal.name] = enabled
       }
 
@@ -350,7 +350,7 @@
       return results
     }
 
-    async toggle(cal, opts = {restoreScroll: true}) {
+    async toggleSingle(cal, opts = {restoreScroll: true}) {
       await this.initialize()
 
       const valid = await this.ensureValidDOM(cal, opts)
@@ -417,6 +417,20 @@
         console.error('failed to disable calendars:', failed)
       }
     }
+
+    async toggle(filterFn) {
+      if(typeof filterFn != 'function'){
+        throw new Error('filterFn must be a function')
+      }
+
+      await this.initialize()
+
+      const cals = this
+            .filter(filterFn)
+
+      await this.toggleAll(cals)
+    }
+
 
     async toggleByName(calNames, opts){
       if(!Array.isArray(calNames)){
@@ -633,6 +647,12 @@
       // name is a regex string
       var re = RegExp(name, 'i');
       await CM.calendars.enable(c => c.name.match(re))
+    },
+
+    toggleCalendar: async function(name){
+      // name is a regex string
+      var re = RegExp(name, 'i');
+      await CM.calendars.toggle(c => c.name.match(re))
     },
 
     disableCalendar: async function(name){

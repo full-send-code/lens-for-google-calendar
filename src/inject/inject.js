@@ -250,6 +250,12 @@ function insertUI(insertLoc){
         return
       await CalendarManager.enableCalendar(calendar_name)
     },
+    toggle_calendar: async ()=>{
+      var calendar_name = prompt('Toggle calendar by name (case insensitive regex)')
+      if(!calendar_name)
+        return
+      await CalendarManager.toggleCalendar(calendar_name)
+    },
     save_as: async ()=>{
       var group_name = prompt('Save Group name')
       if(!group_name)
@@ -366,7 +372,14 @@ function insertUI(insertLoc){
         highlight_kb_shortcuts: false,
         presets_menu_open: false,
         allGroups: CalendarManager.groups,
-        keyboardActions: [],
+        keyboardActions: [
+          // non gcs-button driven actions added here directly
+          { // toggle
+            modifier: 'ctrl+alt',
+            key: 't',
+            action: ui.toggle_calendar,
+          }
+        ],
         buttons: [
           {text: '&Enable', tooltip: 'Enable a calendar by name or regexp', click: ui.enable_calendar},
           {text: "&Save As", tooltip: 'Save current calendars as a named preset', click: ui.save_as},
@@ -535,7 +548,9 @@ function setupKeyboardShortcuts(){
   }
 
   vm.keyboardActions.forEach((keyAction) => {
+    // console.log('registering keyboard action: ', `${keyAction.modifier}+${keyAction.key}`, keyAction.action)
     bindKey(`${keyAction.modifier}+${keyAction.key}`, function(e, combo) {
+      // console.log('keyboard action: ', combo, e)
       keyAction.action(e, combo)
     })
   })
