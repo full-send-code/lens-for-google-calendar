@@ -3,6 +3,10 @@
     return (startNode || document).querySelector(selector)
   };
 
+  var $$ = function(selector, startNode){
+    return (startNode || document).querySelectorAll(selector)
+  };
+
   class Overlay {
     // 8 pixels is the width of the scrollbar
     constructor(targetEl, opts = {}){
@@ -451,10 +455,12 @@
 
 
     static getScrollContainer(){
-      const childHeader = Array.from(jQuery('body h1')).filter(node => node.innerText == "Drawer")[0]
-      if(!childHeader) return null
-
-      return childHeader.parentElement // there's also a .parentNode
+      try {
+        return $('div#drawerMiniMonthNavigator').parentElement // there's also a .parentNode
+      } catch (e){
+        console.error('Could not find calendar list scroll container via "div#drawerMiniMonthNavigator"')
+        throw e
+      }
     }
 
 
@@ -533,7 +539,8 @@
     },
 
     getOtherCalendarsElements: function(){
-      return Array.from($("div[aria-label='Other calendars']").querySelectorAll("li[role='listitem']"))
+      // first list div is the 'my calendars' list, second is the 'other calendars' list
+      return Array.from($$("div[role=list]")[1].querySelectorAll("li[role='listitem']"))
     },
 
     // friendlier name:
@@ -542,7 +549,8 @@
     },
 
     getMyCalendarsElements: function(){
-      return Array.from($("div[aria-label='My calendars']").querySelectorAll("li[role='listitem']"))
+      // first list div is the 'my calendars' list, second is the 'other calendars' list
+      return Array.from($$("div[role=list]")[0].querySelectorAll("li[role='listitem']"))
     },
 
     getVisibleMyCalendars: function(){
