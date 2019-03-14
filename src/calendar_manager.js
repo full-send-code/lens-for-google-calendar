@@ -538,29 +538,13 @@
       }
     },
 
-    getOtherCalendarsElements: function(){
-      // first list div is the 'my calendars' list, second is the 'other calendars' list
-      return Array.from($$("div[role=list]")[1].querySelectorAll("li[role='listitem']"))
+    getVisibleCalendarsElements: function(){
+      return Array.from($$("div[role='list'] li[role='listitem']"))
     },
-
-    // friendlier name:
-    getVisibleOtherCalendars: function(){
-      return CM.getOtherCalendarsElements().map(Calendar.create)
-    },
-
-    getMyCalendarsElements: function(){
-      // first list div is the 'my calendars' list, second is the 'other calendars' list
-      return Array.from($$("div[role=list]")[0].querySelectorAll("li[role='listitem']"))
-    },
-
-    getVisibleMyCalendars: function(){
-      return CM.getMyCalendarsElements().map(Calendar.create)
-    },
-
 
     // gets all 'my' and 'other' visible alendars
     getVisibleCalendars: function(){
-      return CM.getVisibleMyCalendars().concat(CM.getVisibleOtherCalendars())
+      return CM.getVisibleCalendarsElements().map(Calendar.create)
     },
 
     // /* usage:
