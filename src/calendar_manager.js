@@ -552,17 +552,7 @@
       return CM.getVisibleCalendarsElements().map(Calendar.create)
     },
 
-    getCalendarsForGroup: function(group_name){
-      // var names = CM.groups[group_name.toLowerCase()];
-      // if(!names) {
-      //   console.error('group not found:', group_name);
-      //   return [];
-      // }
-
-      // return calendars
-      //   .filter(c => names.indexOf(c.name) >= 0)
-      //   // .op(CM.addAlwaysEnabledCalendars())
-
+    getCalendarsForGroupFilter: function(group_name){
       var ids = CM.groups[group_name.toLowerCase()];
       if(!ids) {
         console.error('group not found:', group_name);
@@ -573,7 +563,7 @@
         || ids.indexOf(c.name) >= 0       // support both ids and names in saved groups
     },
 
-    getCalendarsNotInGroup: function(group_name){
+    getCalendarsNotInGroupFilter: function(group_name){
       var ids = CM.groups[group_name.toLowerCase()];
       if(!ids) {
         console.error('group not found:', group_name);
@@ -582,17 +572,14 @@
 
       return c => ids.indexOf(c.id) < 0
         && ids.indexOf(c.name) < 0        // support both ids and names in saved groups
-
-      // return calendars
-      //   .filter(c => ids.indexOf(c.id) < 0)
     },
 
     enableGroup: async function(group_name){
-      return CM.calendars.enable(CM.getCalendarsForGroup(group_name))
+      return CM.calendars.enable(CM.getCalendarsForGroupFilter(group_name))
     },
 
     disableNonGroup: async function(group_name){
-      return CM.calendars.disable(CM.getCalendarsNotInGroup(group_name))
+      return CM.calendars.disable(CM.getCalendarsNotInGroupFilter(group_name))
     },
 
     showGroup: async function(group_name){
@@ -601,7 +588,7 @@
     },
 
     disableGroup: async function(group_name){
-      return CM.calendars.disable(CM.getCalendarsForGroup(group_name))
+      return CM.calendars.disable(CM.getCalendarsForGroupFilter(group_name))
     },
 
     deleteGroup: function(group_name){
