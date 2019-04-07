@@ -139,6 +139,11 @@
       })
     }
 
+    // property used to identify this calendar entry in save lists and preset lists
+    get id() {
+      return this.email
+    }
+
     get attached() {
       return this.dom.isAttached()
     }
@@ -185,7 +190,9 @@
     constructor(...args){
       super(...args)
 
-      this.byName = {}
+      // this.byName = {}
+      // this.byEmail = {}
+      this.byId = {}
       this.initialized = false
 
       // it's not necessary to re-initialize a CalendarList that's a clone of another list (via map/filter)
@@ -215,13 +222,16 @@
     push(...calendars /* :[Calendar] */){
       for(let cal of calendars){
 
-        let existingCal = this.get(cal.name)
+        let existingCal = this.get(cal.id)
 
         // only add elements we haven't seen already
         if(!existingCal){
           super.push(cal)
-          this.byName[cal.name] = cal
-          existingCal = cal        }
+          // this.byName[cal.name] = cal
+          // this.byEmail[cal.email] = cal
+          this.byId[cal.id] = cal
+          existingCal = cal
+        }
         else {
           // automatically update existing calendar with element from new one to
           // recalculate IF this element is not attached to the DOM tree already
@@ -241,15 +251,18 @@
       return this.length
     }
 
-    get(name) {
-      return this.byName[name]
+    // get(name) {
+    //   return this.byName[name]
+    // }
+    get(id) {
+      return this.byId[id]
     }
 
     refreshVisibleCalendarDOMs(...cals) {
       let visible = CalendarManager.getVisibleCalendars()
       if(cals.length){
-        let nameFilter = cals.map( c => c.name )
-        visible = visible.filter( c => nameFilter.indexOf(c.name) >= 0 )
+        let idFilter = cals.map( c => c.id )
+        visible = visible.filter( c => idFilter.indexOf(c.id) >= 0 )
       }
       this.push(...visible) // will ensure that valid doms overwrite invalid doms
       return visible
@@ -340,7 +353,7 @@
 
       for(let cal of cals){
         let enabled = await this.toggleSingle(cal, {restoreScroll: false})
-        results[cal.name] = enabled
+        results[cal.id] = enabled
       }
 
       // console.log('post-toggle states:', results)
@@ -360,7 +373,7 @@
       const valid = await this.ensureValidDOM(cal, opts)
 
       if(!valid){
-        console.error('Could not find valid DOM node for calendar entry', cal.name, cal)
+        console.error('Could not find valid DOM node for calendar entry', cal.id, cal)
         return
       }
 
@@ -436,14 +449,14 @@
     }
 
 
-    async toggleByName(calNames, opts){
-      if(!Array.isArray(calNames)){
-        calNames = [calNames]
+    async toggleById(calIds, opts){
+      if(!Array.isArray(calIds)){
+        calIds = [calIds]
       }
 
       const cals = this.filter( (cal) => {
-        // TODO: can be optimized by removing matched name from calNames
-        return calNames.indexOf(cal.name) >= 0
+        // TODO: can be optimized by removing matched id from calIds
+        return calIds.indexOf(cal.id) >= 0
       })
 
       await this.toggleAll(cals, opts)
@@ -480,7 +493,7 @@
 
         const cals = CM.getVisibleCalendars()
 
-        // console.log('currently see:', cals.map(c=>c.name))
+        // console.log('currently see:', cals.map(c=>c.id))
 
         for(let cal of cals){
           await cal.saveScrollPosition()
@@ -490,7 +503,7 @@
 
       Overlay.getInstance().hide()
 
-      // console.log('all calendars', calendars.map(cal => cal.name))
+      // console.log('all calendars', calendars.map(cal => cal.id))
       return calendars
     }
 
@@ -573,27 +586,29 @@
       //   .filter(c => names.indexOf(c.name) >= 0)
       //   // .op(CM.addAlwaysEnabledCalendars())
 
-      var names = CM.groups[group_name.toLowerCase()];
-      if(!names) {
+      var ids = CM.groups[group_name.toLowerCase()];
+      if(!ids) {
         console.error('group not found:', group_name);
         return [];
       }
 
-      return c => names.indexOf(c.name) >= 0
+      return c => ids.indexOf(c.id) >= 0
+        || ids.indexOf(c.name) >= 0       // support both ids and names in saved groups
         // .op(CM.addAlwaysEnabledCalendars())
     },
 
     getCalendarsNotInGroup: function(group_name){
-      var names = CM.groups[group_name.toLowerCase()];
-      if(!names) {
+      var ids = CM.groups[group_name.toLowerCase()];
+      if(!ids) {
         console.error('group not found:', group_name);
         return [];
       }
 
-      return c => names.indexOf(c.name) < 0
+      return c => ids.indexOf(c.id) < 0
+        && ids.indexOf(c.name) < 0        // support both ids and names in saved groups
 
       // return calendars
-      //   .filter(c => names.indexOf(c.name) < 0)
+      //   .filter(c => ids.indexOf(c.id) < 0)
     },
 
     enableGroup: async function(group_name){
@@ -608,7 +623,7 @@
       // CM.disableAll();
       // setTimeout(() => {
         var enabled = await CM.enableGroup(group_name);
-        // console.log('enabled:', group_name, '=>', enabled.map(c => c.name));
+        // console.log('enabled:', group_name, '=>', enabled.map(c => c.id));
       // }, 1000);
 
       await CM.disableNonGroup(group_name);
@@ -664,7 +679,7 @@
       var group_name = (group_name || "saved_" + Date.now()).toLowerCase();
       var groups = CM.groups = CM.groups || {};
 
-      groups[group_name] = active.map(c => c.name);
+      groups[group_name] = active.map(c => c.id);
 
       groups.__last_saved = groups.__last_saved || [];
       groups.__last_saved.push(group_name);
