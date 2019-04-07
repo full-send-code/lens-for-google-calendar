@@ -87,7 +87,6 @@
     }
 
     getScrollContainer(){
-      //return this.el.parentElement.parentElement
       return CalendarList.getScrollContainer()
     }
 
@@ -190,8 +189,6 @@
     constructor(...args){
       super(...args)
 
-      // this.byName = {}
-      // this.byEmail = {}
       this.byId = {}
       this.initialized = false
 
@@ -227,8 +224,6 @@
         // only add elements we haven't seen already
         if(!existingCal){
           super.push(cal)
-          // this.byName[cal.name] = cal
-          // this.byEmail[cal.email] = cal
           this.byId[cal.id] = cal
           existingCal = cal
         }
@@ -251,9 +246,6 @@
       return this.length
     }
 
-    // get(name) {
-    //   return this.byName[name]
-    // }
     get(id) {
       return this.byId[id]
     }
@@ -560,21 +552,6 @@
       return CM.getVisibleCalendarsElements().map(Calendar.create)
     },
 
-    // /* usage:
-    //  * calendarsArray.op(addAlwaysEnabledCalendars())
-    //  */
-    // addAlwaysEnabledCalendars: function(always_on = CM.groups.__always_on){
-    //   return function(calendars){
-    //     console.log(calendars)
-    //     for(let cal of always_on){
-    //       if(calendars.indexOf(cal) < 0){
-    //         calendars.push(cal)
-    //       }
-    //     }
-    //     return calendars
-    //   }
-    // },
-
     getCalendarsForGroup: function(group_name){
       // var names = CM.groups[group_name.toLowerCase()];
       // if(!names) {
@@ -594,7 +571,6 @@
 
       return c => ids.indexOf(c.id) >= 0
         || ids.indexOf(c.name) >= 0       // support both ids and names in saved groups
-        // .op(CM.addAlwaysEnabledCalendars())
     },
 
     getCalendarsNotInGroup: function(group_name){
@@ -620,20 +596,12 @@
     },
 
     showGroup: async function(group_name){
-      // CM.disableAll();
-      // setTimeout(() => {
-        var enabled = await CM.enableGroup(group_name);
-        // console.log('enabled:', group_name, '=>', enabled.map(c => c.id));
-      // }, 1000);
-
-      await CM.disableNonGroup(group_name);
+      await CM.enableGroup(group_name)
+      await CM.disableNonGroup(group_name)
     },
 
     disableGroup: async function(group_name){
       return CM.calendars.disable(CM.getCalendarsForGroup(group_name))
-
-      // return CM.getCalendarsForGroup(group_name)
-      //   .filter(c => c.disable())
     },
 
     deleteGroup: function(group_name){
