@@ -478,15 +478,39 @@ function message(message){
 
 function storeGroups(){
   try {
+    // truncate the number of autosaved states that should get saved
+    // remove list of saved_{TS} entries, and remove their names from __last_saved array
+    const to_remove = Object.keys(CalendarManager.groups).filter(preset_name => {
+      return preset_name && preset_name.indexOf('saved_') == 0
+    })
+          .sort()
+          .reverse()
+          .splice(3) // keep last 3
+
+    // console.log('removing: ', to_remove)
+    to_remove.forEach( preset_name => {
+      delete CalendarManager.groups[preset_name]
+      CalendarManager.groups.__last_saved.splice(CalendarManager.groups.__last_saved.indexOf(preset_name), 1)
+    })
+
+
     chrome.storage.sync.set({
       groups: CalendarManager.groups
     }, () => {
-      console.log('groups saved to storage', Object.keys(CalendarManager.groups))
-      console.log(vm)
-      message('Presets saved to storage: ' + Object.keys(CalendarManager.exportGroups()).join(', '))
+      if(chrome.runtime.lastError){
+        // error handling
+        const msg = `Failed to save groups to sync storage: ${chrome.runtime.lastError.message}`
+        console.error(msg)
+        message(msg)
+      } else {
+        console.log('groups saved to storage', Object.keys(CalendarManager.groups))
+        console.log(vm)
+        message('Presets saved to storage: ' + Object.keys(CalendarManager.exportGroups()).join(', '))
+      }
     })
   } catch(e) {
-    console.error('Failed to save groups to sync storage: ' + e.message)
+    console.error('Failed to save groups to sync storage: ' + e.message, e)
+    message('Failed to save groups to sync storage: ' + e.message)
   }
 }
 
