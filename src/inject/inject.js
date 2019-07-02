@@ -478,9 +478,11 @@ function message(message){
 
 function storeGroups(){
   try {
+    let groups = CalendarManager.exportGroups(true)
+
     // truncate the number of autosaved states that should get saved
     // remove list of saved_{TS} entries, and remove their names from __last_saved array
-    const to_remove = Object.keys(CalendarManager.groups).filter(preset_name => {
+    const to_remove = Object.keys(groups).filter(preset_name => {
       return preset_name && preset_name.indexOf('saved_') == 0
     })
           .sort()
@@ -489,13 +491,20 @@ function storeGroups(){
 
     // console.log('removing: ', to_remove)
     to_remove.forEach( preset_name => {
-      delete CalendarManager.groups[preset_name]
-      CalendarManager.groups.__last_saved.splice(CalendarManager.groups.__last_saved.indexOf(preset_name), 1)
+      delete groups[preset_name]
+      groups.__last_saved.splice(groups.__last_saved.indexOf(preset_name), 1)
     })
 
+    // migrate storage format, if necessary
+    if(typeof groups.__v == 'undefined'){
+      groups = migrateToV1(groups)
+    }
+
+    // for future proofing, include a version of the saved format
+    groups.__v = 1
 
     chrome.storage.sync.set({
-      groups: CalendarManager.groups
+      groups: groups
     }, () => {
       if(chrome.runtime.lastError){
         // error handling
@@ -503,9 +512,9 @@ function storeGroups(){
         console.error(msg)
         message(msg)
       } else {
-        console.log('groups saved to storage', Object.keys(CalendarManager.groups))
+        console.log('groups saved to storage', Object.keys(groups))
         console.log(vm)
-        message('Presets saved to storage: ' + Object.keys(CalendarManager.exportGroups()).join(', '))
+        message('Presets saved to storage: ' + Object.keys(CalendarManager.exportGroups(false, groups)).join(', '))
       }
     })
   } catch(e) {
@@ -532,6 +541,26 @@ function loadGroups(){
       })
     }, 10)
   }
+}
+
+function migrateToV1(groups){
+  const name2id = (calName) => {
+    const cal = CalendarManager.calendars.byName[calName]
+    if(cal){
+      return cal.id
+    } else {
+      // if a calendar for given name is not found, keep original name
+      // (assume it's either for a different account, or already an id)
+      return calName
+    }
+  }
+
+  const v1Groups = {}
+  for(let groupName of Object.keys(CalendarManager.exportGroups(false, groups))){
+    v1Groups[groupName] = groups[groupName].map( name2id )
+  }
+
+  return v1Groups
 }
 
 function setupKeyboardShortcuts(){

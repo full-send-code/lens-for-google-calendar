@@ -189,6 +189,7 @@
     constructor(...args){
       super(...args)
 
+      this.byName = {}
       this.byId = {}
       this.initialized = false
 
@@ -200,6 +201,11 @@
 
     async initialize(){
       if(!this.initialized){
+        const drawerShown = CalendarList.getScrollContainer().offsetParent !== null
+        if(!drawerShown){
+
+        }
+
         await this.discoverCalendarScrollPositions()
 
         // add listener to re-sync dom when the user clicks on the calendar list manually
@@ -224,6 +230,7 @@
         // only add elements we haven't seen already
         if(!existingCal){
           super.push(cal)
+          this.byName[cal.name] = cal
           this.byId[cal.id] = cal
           existingCal = cal
         }
