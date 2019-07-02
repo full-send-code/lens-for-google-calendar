@@ -37,7 +37,7 @@ function insertUI(insertLoc){
   try {
     $('head').append(
       $('<link rel="stylesheet" type="text/css" />')
-        .attr('href', chrome.runtime.getURL('lib/vue/slim.css'))
+        .attr('href', chrome.runtime.getURL('lib/vue/vuetify_scoped.css'))
     )
   } catch(e) {
     // not running in an extension environment
@@ -286,7 +286,7 @@ function insertUI(insertLoc){
 
 
   var div = $.parseHTML(`
-<v-app id="calendar_app">
+<v-app id="calendar_selector_ui">
   <main>
      <v-container fluid grid-list-md text-xs-center>
        <v-layout row>
@@ -367,7 +367,7 @@ function insertUI(insertLoc){
     }
 
     vm = new Vue({
-      el: '#calendar_app',
+      el: '#calendar_selector_ui',
       data: {
         highlight_kb_shortcuts: false,
         presets_menu_open: false,
@@ -580,7 +580,10 @@ function setupKeyboardShortcuts(){
   })
 }
 
-insertUI()
+// autoload UI if running in an extension
+if(window.chrome && chrome.extension){
+  insertUI()
+}
 // do this in the future after all components are registered:
 setTimeout(setupKeyboardShortcuts, 2000)
 

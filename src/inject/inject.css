@@ -2,40 +2,32 @@
  * Place your custom CSS styles here.
  **/
 
-/* vuetify fix to properly align 'presets' menu button */
-.menu,
-::before,
-::after {
-  -webkit-box-sizing: inherit;
-          box-sizing: inherit;
-}
-
-/* vuetify fix to properly display dialogs*/
-.card__text, .input-group__details,
-::before,
-::after {
-          box-sizing: border-box;
-}
-
-
-
+/******** override default vuetify styles here *********/
 /* remove min-height from application--wrap */
-.application--wrap {
+#calendar_selector_ui .application--wrap {
   min-height: 0vh !important;
 }
 
-
 /* remove background from theme */
-.application.theme--light {
+#calendar_selector_ui .application.theme--light {
   background: transparent !important;
 }
+
+
+/*
+ * after scoping vuetify css to #calendar_selector_ui, dropdown background is transparent
+ * we fix it here with a hard white background until we likely replace the component alltogheter
+ * menu item selection (gray highlight) doesn't work either
+ */
+#calendar_selector_ui .menu__content.menuable__content__active {
+  background: white
+}
+
 
 .kbd-hint {
 /*  box-shadow: inset 0 -2px 0 white, inset 0 -4px 0 red;*/
   box-shadow: inset 0 2px 0 white, inset 0 -2px 0 red;
 }
-
-
 
 .cs-overlay {
   position: absolute;

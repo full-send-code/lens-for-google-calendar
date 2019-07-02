@@ -14,8 +14,7 @@
     "persistent": false
   },
   "web_accessible_resources": [
-    "lib/vue/slim.css",
-    "lib/vue/vuetify.css"
+    "lib/vue/vuetify_scoped.css"
   ],
   "content_scripts": [
     {
