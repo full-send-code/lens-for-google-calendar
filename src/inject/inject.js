@@ -269,8 +269,10 @@ function insertUI(insertLoc){
       await CalendarManager.restoreCalendarSelections()
     },
     clear: async ()=>{
-      await CalendarManager.saveCalendarSelections()
-      await CalendarManager.disableAll()
+      CalendarManager.performOperation(async () => {
+        await CalendarManager.saveCalendarSelections()
+        await CalendarManager.disableAll()
+      }, 'clear')
     },
     presets_open: async (vm) => {
       console.log('presets_open', vm)
@@ -391,7 +393,7 @@ function insertUI(insertLoc){
         presets_open: function(){
           ui.presets_open(this)
         },
-        select_input: function(value) {
+        select_input: async function(value) {
           console.log('input', value.text, value)
           // console.log(this)
 
@@ -401,8 +403,10 @@ function insertUI(insertLoc){
           if(!group_name)
             return
 
-          CalendarManager.saveCalendarSelections()
-          CalendarManager.showGroup(group_name)
+          CalendarManager.performOperation(async () => {
+            await CalendarManager.saveCalendarSelections()
+            await CalendarManager.showGroup(group_name)
+          }, 'select_input')
         },
         select_delete: function(item){
           console.log('DELETE', item.text, item)
@@ -467,9 +471,9 @@ function makeHTML(str){
 };
 
 
-function message(message){
+function message(msg){
   snackbar.MaterialSnackbar.showSnackbar({
-    message: message,
+    message: msg,
     timeout: 5000,
     // actionHandler: handler,
     // actionText: 'Undo'

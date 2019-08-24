@@ -201,11 +201,6 @@
 
     async initialize(){
       if(!this.initialized){
-        const drawerShown = CalendarList.getScrollContainer().offsetParent !== null
-        if(!drawerShown){
-
-        }
-
         await this.discoverCalendarScrollPositions()
 
         // add listener to re-sync dom when the user clicks on the calendar list manually
@@ -216,7 +211,14 @@
           }
         }, {passive: true})
 
-        this.initialized = true
+        // only set to intialized if the calendar drawer is shown
+        // otherwise, we'll initialize the few calendar elements that
+        // the DOM is present for, and won't reinitialize when the
+        // full drawer is shown (for example after opening manually if
+        // auto open fails)
+        if(CM.isCalendarDrawerShown()) {
+          this.initialized = true
+        }
       }
 
       return this
@@ -407,7 +409,7 @@
         console.error('failed to enable calendars:', failed)
 
         console.log('retrying...')
-        this.enable(filterFn)
+        await this.enable(filterFn)
       }
     }
 
@@ -431,6 +433,9 @@
 
       if(failed.length){
         console.error('failed to disable calendars:', failed)
+
+        console.log('retrying...')
+        await this.disable(filterFn)
       }
     }
 
@@ -462,7 +467,7 @@
     }
 
     async discoverCalendarScrollPositions() {
-      await CalendarList.discoverCalendarScrollPositions(this)
+      return await CalendarList.discoverCalendarScrollPositions(this)
     }
 
 
@@ -550,6 +555,50 @@
       }
     },
 
+
+    isCalendarDrawerShown() {
+      return CalendarList.getScrollContainer().offsetParent !== null
+    },
+
+    // Ensure that the calendar drawer on the left is visible.  If it
+    // is not visible, make it visible and return the original
+    // visibility state so that it can get restored later (with
+    // visible=false invocation).
+    async setCalendarDrawerShown(visible = true){
+      const shown = CM.isCalendarDrawerShown
+
+      const drawerShown = shown()
+
+      if(visible !== drawerShown){
+        // console.log('toggling drawer')
+        try {
+          // $('#gb svg').parentElement.click()
+          $('#gb svg').click()
+        } catch (e){
+          // CSS selector didn't find an element to click on, assume
+          // that the HTML structure of the page changed significantly.
+          // Bail from this function so that selection functionality
+          // still works with the drawer opened manually.
+
+          // TODO: fix scope for 'message' so we don't make
+          // assumptions about it being a global function here
+          message('Calendar Drawer opening failed, please open manually by clicking on the top left hamburger menu.')
+          return visible
+        }
+
+        // wait until the drawer gets to its expected state
+        for(let i = 0; i < 100; i++) {
+          await sleep(300)
+
+          if(shown() === visible){
+            break
+          }
+        }
+      }
+
+      return drawerShown
+    },
+
     getVisibleCalendarsElements: function(){
       return Array.from($$("div[role='list'] li[role='listitem']"))
     },
@@ -589,11 +638,6 @@
       return CM.calendars.disable(CM.getCalendarsNotInGroupFilter(group_name))
     },
 
-    showGroup: async function(group_name){
-      await CM.enableGroup(group_name)
-      await CM.disableNonGroup(group_name)
-    },
-
     disableGroup: async function(group_name){
       return CM.calendars.disable(CM.getCalendarsForGroupFilter(group_name))
     },
@@ -612,58 +656,127 @@
       return groups[group_name];
     },
 
+
+    operationsStatus: {
+      current: [],
+      state: {}
+    },
+    // Performs an operation, which is a set of activities that
+    // require manipulting the UI.  Ensures that the the UI is in a
+    // good state (all necessary items like the calendar drawer are
+    // visible), and restores UI state after the operation if it
+    // needed to change.
+    //
+    // The operation itself must be performed the 'op' callback, which
+    // is an aysnc function
+    performOperation: async function(op, name){
+      const status = CM.operationsStatus
+      const outer = ()=> status.current.length === 0
+      const outerOperation = outer()
+
+      // pre steps...
+      // console.log("OPERATION - PRE", name ? name : '', 'outer:', outerOperation)
+
+      status.current.push(name)
+
+      if(outerOperation){
+        status.state.drawerShown = await CM.setCalendarDrawerShown(true)
+      }
+
+      try {
+        return await op()
+      }
+      finally {
+        // after steps...
+        status.current.pop()
+
+        const outerOperation = outer()
+
+        // console.log('currentOperations:', status.current)
+
+        if(outerOperation && !status.state.drawerShown){
+          await CM.setCalendarDrawerShown(status.state.drawerShown)
+          // delete status.state.drawerShown
+        }
+
+        // console.log("OPERATION - POST", name ? name : '', 'outer:', outerOperation)
+      }
+    },
+
+
+    /** Top level operations (called form the UI) **/
+
+    showGroup: async function(group_name){
+      CM.performOperation(async () => {
+        await CM.enableGroup(group_name)
+        await CM.disableNonGroup(group_name)
+      }, 'showGroup')
+    },
+
     enableCalendar: async function(name){
-      // name is a regex string
-      var re = RegExp(name, 'i');
-      await CM.calendars.enable(c => c.name.match(re))
+      CM.performOperation(async () => {
+        // name is a regex string
+        var re = RegExp(name, 'i');
+        await CM.calendars.enable(c => c.name.match(re))
+      }, 'enableCalendar')
     },
 
     toggleCalendar: async function(name){
-      // name is a regex string
-      var re = RegExp(name, 'i');
-      await CM.calendars.toggle(c => c.name.match(re))
+      CM.performOperation(async () => {
+        // name is a regex string
+        var re = RegExp(name, 'i');
+        await CM.calendars.toggle(c => c.name.match(re))
+      }, 'toggleCalendar')
     },
 
     disableCalendar: async function(name){
-      // name is a regex string
-      var re = RegExp(name, 'i');
-      await CM.calendars.disable(c => c.name.match(re));
+      CM.performOperation(async () => {
+        // name is a regex string
+        var re = RegExp(name, 'i');
+        await CM.calendars.disable(c => c.name.match(re));
+      }, 'disableCalendar')
     },
 
     disableAll: async function(){
-      await CM.disableCalendar('.')
+      CM.performOperation(async () => {
+        await CM.disableCalendar('.')
+      }, 'disableAll')
     },
 
     saveCalendarSelections: async function(group_name){
-      await CM.calendars.initialize()
-      var active = CM.calendars.enabled()
+      return CM.performOperation(async () => {
+        await CM.calendars.initialize()
+        var active = CM.calendars.enabled()
 
-      var group_name = (group_name || "saved_" + Date.now()).toLowerCase();
-      var groups = CM.groups = CM.groups || {};
+        var group_name = (group_name || "saved_" + Date.now()).toLowerCase();
+        var groups = CM.groups = CM.groups || {};
 
-      groups[group_name] = active.map(c => c.id);
+        groups[group_name] = active.map(c => c.id);
 
-      groups.__last_saved = groups.__last_saved || [];
-      groups.__last_saved.push(group_name);
+        groups.__last_saved = groups.__last_saved || [];
+        groups.__last_saved.push(group_name);
 
-      console.log('saved calendars:', group_name, '=>', groups[group_name]);
-      CM._updated()
-      return groups[group_name];
+        console.log('saved calendars:', group_name, '=>', groups[group_name]);
+        CM._updated()
+        return groups[group_name];
+      }, 'saveCalendarSelections')
     },
 
     restoreCalendarSelections: function(){
-      if(!CM.groups.__last_saved){
-        console.error('no saved groups');
-        return;
-      }
+      CM.performOperation(async () => {
+        if(!CM.groups.__last_saved){
+          console.error('no saved groups');
+          return;
+        }
 
-      var group_name = CM.groups.__last_saved.pop();
+        var group_name = CM.groups.__last_saved.pop();
 
-      if(group_name){
-        CM.showGroup(group_name)
-      } else {
-        console.error('nothing to restore');
-      }
+        if(group_name){
+          CM.showGroup(group_name)
+        } else {
+          console.error('nothing to restore');
+        }
+      }, 'restoreCalendarSelections')
     }
   };
 
