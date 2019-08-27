@@ -572,8 +572,7 @@
       if(visible !== drawerShown){
         // console.log('toggling drawer')
         try {
-          // $('#gb svg').parentElement.click()
-          $('#gb svg').click()
+          $('#gb svg').parentElement.click()
         } catch (e){
           // CSS selector didn't find an element to click on, assume
           // that the HTML structure of the page changed significantly.
