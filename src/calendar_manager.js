@@ -747,7 +747,7 @@
         await CM.calendars.initialize()
         var active = CM.calendars.enabled()
 
-        var group_name = (group_name || "saved_" + Date.now()).toLowerCase();
+        group_name = (group_name || "saved_" + Date.now()).toLowerCase();
         var groups = CM.groups = CM.groups || {};
 
         groups[group_name] = active.map(c => c.id);
