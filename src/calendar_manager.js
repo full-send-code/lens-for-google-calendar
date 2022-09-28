@@ -76,8 +76,8 @@
     /* el: li_item */
     constructor(el, calendar){
       this.el = el
-      this.label_el = $('label', el)
-      this.checkbox_el = $("div[role='checkbox']", el)
+      this.label_el = $('div', el)
+      this.checkbox_el = $("input[type='checkbox']", el)
 
       this.calendar = calendar
     }
@@ -134,7 +134,7 @@
       Object.assign(this, {
         email: atob(this.dom.label_el.attributes['data-id'].value),
         name: this.dom.checkbox_el.attributes['aria-label'].value,
-        checked: this.dom.checkbox_el.attributes['aria-checked'].value === "true"
+        checked: this.dom.checkbox_el.checked,
       })
     }
 
