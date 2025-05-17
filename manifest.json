@@ -1,8 +1,8 @@
 {
-  "name": "Calendar Selector for Google Calendar",
+  "name": "Lens for Google Calendar",
   "version": "0.1.5",
   "manifest_version": 3,
-  "description": "Save and restore groups of calendars selected",
+  "description": "Save and quickly restore custom groups of calendars in Google Calendar",
   "host_permissions": [
     "https://calendar.google.com/*"
   ],

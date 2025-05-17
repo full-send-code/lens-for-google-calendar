@@ -27,7 +27,7 @@ var vm
 var ui
 function insertUI(insertLoc){
   if(vm){
-    console.warn('calendar selector menu UI already loaded')
+    console.warn('Lens for Google Calendar UI already loaded')
   }
 
   $('head').append(
