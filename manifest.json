@@ -8,7 +8,7 @@
   ],
   "action": {
     "default_icon": {
-      "128": "icons/multi_calendar.png"
+      "128": "icons/multi_calendar_128.png"
     }
   },
   "background": {
