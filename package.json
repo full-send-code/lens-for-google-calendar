@@ -1,0 +1,25 @@
+{
+  "name": "lens-for-google-calendar",
+  "version": "1.0.0",
+  "description": "Save and quickly restore custom groups of calendars in Google Calendar",
+  "main": "index.js",
+  "scripts": {
+    "watch": "webpack --config webpack/webpack.dev.js --watch",
+    "build": "webpack --config webpack/webpack.prod.js",
+    "clean": "rimraf dist",
+    "test": "npx jest",
+    "style": "prettier --write \"src/**/*.{ts,tsx}\""
+  },
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cal5barton/google-calendar-selector.git"
+  },
+  "dependencies": {
+    
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.323"
+  }
+}
