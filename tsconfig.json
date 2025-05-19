@@ -2,14 +2,23 @@
   "compilerOptions": {
     "strict": true,
     "target": "es6",
-    "moduleResolution": "bundler",
-    "module": "ES6",
+    "moduleResolution": "node",
+    "module": "ESNext",
     "esModuleInterop": true,
-    "sourceMap": false,
+    "sourceMap": true,
     "rootDir": "src",
     "outDir": "dist/js",
     "noEmitOnError": true,
-    "jsx": "react",
-    "typeRoots": ["node_modules/@types"]
-  }
+    "jsx": "react-jsx",
+    "typeRoots": ["node_modules/@types"],
+    "lib": ["dom", "dom.iterable", "ESNext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

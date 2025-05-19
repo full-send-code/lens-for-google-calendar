@@ -4,11 +4,10 @@
   "description": "Save and quickly restore custom groups of calendars in Google Calendar",
   "main": "index.js",
   "scripts": {
-    "watch": "webpack --config webpack/webpack.dev.js --watch",
-    "build": "webpack --config webpack/webpack.prod.js",
+    "build": "webpack --config webpack.config.js",
+    "watch": "webpack --config webpack.config.js --watch",
     "clean": "rimraf dist",
-    "test": "npx jest",
-    "style": "prettier --write \"src/**/*.{ts,tsx}\""
+    "package": "npm run clean && npm run build && node scripts/package.js"
   },
   "author": "",
   "license": "MIT",
@@ -17,9 +16,24 @@
     "url": "https://github.com/cal5barton/google-calendar-selector.git"
   },
   "dependencies": {
-    
+    "@types/mousetrap": "^1.6.15",
+    "archiver": "^7.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@types/chrome": "^0.0.323"
+    "@types/chrome": "^0.0.323",
+    "@types/react": "^18.3.21",
+    "@types/react-dom": "^18.3.7",
+    "copy-webpack-plugin": "^11.0.0",
+    "css-loader": "^6.11.0",
+    "html-webpack-plugin": "^5.6.3",
+    "rimraf": "^5.0.10",
+    "style-loader": "^3.3.4",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
+    "webpack": "^5.99.8",
+    "webpack-cli": "^5.1.4",
+    "zip-webpack-plugin": "^4.0.3"
   }
 }
