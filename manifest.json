@@ -12,11 +12,14 @@
     }
   },
   "background": {
-    "service_worker": "src/background.js"
+    "service_worker": "background.js"
   },
+  "permissions": [
+    "storage"
+  ],
   "web_accessible_resources": [
     {
-      "resources": ["lib/vue/vuetify_scoped.css"],
+      "resources": ["styles/*"],
       "matches": ["<all_urls>"]
     }
   ],
@@ -26,18 +29,10 @@
         "https://calendar.google.com/*"
       ],
       "css": [
-        "lib/mdl/material.css",
-        "src/inject/inject.css"
+        "styles/index.css"
       ],
       "js": [
-        "lib/jquery/jquery.min.js",
-        "lib/mdl/material.js",
-        "src/calendar_manager.js",
-        "lib/vue/vue.js",
-        "lib/vue/vuetify.js",
-        "lib/mousetrap/mousetrap.min.js",
-        "lib/mousetrap/mousetrap-global-bind.min.js",
-        "src/inject/inject.js"
+        "bundle.js"
       ]
     }
   ]

@@ -4,10 +4,13 @@
   "description": "Save and quickly restore custom groups of calendars in Google Calendar",
   "main": "index.js",
   "scripts": {
-    "build": "webpack --config webpack.config.js",
-    "watch": "webpack --config webpack.config.js --watch",
+    "build": "webpack --config webpack.config.js --mode=production",
+    "watch": "webpack --config webpack.config.js --watch --mode=development",
     "clean": "rimraf dist",
-    "package": "npm run clean && npm run build && node scripts/package.js"
+    "package": "cross-env NODE_ENV=production npm run clean && npm run build && node scripts/package.js",
+    "dev": "webpack serve --config webpack.config.js --mode=development",
+    "lint": "eslint src --ext .ts,.tsx",
+    "test": "jest"
   },
   "author": "",
   "license": "MIT",
@@ -16,8 +19,13 @@
     "url": "https://github.com/cal5barton/google-calendar-selector.git"
   },
   "dependencies": {
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.4",
+    "@mui/icons-material": "^5.15.14",
+    "@mui/material": "^5.15.14",
     "@types/mousetrap": "^1.6.15",
-    "archiver": "^7.0.1",
+    "mousetrap": "^1.6.5",
+    "mousetrap-ts": "^1.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -25,7 +33,9 @@
     "@types/chrome": "^0.0.323",
     "@types/react": "^18.3.21",
     "@types/react-dom": "^18.3.7",
+    "archiver": "^7.0.1",
     "copy-webpack-plugin": "^11.0.0",
+    "cross-env": "^7.0.3",
     "css-loader": "^6.11.0",
     "html-webpack-plugin": "^5.6.3",
     "rimraf": "^5.0.10",
@@ -34,6 +44,7 @@
     "typescript": "^5.8.3",
     "webpack": "^5.99.8",
     "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.0.4",
     "zip-webpack-plugin": "^4.0.3"
   }
 }

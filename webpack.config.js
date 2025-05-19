@@ -6,10 +6,8 @@ const ZipPlugin = require('zip-webpack-plugin');
 module.exports = {
   mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
   entry: {
-    popup: path.join(__dirname, 'src/popup/index.tsx'),
-    options: path.join(__dirname, 'src/options/index.tsx'),
+    bundle: path.join(__dirname, 'src/inject/inject.tsx'),
     background: path.join(__dirname, 'src/background.ts'),
-    contentScript: path.join(__dirname, 'src/content/index.tsx'),
   },
   output: {
     path: path.join(__dirname, 'dist'),
@@ -21,7 +19,7 @@ module.exports = {
       {
         test: /\.tsx?$/,
         use: 'ts-loader',
-        exclude: [/node_modules/, /src\/inject/],
+        exclude: /node_modules/,
       },
       {
         test: /\.css$/,
@@ -40,18 +38,10 @@ module.exports = {
     new CopyPlugin({
       patterns: [
         { from: 'manifest.json' },
-        { from: 'icons', to: 'icons' }
+        { from: 'icons', to: 'icons' },
+        { from: 'index.html', to: 'index.html' },
+        { from: 'src/styles', to: 'styles' }
       ],
-    }),
-    new HtmlWebpackPlugin({
-      template: path.join(__dirname, 'src/popup/popup.html'),
-      filename: 'popup.html',
-      chunks: ['popup'],
-    }),
-    new HtmlWebpackPlugin({
-      template: path.join(__dirname, 'src/options/options.html'),
-      filename: 'options.html',
-      chunks: ['options'],
     }),
     // Include ZIP plugin only in production mode
     ...(process.env.NODE_ENV === 'production' 

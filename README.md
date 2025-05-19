@@ -51,19 +51,36 @@ Example: "Work &Calendars" allows you to activate this group by pressing the ass
 ### Project Structure
 
 - `/src`: Extension source code
-  - `/src/background.js`: Background script for Chrome extension
-  - `/src/calendar_manager.js`: Core functionality for managing calendar groups
+  - `/src/background.ts`: Background script for Chrome extension
+  - `/src/calendar_manager.ts`: Core functionality for managing calendar groups
+  - `/src/components`: React components for the UI
   - `/src/inject`: Files injected into the Google Calendar page
-- `/lib`: Third-party libraries
-  - jQuery, Vue.js, Vuetify, Material Design Lite, Mousetrap
+  - `/src/styles`: CSS styles for the extension
+  - `/src/types`: TypeScript type definitions
 - `/icons`: Extension icons
 
-### Build and Release
+### Technology Stack
+- React with TypeScript
+- Material-UI for React components
+- Mousetrap for keyboard shortcuts
+- Webpack for bundling
 
-Use the included PowerShell script to create a release:
+### Build and Install
 
-```powershell
-./release.ps1
+1. Clone the repository
+2. Install dependencies:
+```bash
+npm install
+```
+3. Build the extension:
+```bash
+npm run build
+```
+4. Load the unpacked extension from the `/dist` directory
+
+You can also use watch mode during development:
+```bash
+npm run watch
 ```
 
 ## Credits
