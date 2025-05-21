@@ -19,15 +19,16 @@
     "url": "https://github.com/cal5barton/google-calendar-selector.git"
   },
   "dependencies": {
-    "@emotion/react": "^11.11.4",
-    "@emotion/styled": "^11.11.4",
-    "@mui/icons-material": "^5.15.14",
-    "@mui/material": "^5.15.14",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^7.1.0",
+    "@mui/material": "^7.1.0",
+    "@mui/styled-engine-sc": "^7.1.0",
     "@types/mousetrap": "^1.6.15",
     "mousetrap": "^1.6.5",
-    "mousetrap-ts": "^1.0.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "styled-components": "^6.1.18"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.323",

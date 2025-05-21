@@ -1,23 +1,23 @@
 const path = require('path');
-const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const ZipPlugin = require('zip-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
-  mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+  mode: 'development',
+  devtool: 'inline-source-map', // Changed from eval-source-map (default in dev) to inline-source-map
   entry: {
-    bundle: path.join(__dirname, 'src/inject/inject.tsx'),
-    background: path.join(__dirname, 'src/background.ts'),
+    popup: './src/components/Popup/index.tsx',
+    background: './src/services/background.ts',
+    content: './src/index.tsx',
   },
   output: {
-    path: path.join(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'dist'),
     filename: '[name].js',
-    clean: true,
   },
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
+        test: /\.(ts|tsx)$/,
         use: 'ts-loader',
         exclude: /node_modules/,
       },
@@ -25,36 +25,20 @@ module.exports = {
         test: /\.css$/,
         use: ['style-loader', 'css-loader'],
       },
-      {
-        test: /\.(jpg|jpeg|png|gif|svg)$/,
-        type: 'asset/resource',
-      },
     ],
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js', '.jsx'],
-  },
-  plugins: [
-    new CopyPlugin({
+    extensions: ['.tsx', '.ts', '.js'],
+  },  plugins: [
+    new HtmlWebpackPlugin({
+      template: './public/popup.html',
+      filename: 'popup.html',
+      chunks: ['popup'],
+    }),    new CopyPlugin({
       patterns: [
-        { from: 'manifest.json' },
-        { from: 'icons', to: 'icons' },
-        { from: 'index.html', to: 'index.html' },
-        { from: 'src/styles', to: 'styles' }
+        { from: 'public/manifest.json', to: 'manifest.json' },
+        { from: 'public/icons', to: 'icons', noErrorOnMissing: true },
       ],
     }),
-    // Include ZIP plugin only in production mode
-    ...(process.env.NODE_ENV === 'production' 
-      ? [new ZipPlugin({ 
-          filename: 'lens-for-google-calendar.zip',
-          pathPrefix: '',
-        })]
-      : [])
   ],
-  optimization: {
-    splitChunks: {
-      chunks: 'all',
-    },
-  },
-  devtool: 'cheap-module-source-map',
 };

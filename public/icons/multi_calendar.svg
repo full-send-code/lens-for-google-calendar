@@ -1,0 +1,66 @@
+<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background (rounded square) -->
+  <rect x="5" y="5" width="50" height="50" rx="8" fill="#313543" />
+  
+  <!-- Calendar Shadow -->
+  <path d="M45 48 L47 20 L42 16 L12 16 L10 44 Z" fill="rgba(0,0,0,0.2)" />
+  
+  <!-- Bottom Calendar (Orange) -->
+  <g transform="translate(10, 8)">
+    <!-- Calendar Body -->
+    <rect x="0" y="0" width="34" height="30" rx="4" fill="#FFC144" />
+    
+    <!-- Calendar Rings -->
+    <circle cx="8" cy="0" r="2.5" fill="#E0E0E0" stroke="#313543" stroke-width="1" />
+    <circle cx="26" cy="0" r="2.5" fill="#E0E0E0" stroke="#313543" stroke-width="1" />
+  </g>
+  
+  <!-- Middle Calendar (Blue) -->
+  <g transform="translate(14, 14)">
+    <!-- Calendar Body -->
+    <rect x="0" y="0" width="34" height="30" rx="4" fill="#3EBBF0" />
+    
+    <!-- Calendar Rings -->
+    <circle cx="8" cy="0" r="2.5" fill="#E0E0E0" stroke="#313543" stroke-width="1" />
+    <circle cx="26" cy="0" r="2.5" fill="#E0E0E0" stroke="#313543" stroke-width="1" />
+  </g>
+  
+  <!-- Top Calendar (Red with content) -->
+  <g transform="translate(18, 20)">
+    <!-- Calendar Body -->
+    <rect x="0" y="0" width="34" height="30" rx="4" fill="#FFFFFF" />
+    
+    <!-- Calendar Header -->
+    <rect x="0" y="0" width="34" height="6" rx="4" fill="#FF5252" />
+    <rect x="0" y="4" width="34" height="3" fill="#FF5252" />
+    
+    <!-- Calendar Rings -->
+    <circle cx="8" cy="0" r="2.5" fill="#E0E0E0" stroke="#313543" stroke-width="1" />
+    <circle cx="26" cy="0" r="2.5" fill="#E0E0E0" stroke="#313543" stroke-width="1" />
+    
+    <!-- Calendar Day Grid -->
+    <g fill="#D9D9D9">
+      <rect x="5" y="10" width="3" height="3" rx="1" />
+      <rect x="11" y="10" width="3" height="3" rx="1" />
+      <rect x="17" y="10" width="3" height="3" rx="1" />
+      <rect x="23" y="10" width="3" height="3" rx="1" />
+      <rect x="29" y="10" width="3" height="3" rx="1" />
+      
+      <rect x="5" y="15" width="3" height="3" rx="1" />
+      <rect x="11" y="15" width="3" height="3" rx="1" />
+      <rect x="17" y="15" width="3" height="3" rx="1" />
+      <rect x="23" y="15" width="3" height="3" rx="1" />
+      <rect x="29" y="15" width="3" height="3" rx="1" />
+      
+      <rect x="5" y="20" width="3" height="3" rx="1" />
+      <rect x="11" y="20" width="3" height="3" rx="1" />
+      <rect x="17" y="20" width="3" height="3" rx="1" />
+      <rect x="23" y="20" width="3" height="3" rx="1" />
+      <rect x="29" y="20" width="3" height="3" rx="1" />
+    </g>
+    
+    <!-- Page Curl Effect -->
+    <path d="M34 30 L34 24 C31 27 28 30 28 30 Z" fill="#E6E6E6" />
+    <path d="M34 24 L28 30" stroke="#CCCCCC" stroke-width="0.5" />
+  </g>
+</svg>
