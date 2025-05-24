@@ -14,7 +14,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'row' as const,
     alignItems: 'center',
-    flexWrap: 'wrap' as const,
+    flexWrap: 'nowrap' as const,
     gap: '4px',
     padding: '4px 0'
   }
