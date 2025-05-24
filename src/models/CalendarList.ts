@@ -56,33 +56,64 @@ export class CalendarList extends Array<Calendar> {
       if (!cal.attached) {
         // First try to match by ID
         let foundMatch = false;
-        
-        for (const el of visibleCalendarElements) {
-          // Try to find a checkbox or any element with a matching ID/value
-          const checkbox = findCheckboxInCalendar(el);
+          for (const el of visibleCalendarElements) {
+          // Use the same approach as the original implementation
+          const labelEl = el.querySelector('div');
+          const checkbox = el.querySelector('input[type="checkbox"]') as HTMLInputElement;
           
           let matchesId = false;
           
-          if (checkbox) {
-            if (checkbox instanceof HTMLInputElement && checkbox.value === cal.id) {
-              matchesId = true;
-            } else {
-              const dataId = checkbox.getAttribute('data-cal-id') || 
-                            checkbox.getAttribute('data-id') || 
-                            checkbox.getAttribute('id');
-              if (dataId === cal.id) {
+          if (labelEl && checkbox) {
+            // Try to match by decoded data-id (like original implementation)
+            const dataId = labelEl.getAttribute('data-id');
+            if (dataId) {
+              try {
+                const decodedId = atob(dataId);
+                if (decodedId === cal.id) {
+                  matchesId = true;
+                }
+              } catch (error) {
+                // If base64 decode fails, try direct comparison
+                if (dataId === cal.id) {
+                  matchesId = true;
+                }
+              }
+            }
+            
+            // Also try matching by checkbox aria-label (calendar name)
+            if (!matchesId) {
+              const ariaLabel = checkbox.getAttribute('aria-label');
+              if (ariaLabel === cal.name) {
                 matchesId = true;
               }
             }
           }
           
-          // If not found by ID, try matching by name
+          // Fallback to the old complex matching logic if needed
           if (!matchesId) {
-            const nameElements = el.querySelectorAll('span, div[role="heading"], label');
-            for (const nameEl of Array.from(nameElements)) {
-              if (nameEl.textContent?.trim() === cal.name) {
+            const fallbackCheckbox = findCheckboxInCalendar(el);
+            
+            if (fallbackCheckbox) {
+              if (fallbackCheckbox instanceof HTMLInputElement && fallbackCheckbox.value === cal.id) {
                 matchesId = true;
-                break;
+              } else {
+                const dataId = fallbackCheckbox.getAttribute('data-cal-id') || 
+                              fallbackCheckbox.getAttribute('data-id') || 
+                              fallbackCheckbox.getAttribute('id');
+                if (dataId === cal.id) {
+                  matchesId = true;
+                }
+              }
+            }
+            
+            // If still not found by ID, try matching by name
+            if (!matchesId) {
+              const nameElements = el.querySelectorAll('span, div[role="heading"], label');
+              for (const nameEl of Array.from(nameElements)) {
+                if (nameEl.textContent?.trim() === cal.name) {
+                  matchesId = true;
+                  break;
+                }
               }
             }
           }

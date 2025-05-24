@@ -32,13 +32,20 @@ export class CalendarDOM {
   isAttached(): boolean {
     return document.body.contains(this.el);
   }
-
   /**
    * Get the scroll container for calendars
+   * Uses the original working implementation's approach
    * @returns Scroll container element or null if not found
    */
   getScrollContainer(): HTMLElement | null {
-    return document.querySelector('div[role="list"]');
+    try {
+      const drawerNavigator = document.querySelector('div#drawerMiniMonthNavigator');
+      return drawerNavigator?.parentElement as HTMLElement || null;
+    } catch (e) {
+      Logger.warn('Could not find calendar list scroll container via "div#drawerMiniMonthNavigator"');
+      // Fallback to generic list selector
+      return document.querySelector('div[role="list"]');
+    }
   }
 
   /**
@@ -91,7 +98,6 @@ export class Calendar {
       this.setEl(element);
     }
   }
-
   /**
    * Set the DOM element for this calendar and extract its properties
    * @param el DOM element representing this calendar
@@ -99,65 +105,107 @@ export class Calendar {
   setEl(el: HTMLElement): void {
     this.dom = new CalendarDOM(el, this);
     
-    // Find checkbox and extract ID
-    const checkbox = findCheckboxInCalendar(el);
+    // Find the label element (div child) and checkbox based on original working implementation
+    const labelEl = el.querySelector('div');
+    const checkbox = el.querySelector('input[type="checkbox"]') as HTMLInputElement;
     
-    if (checkbox) {
-      // Try to get the ID from various sources
-      if (checkbox instanceof HTMLInputElement && checkbox.value) {
-        this.id = checkbox.value;
-      } else {
-        const dataId = checkbox.getAttribute('data-cal-id') || 
-                      checkbox.getAttribute('data-id') || 
-                      checkbox.getAttribute('id');
-        
-        if (dataId) {
+    if (labelEl && checkbox) {
+      // Extract ID from base64 encoded data-id attribute on the label element (like original)
+      const dataId = labelEl.getAttribute('data-id');
+      if (dataId) {
+        try {
+          this.id = atob(dataId); // Base64 decode like the original
+        } catch (error) {
+          Logger.warn('Failed to decode data-id, using as-is:', dataId);
           this.id = dataId;
+        }
+      }
+      
+      // Extract name from checkbox aria-label (like original)
+      this.name = checkbox.getAttribute('aria-label') || '';
+      
+      // If we still don't have an ID, fallback to other methods
+      if (!this.id) {
+        const fallbackId = checkbox.value || 
+                          checkbox.getAttribute('data-cal-id') || 
+                          checkbox.getAttribute('id');
+        
+        if (fallbackId) {
+          this.id = fallbackId;
         } else {
           // As a last resort, generate an ID based on the name or position
           const idFromText = 
-            el.textContent?.trim().toLowerCase().replace(/[^a-z0-9]/g, '_') || 
+            this.name?.trim().toLowerCase().replace(/[^a-z0-9]/g, '_') || 
             `calendar_${Math.random().toString(36).substring(2, 10)}`;
           this.id = idFromText;
         }
       }
-    }
-    
-    // Get calendar name from various possible elements
-    const nameSelectors = [
-      'span', 
-      'div[role="heading"]', 
-      '[data-cal-name]',
-      'label',
-      '.cal-name',
-      '[title]'
-    ];
-    
-    let nameContent = '';
-    for (const selector of nameSelectors) {
-      const nameEl = el.querySelector(selector);
-      if (nameEl && nameEl.textContent?.trim()) {
-        nameContent = nameEl.textContent.trim();
-        break;
-      }
-    }
-    
-    // If nothing found by selector, try direct text content
-    if (!nameContent && el.textContent?.trim()) {
-      // Remove any hidden or technical text
-      const visibleText = Array.from(el.childNodes)
-        .filter(node => node.nodeType === Node.TEXT_NODE || 
-                      (node instanceof HTMLElement && getComputedStyle(node).display !== 'none'))
-        .map(node => node.textContent?.trim())
-        .filter(Boolean)
-        .join(' ');
       
-      if (visibleText) {
-        nameContent = visibleText;
+      // If we still don't have a name, fallback to other methods
+      if (!this.name) {
+        const nameSelectors = [
+          'span', 
+          'div[role="heading"]', 
+          '[data-cal-name]',
+          'label',
+          '.cal-name',
+          '[title]'
+        ];
+        
+        for (const selector of nameSelectors) {
+          const nameEl = el.querySelector(selector);
+          if (nameEl && nameEl.textContent?.trim()) {
+            this.name = nameEl.textContent.trim();
+            break;
+          }
+        }
+        
+        // If still nothing found, try direct text content
+        if (!this.name && el.textContent?.trim()) {
+          const visibleText = Array.from(el.childNodes)
+            .filter(node => node.nodeType === Node.TEXT_NODE || 
+                          (node instanceof HTMLElement && getComputedStyle(node).display !== 'none'))
+            .map(node => node.textContent?.trim())
+            .filter(Boolean)
+            .join(' ');
+          
+          if (visibleText) {
+            this.name = visibleText;
+          }
+        }
+        
+        this.name = this.name || 'Unnamed Calendar';
+      }
+    } else {
+      Logger.warn('Could not find expected DOM structure (div + input[type="checkbox"]) in calendar element:', el);
+      
+      // Fallback to the old complex extraction if the expected structure isn't found
+      const checkbox = findCheckboxInCalendar(el);
+      
+      if (checkbox) {
+        if (checkbox instanceof HTMLInputElement && checkbox.value) {
+          this.id = checkbox.value;
+        } else {
+          const dataId = checkbox.getAttribute('data-cal-id') || 
+                        checkbox.getAttribute('data-id') || 
+                        checkbox.getAttribute('id');
+          
+          if (dataId) {
+            this.id = dataId;
+          } else {
+            const idFromText = 
+              el.textContent?.trim().toLowerCase().replace(/[^a-z0-9]/g, '_') || 
+              `calendar_${Math.random().toString(36).substring(2, 10)}`;
+            this.id = idFromText;
+          }
+        }
+        
+        this.name = checkbox.getAttribute('aria-label') || el.textContent?.trim() || 'Unnamed Calendar';
+      } else {
+        this.id = `calendar_${Math.random().toString(36).substring(2, 10)}`;
+        this.name = el.textContent?.trim() || 'Unnamed Calendar';
       }
     }
-    
-    this.name = nameContent || 'Unnamed Calendar';
     
     // Debug logging for incomplete information
     if (!this.id || !this.name) {
@@ -201,7 +249,6 @@ export class Calendar {
     if (!this.dom?.el) return null;
     return findCheckboxInCalendar(this.dom.el);
   }
-
   /**
    * Check if this calendar is enabled (checked)
    * @returns Whether calendar is checked
@@ -209,46 +256,36 @@ export class Calendar {
   isChecked(): boolean {
     if (!this.dom?.el) return false;
     
-    const checkbox = this.getCheckbox();
+    const checkbox = this.dom.el.querySelector('input[type="checkbox"]') as HTMLInputElement;
     if (!checkbox) return false;
     
-    // Handle different types of checkboxes
-    if (checkbox instanceof HTMLInputElement) {
-      return checkbox.checked;
-    } else if (checkbox.hasAttribute('aria-checked')) {
-      return checkbox.getAttribute('aria-checked') === 'true';
-    } else if (checkbox.hasAttribute('data-checked')) {
-      return checkbox.getAttribute('data-checked') === 'true';
-    } else {
-      // Check for visual indicators as a fallback
-      return checkbox.classList.contains('checked') || 
-             checkbox.classList.contains('selected') ||
-             checkbox.getAttribute('aria-selected') === 'true';
-    }
+    // Use the simple approach from the original working implementation
+    return checkbox.checked;
   }
-
   /**
    * Toggle this calendar's checked state
    */
   toggle(): void {
     if (!this.dom?.el) return;
-      const checkbox = this.getCheckbox();
-    if (!checkbox) {
-      Logger.error('Could not find checkbox to toggle for calendar', { name: this.name, id: this.id });
+    
+    // Find the label element (div child) - click this instead of the checkbox like the original
+    const labelEl = this.dom.el.querySelector('div');
+    if (!labelEl) {
+      Logger.error('Could not find label element (div) to click for calendar', { name: this.name, id: this.id });
       return;
     }
     
     try {
-      // Click the checkbox directly
-      checkbox.click();
+      // Click the label element like the original implementation
+      labelEl.click();
       
-      Logger.debug('Toggled calendar checkbox:', { 
+      Logger.debug('Toggled calendar by clicking label:', { 
         name: this.name, 
         id: this.id,
         isChecked: this.isChecked()
       });
     } catch (error) {
-      Logger.error('Error toggling calendar checkbox:', error);
+      Logger.error('Error toggling calendar by clicking label:', error);
     }
   }
 

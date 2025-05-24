@@ -17,15 +17,13 @@ export const SELECTORS = {
       '.calendar-list',
       '[data-is-list="true"]',
       'div[role="navigation"] div[role="list"]'
-    ],
-    LIST_ITEMS: [
-      "div[role='list'] li[role='listitem']",
+    ],    LIST_ITEMS: [
+      "div[role='list'] li[role='listitem']", // Original working selector first
       ".calendar-list li",
       "[data-is-list='true'] [role='listitem']",
       "[data-is-list='true'] li",
       ".cal-sidebar li",
-      "aside li:has(input[type='checkbox'])",
-      "aside [role='listitem']"
+      "aside [role='listitem']" // Removed :has() selector as it's not widely supported
     ],
     CHECKBOX: [
       'input[type="checkbox"]',
@@ -194,9 +192,21 @@ export function findCheckboxInCalendar(parent: HTMLElement): HTMLElement | null 
 
 /**
  * Check if the side panel containing calendars is visible
+ * Uses the original working implementation's approach
  * @returns True if visible, false otherwise
  */
 export function isCalendarDrawerShown(): boolean {
+  // Try the original method first - find scroll container and check if it has offsetParent
+  try {
+    const scrollContainer = document.querySelector('div#drawerMiniMonthNavigator')?.parentElement;
+    if (scrollContainer) {
+      return scrollContainer.offsetParent !== null;
+    }
+  } catch (e) {
+    Logger.warn('Could not find calendar list scroll container via "div#drawerMiniMonthNavigator"');
+  }
+  
+  // Fallback to the drawer method
   const drawer = document.querySelector('.drawer');
   return drawer ? getComputedStyle(drawer).display !== 'none' : false;
 }
