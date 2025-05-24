@@ -25,12 +25,16 @@ class Overlay {
       scrollBarOffset: 8
     };
   }
-
   show(): void {
     if (!this.element) {
       this.element = document.createElement('div');
       this.element.className = 'cs-overlay';
       document.body.appendChild(this.element);
+    }
+
+    if (!this.element) {
+      console.error('Failed to create overlay element');
+      return;
     }
 
     if (this.options.target) {
@@ -116,19 +120,81 @@ class Calendar {
       this.setEl(li_item);
     }
   }
-
   setEl(el: HTMLElement): void {
     this.dom = new CalendarDOM(el, this);
-    // Look for input type checkbox
-    const checkbox = el.querySelector('input[type="checkbox"]');
+    
+    // Look for input type checkbox with several possible selectors
+    const checkbox = 
+      el.querySelector('input[type="checkbox"]') || 
+      el.querySelector('[role="checkbox"]') ||
+      el.querySelector('[aria-checked]');
+    
     if (checkbox) {
-      this.id = (checkbox as HTMLInputElement).value;
+      // Try to get the value directly
+      if (checkbox instanceof HTMLInputElement && checkbox.value) {
+        this.id = checkbox.value;
+      } 
+      // If there's no direct value, try to use data attributes or generate an ID
+      else {
+        const dataId = checkbox.getAttribute('data-cal-id') || 
+                      checkbox.getAttribute('data-id') || 
+                      checkbox.getAttribute('id');
+        
+        if (dataId) {
+          this.id = dataId;
+        } else {
+          // As a last resort, generate an ID based on the name or position
+          const idFromText = 
+            el.textContent?.trim().toLowerCase().replace(/[^a-z0-9]/g, '_') || 
+            `calendar_${Math.random().toString(36).substring(2, 10)}`;
+          this.id = idFromText;
+        }
+      }
     }
     
-    // Get calendar name from the first span element
-    const nameEl = el.querySelector('span');
-    if (nameEl) {
-      this.name = nameEl.textContent || '';
+    // Get calendar name from various possible elements
+    const nameSelectors = [
+      'span', 
+      'div[role="heading"]', 
+      '[data-cal-name]',
+      'label',
+      '.cal-name',
+      '[title]'
+    ];
+    
+    let nameContent = '';
+    for (const selector of nameSelectors) {
+      const nameEl = el.querySelector(selector);
+      if (nameEl && nameEl.textContent?.trim()) {
+        nameContent = nameEl.textContent.trim();
+        break;
+      }
+    }
+    
+    // If nothing found by selector, try direct text content
+    if (!nameContent && el.textContent?.trim()) {
+      // Remove any hidden or technical text
+      const visibleText = Array.from(el.childNodes)
+        .filter(node => node.nodeType === Node.TEXT_NODE || 
+                      (node instanceof HTMLElement && getComputedStyle(node).display !== 'none'))
+        .map(node => node.textContent?.trim())
+        .filter(Boolean)
+        .join(' ');
+      
+      if (visibleText) {
+        nameContent = visibleText;
+      }
+    }
+    
+    this.name = nameContent || 'Unnamed Calendar';
+    
+    // Debug logging
+    if (!this.id || !this.name) {
+      console.log('Calendar element with incomplete information:', {
+        element: el,
+        id: this.id,
+        name: this.name
+      });
     }
   }
 
@@ -146,12 +212,50 @@ class Calendar {
       this.scrollPosition = await this.dom.calculateScrollPosition();
     }
   }
+  getCheckbox(): HTMLElement | null {
+    if (!this.dom?.el) return null;
+    
+    // Try multiple selectors to find the checkbox
+    const selectors = [
+      'input[type="checkbox"]',
+      '[role="checkbox"]',
+      '[aria-checked]',
+      '.calendar-checkbox',
+      '.checkbox-container input'
+    ];
+    
+    for (const selector of selectors) {
+      const checkbox = this.dom.el.querySelector(selector);
+      if (checkbox) {
+        return checkbox as HTMLElement;
+      }
+    }
+    
+    // Log a warning if no checkbox is found
+    console.warn('No checkbox found for calendar:', this.name, this.id);
+    console.log('Calendar element:', this.dom.el);
+    return null;
+  }
 
   isChecked(): boolean {
     if (!this.dom?.el) return false;
     
-    const checkbox = this.dom.el.querySelector('input[type="checkbox"]');
-    return checkbox ? (checkbox as HTMLInputElement).checked : false;
+    const checkbox = this.getCheckbox();
+    if (!checkbox) return false;
+    
+    // Handle different types of checkboxes
+    if (checkbox instanceof HTMLInputElement) {
+      return checkbox.checked;
+    } else if (checkbox.hasAttribute('aria-checked')) {
+      return checkbox.getAttribute('aria-checked') === 'true';
+    } else if (checkbox.hasAttribute('data-checked')) {
+      return checkbox.getAttribute('data-checked') === 'true';
+    } else {
+      // Check for visual indicators as a fallback
+      return checkbox.classList.contains('checked') || 
+             checkbox.classList.contains('selected') ||
+             checkbox.getAttribute('aria-selected') === 'true';
+    }
   }
 
   /* NOTE: methods below assume that `this.dom.el` is a valid/existing DOM element */
@@ -159,20 +263,37 @@ class Calendar {
   toggle(): void {
     if (!this.dom?.el) return;
     
-    const checkbox = this.dom.el.querySelector('input[type="checkbox"]');
-    if (checkbox) {
-      (checkbox as HTMLInputElement).click();
+    const checkbox = this.getCheckbox();
+    if (!checkbox) {
+      console.error('Could not find checkbox to toggle for calendar:', this.name, this.id);
+      return;
+    }
+    
+    try {
+      // Try directly clicking the checkbox
+      checkbox.click();
+      
+      // Log debug info
+      console.log('Toggled calendar checkbox:', { 
+        name: this.name, 
+        id: this.id,
+        isChecked: this.isChecked()
+      });
+    } catch (error) {
+      console.error('Error toggling calendar checkbox:', error);
     }
   }
 
   enable(): void {
     if (!this.isChecked() && this.dom?.el) {
+      console.log('Enabling calendar:', this.name, this.id);
       this.toggle();
     }
   }
 
   disable(): void {
     if (this.isChecked() && this.dom?.el) {
+      console.log('Disabling calendar:', this.name, this.id);
       this.toggle();
     }
   }
@@ -201,24 +322,83 @@ class CalendarList extends Array<Calendar> {
   get(id: string): Calendar | undefined {
     return this.find(cal => cal.id === id);
   }
-
   refreshVisibleCalendarDOMs(...cals: Calendar[]): Calendar[] {
     const calendars = cals.length > 0 ? cals : this;
     
-    // Get all visible calendar elements
-    const visibleCalendarElements = Array.from(
-      document.querySelectorAll("div[role='list'] li[role='listitem']")
-    ) as HTMLElement[];
+    // Get all visible calendar elements using multiple selector options
+    const selectors = [
+      "div[role='list'] li[role='listitem']",
+      ".calendar-list li",
+      "[data-is-list='true'] [role='listitem']",
+      "aside li",
+      "aside div[role='listitem']"
+    ];
     
+    let visibleCalendarElements: HTMLElement[] = [];
+    
+    // Try each selector until we find calendar elements
+    for (const selector of selectors) {
+      const elements = document.querySelectorAll(selector);
+      if (elements.length > 0) {
+        visibleCalendarElements = Array.from(elements) as HTMLElement[];
+        break;
+      }
+    }
+    
+    if (visibleCalendarElements.length === 0) {
+      console.warn('Could not find calendar elements using known selectors');
+      return calendars;
+    }
+    
+    console.log(`Found ${visibleCalendarElements.length} visible calendar elements`);
+    
+    // For each calendar that needs refreshing, try to find its matching DOM element
     for (const cal of calendars) {
       if (!cal.attached) {
-        // Find matching element by id
+        // First try to match by ID
+        let foundMatch = false;
+        
         for (const el of visibleCalendarElements) {
-          const checkbox = el.querySelector('input[type="checkbox"]');
-          if (checkbox && (checkbox as HTMLInputElement).value === cal.id) {
+          // Try to find a checkbox or any element with a matching ID/value
+          const checkbox = el.querySelector('input[type="checkbox"]') || 
+                          el.querySelector('[role="checkbox"]') ||
+                          el.querySelector('[aria-checked]');
+          
+          let matchesId = false;
+          
+          if (checkbox) {
+            if (checkbox instanceof HTMLInputElement && checkbox.value === cal.id) {
+              matchesId = true;
+            } else {
+              const dataId = checkbox.getAttribute('data-cal-id') || 
+                            checkbox.getAttribute('data-id') || 
+                            checkbox.getAttribute('id');
+              if (dataId === cal.id) {
+                matchesId = true;
+              }
+            }
+          }
+          
+          // If not found by ID, try matching by name
+          if (!matchesId) {
+            const nameElements = el.querySelectorAll('span, div[role="heading"], label');
+            for (const nameEl of Array.from(nameElements)) {
+              if (nameEl.textContent?.trim() === cal.name) {
+                matchesId = true;
+                break;
+              }
+            }
+          }
+          
+          if (matchesId) {
             cal.setEl(el);
+            foundMatch = true;
             break;
           }
+        }
+        
+        if (!foundMatch) {
+          console.warn(`Could not find DOM element for calendar: ${cal.name} (${cal.id})`);
         }
       }
     }
@@ -336,9 +516,35 @@ class CalendarList extends Array<Calendar> {
     await CalendarList.discoverCalendarScrollPositions(this);
     return this;
   }
-
   static getScrollContainer(): HTMLElement | null {
-    return document.querySelector('div[role="list"]');
+    // Try different selectors for the calendar list container
+    const possibleContainers = [
+      'div[role="list"]',
+      '.cal-sidebar',
+      '#calendars-list',
+      '.calendar-list',
+      '[data-is-list="true"]',
+      'div[role="navigation"] div[role="list"]'
+    ];
+    
+    for (const selector of possibleContainers) {
+      const container = document.querySelector(selector);
+      if (container) {
+        return container as HTMLElement;
+      }
+    }
+    
+    // Fallback to any scrollable container in the side panel
+    const sidePanelContainer = document.querySelector('aside');
+    if (sidePanelContainer) {
+      const scrollable = sidePanelContainer.querySelector('div[style*="overflow"]');
+      if (scrollable) {
+        return scrollable as HTMLElement;
+      }
+    }
+    
+    console.warn('Could not find calendar list container');
+    return null;
   }
 
   static async discoverCalendarScrollPositions(calendars: Calendar[], opts = {}): Promise<Calendar[]> {
@@ -350,19 +556,62 @@ class CalendarList extends Array<Calendar> {
     }
     return calendars;
   }
-
   static async getInstance(): Promise<CalendarList> {
-    // Create a calendar list from all visible calendar elements
-    const visibleElements = Array.from(
-      document.querySelectorAll("div[role='list'] li[role='listitem']")
-    ) as HTMLElement[];
+    console.log('Getting all calendar instances...');
+    
+    // Try different selector combinations for calendar items
+    const selectors = [
+      "div[role='list'] li[role='listitem']",
+      ".calendar-list li",
+      "[data-is-list='true'] [role='listitem']",
+      "[data-is-list='true'] li",
+      ".cal-sidebar li",
+      "aside li:has(input[type='checkbox'])",
+      "aside [role='listitem']"
+    ];
+    
+    let visibleElements: HTMLElement[] = [];
+    
+    for (const selector of selectors) {
+      const elements = document.querySelectorAll(selector);
+      if (elements.length > 0) {
+        visibleElements = Array.from(elements) as HTMLElement[];
+        console.log(`Found ${visibleElements.length} calendar elements using selector: ${selector}`);
+        break;
+      }
+    }
+    
+    if (visibleElements.length === 0) {
+      console.warn('Could not find calendar elements with standard selectors, trying fallback...');
+      // Fallback: look for checkbox elements directly
+      const checkboxes = document.querySelectorAll('input[type="checkbox"], [role="checkbox"]');
+      visibleElements = Array.from(checkboxes).map(checkbox => {
+        // Find the closest container that might be a calendar item
+        let element = checkbox.parentElement;
+        while (element && 
+              !element.matches('li') && 
+              !element.matches('[role="listitem"]') &&
+              element !== document.body) {
+          element = element.parentElement;
+        }
+        return element;
+      }).filter(Boolean) as HTMLElement[];
+    }
+    
+    console.log(`Found ${visibleElements.length} calendar elements total`);
     
     const calendarList = new CalendarList();
     
     for (const el of visibleElements) {
       const cal = new Calendar(el);
-      calendarList.push(cal);
+      if (cal.id && cal.name) {
+        calendarList.push(cal);
+      } else {
+        console.warn('Skipping calendar with missing ID or name:', cal);
+      }
     }
+    
+    console.log(`Created ${calendarList.length} Calendar objects`);
     
     await calendarList.discoverCalendarScrollPositions();
     return calendarList;
@@ -415,9 +664,14 @@ const CalendarManager: CM = {
   calendars: null, // to be set after everything is defined
 
   groups: {},
-
   // used for loading groups from storage without changing the groups reference above
   setGroups: function(newGroups: CalendarGroup): void {
+    // Skip update if no actual change
+    if (JSON.stringify(CalendarManager.groups) === JSON.stringify(newGroups)) {
+      console.log('Groups unchanged, skipping update');
+      return;
+    }
+    
     CalendarManager.groups = newGroups;
     CalendarManager._updated();
   },
@@ -435,12 +689,43 @@ const CalendarManager: CM = {
     }
 
     return _groups;
-  },
-
-  // set CM.onGroupsChange function to get updates
+  },  // set CM.onGroupsChange function to get updates
   _updated: function(): void {
+    // Skip updates if no changes were made
+    if (!CalendarManager.groups) return;
+    
+    // Limit logging to reduce noise
+    const groupCount = Object.keys(CalendarManager.groups)
+      .filter(key => !key.startsWith('__')).length;
+    
+    console.log('CalendarManager groups updated:', {
+      groupCount,
+      lastSaved: CalendarManager.groups.__last_saved || []
+    });
+    
+    // Use a single update approach to prevent loops
+    let handled = false;
+    
+    // First try using onGroupsChange callback if available
     if (typeof CalendarManager.onGroupsChange === 'function') {
-      CalendarManager.onGroupsChange();
+      try {
+        CalendarManager.onGroupsChange();
+        handled = true;
+      } catch (error) {
+        console.error('Error in onGroupsChange handler:', error);
+      }
+    }
+    
+    // Only dispatch event if onGroupsChange wasn't available
+    if (!handled) {
+      try {
+        const event = new CustomEvent('calendar-groups-changed', { 
+          detail: { groups: CalendarManager.exportGroups() }
+        });
+        document.dispatchEvent(event);
+      } catch (error) {
+        console.error('Error dispatching calendar-groups-changed event:', error);
+      }
     }
   },
 
@@ -474,9 +759,42 @@ const CalendarManager: CM = {
     
     return wasVisible;
   },
-
   getVisibleCalendarsElements: function(): HTMLElement[] {
-    return Array.from(document.querySelectorAll('div[role="list"] li[role="listitem"]'));
+    // Try different selector combinations for calendar items
+    const selectors = [
+      "div[role='list'] li[role='listitem']",
+      ".calendar-list li",
+      "[data-is-list='true'] [role='listitem']",
+      "[data-is-list='true'] li",
+      ".cal-sidebar li",
+      "aside li:has(input[type='checkbox'])"
+    ];
+    
+    for (const selector of selectors) {
+      const elements = document.querySelectorAll(selector);
+      if (elements.length > 0) {
+        return Array.from(elements) as HTMLElement[];
+      }
+    }
+    
+    // Log a warning if none are found
+    console.warn('Could not find calendar elements using known selectors');
+    
+    // Fallback: try to find checkbox elements that might be calendar items
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    if (checkboxes.length > 0) {
+      return Array.from(checkboxes).map(checkbox => {
+        let element = checkbox.parentElement;
+        // Look up the tree for a list item or suitable container
+        while (element && !element.matches('li') && !element.matches('[role="listitem"]')) {
+          element = element.parentElement;
+        }
+        return element || checkbox.parentElement;
+      }).filter(Boolean) as HTMLElement[];
+    }
+    
+    console.error('Could not find any calendar elements');
+    return [];
   },
 
   // gets all 'my' and 'other' visible calendars
@@ -604,27 +922,60 @@ const CalendarManager: CM = {
     await CalendarManager.performOperation(async () => {
       await CalendarManager.calendars!.disable();
     }, 'disableAll');
-  },
-
-  saveCalendarSelections: async function(groupName: string): Promise<void> {
+  },  saveCalendarSelections: async function(groupName: string): Promise<void> {
     await CalendarManager.performOperation(async () => {
+      if (!groupName || typeof groupName !== 'string' || groupName.trim() === '') {
+        console.error('Invalid group name provided for saving calendar selections');
+        return;
+      }
+      
+      // Normalize the group name to lowercase
+      const normalizedGroupName = groupName.toLowerCase().trim();
+      
+      // Initialize the groups object if necessary
       const groups = CalendarManager.groups = CalendarManager.groups || {};
       groups.__last_saved = groups.__last_saved || [];
       
-      // track with most recently saved groups
-      const idx = groups.__last_saved.indexOf(groupName);
-      if (idx >= 0) {
-        groups.__last_saved.splice(idx, 1);
+      // Ensure calendars are refreshed with current state
+      if (CalendarManager.calendars) {
+        CalendarManager.calendars.refreshVisibleCalendarDOMs();
       }
-      groups.__last_saved.unshift(groupName);
+      
+      // Get the calendars that are currently checked
+      const checkedCalendars = CalendarManager.calendars!.filter(cal => cal.isChecked());
+      
+      // Extract IDs for the new group
+      const newCalendarIds = checkedCalendars.map(cal => cal.id);
+      
+      // Check if the group already exists with the same content
+      const existingIds = groups[normalizedGroupName];
+      if (existingIds && JSON.stringify(existingIds.sort()) === JSON.stringify(newCalendarIds.sort())) {
+        console.log(`Group "${normalizedGroupName}" already contains the same calendars, no update needed`);
+        
+        // Just update the last_saved list
+        if (groups.__last_saved.indexOf(normalizedGroupName) !== 0) {
+          // Move this group to the top of the last_saved list
+          groups.__last_saved = groups.__last_saved.filter(name => name !== normalizedGroupName);
+          groups.__last_saved.unshift(normalizedGroupName);
+          CalendarManager._updated();
+        }
+        
+        return;
+      }
+      
+      // Update last_saved array
+      groups.__last_saved = groups.__last_saved.filter(name => name !== normalizedGroupName);
+      groups.__last_saved.unshift(normalizedGroupName);
       
       // Save calendar IDs of checked calendars
-      groups[groupName.toLowerCase()] = CalendarManager.calendars!
-        .filter(cal => cal.isChecked())
-        .map(cal => cal.id);
+      groups[normalizedGroupName] = newCalendarIds;
       
-      console.log('saved calendar group:', groupName, '=>', groups[groupName.toLowerCase()]);
+      console.log('Saved calendar group:', normalizedGroupName, '=>', {
+        ids: groups[normalizedGroupName],
+        calendars: checkedCalendars.length
+      });
       
+      // Notify about the change
       CalendarManager._updated();
     }, `saveCalendarSelections: ${groupName}`);
   },
@@ -760,14 +1111,64 @@ function cmDebug(...args: any[]): void {
 }
 
 // Initialize CalendarManager and expose it globally
+let calendarManagerInitialized = false;
+
+async function initializeCalendarManager() {
+  if (calendarManagerInitialized) return;
+
+  try {
+    // Enable debug logging if needed
+    // cmDebugEnabled = true;
+    console.log('Initializing CalendarManager...');
+    
+    // Wait a bit to make sure the Google Calendar UI is fully loaded
+    await sleep(500);
+    
+    // First ensure the calendar drawer is shown
+    await CalendarManager.setCalendarDrawerShown(true);
+    
+    // Get all calendars
+    const calendars = await CalendarList.getInstance();
+    
+    // Store calendars in CalendarManager
+    CalendarManager.calendars = calendars;
+    
+    console.log(`Discovered ${calendars.length} calendars`);
+    
+    // Expose CalendarManager globally
+    (window as any).CalendarManager = (window as any).CalendarManager || CalendarManager;
+    
+    // Re-enable debug logging via console if needed
+    (window as any).enableCalendarDebug = () => {
+      cmDebugEnabled = true;
+      console.log('Calendar debug logging enabled');
+    };
+    
+    calendarManagerInitialized = true;
+    console.log('CalendarManager loaded successfully');
+    
+    // Notify any listeners that the manager is ready
+    document.dispatchEvent(new CustomEvent('calendar-manager-ready'));
+  } catch (error) {
+    console.error('Failed to initialize CalendarManager:', error);
+  }
+}
+
+// Run initialization
 (async function() {
-  const calendars = await CalendarList.getInstance();
-  CalendarManager.calendars = calendars;
-
-  // Expose CalendarManager globally
-  (window as any).CalendarManager = (window as any).CalendarManager || CalendarManager;
-
-  console.log('CalendarManager loaded');
+  // Initial attempt
+  await initializeCalendarManager();
+  
+  // If initializing immediately after page load, Google Calendar might not be ready yet
+  // Try again after a short delay if needed
+  setTimeout(async () => {
+    if (!calendarManagerInitialized || (CalendarManager.calendars && CalendarManager.calendars.length === 0)) {
+      console.log('Attempting to re-initialize CalendarManager...');
+      await initializeCalendarManager();
+    }
+  }, 1500);
 })();
 
+// Also export the initialization function for explicit initialization
+export { initializeCalendarManager };
 export default CalendarManager;
