@@ -1,5 +1,5 @@
-import React from "react";
-import { Container } from "@mui/material";
+import React, { useMemo } from "react";
+import { Container, CircularProgress } from "@mui/material";
 import PresetMenu from "../Presets";
 import {
   CalendarProvider,
@@ -18,14 +18,37 @@ import ClearAllIcon from "@mui/icons-material/ClearAll";
 import ReplayIcon from "@mui/icons-material/Replay";
 import SettingsIcon from '@mui/icons-material/Settings';
 import EditCalendarIcon from '@mui/icons-material/EditCalendar';
+import * as Logger from '../../utils/logger';
 
 // Import Mousetrap type
 import "../../types/mousetrap";
 
+// Styles for the container and loading indicator
+const styles = {
+  container: {
+    display: 'flex',
+    flexDirection: 'row' as const,
+    alignItems: 'center',
+    position: 'relative' as const,
+  },
+  loadingContainer: {
+    position: 'absolute' as const,
+    right: '8px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+  }
+};
+
+/**
+ * Main application component
+ */
 function RootApp() {
-  const { dropdownItems } = useCalendarContext();
-  const { message, showMessage, handleCloseSnackbar, showSnackbar } =
-    useMessage();
+  // Start performance tracking for component render
+  Logger.startPerformanceTracking('render:RootApp');
+  
+  // Get context and set up hooks
+  const { dropdownItems, isLoading } = useCalendarContext();
+  const { message, showMessage, handleCloseSnackbar, showSnackbar } = useMessage();
   const actions = useCalendarActions(showMessage);
 
   // Use keyboard shortcuts
@@ -34,8 +57,8 @@ function RootApp() {
   // Use Chrome storage
   useChromeStorage();
 
-  // Define buttons
-  const buttons: ButtonItem[] = [
+  // Memoize buttons definition to prevent unnecessary re-renders
+  const buttons: ButtonItem[] = useMemo(() => [
     {
       text: "&Enable",
       tooltip: "Enable a calendar by name",
@@ -64,15 +87,28 @@ function RootApp() {
       text: "&Presets",
       tooltip: "Manage preset groups",
       click: actions.openPresetsMenu,
-      icon: <SettingsIcon /> ,
+      icon: <SettingsIcon />,
     }
-    
-  ];
+  ], [actions]);
+
+  // End performance tracking for component render
+  Logger.endPerformanceTracking('render:RootApp');
 
   return (
     <Container maxWidth={false}>
-      <div>
-        <CalendarControls buttons={buttons} />
+      <div style={styles.container}>
+        <CalendarControls 
+          buttons={buttons} 
+          isLoading={isLoading || actions.isLoading} 
+        />
+        
+        {/* Loading indicator */}
+        {(isLoading || actions.isLoading) && (
+          <div style={styles.loadingContainer}>
+            <CircularProgress size={24} />
+          </div>
+        )}
+        
         <PresetMenu
           items={dropdownItems}
           onItemSelect={actions.handleItemSelect}
@@ -91,6 +127,9 @@ function RootApp() {
   );
 }
 
+/**
+ * Provider wrapper component
+ */
 const App: React.FC = () => {
   return (
     <CalendarProvider>

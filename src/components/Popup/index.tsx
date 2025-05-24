@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 import { styled } from '@mui/material/styles';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import manifestJson from '../../../public/manifest.json';
 import packageJson from '../../../package.json';
 
+// Extract constants outside of component to avoid recalculation
 const version = manifestJson.version;
 const repositoryUrl = packageJson.repository.url.replace(/\.git$/, '');
 const extensionName = manifestJson.name.replace(/^@.*\//, '');
+const currentYear = new Date().getFullYear();
 
-// Create a theme instance
+// Create a theme instance outside component to avoid recreation
 const theme = createTheme({
   palette: {
     primary: {
@@ -113,11 +115,24 @@ const Link = styled('a')({
   '&:hover': {
     textDecoration: 'underline',
   },
-  marginLeft: 4,
-  marginRight: 4,
+  marginLeft: 4,  marginRight: 4,
 });
 
+// Memoize shortcuts data to avoid recreation
+const shortcuts = [
+  { keys: 'Ctrl + Shift + S', description: 'Select current calendar event' },
+  { keys: 'Ctrl + Shift + C', description: 'Clear selected event' },
+  { keys: 'Ctrl + Shift + O', description: 'Open Google Calendar' }
+];
+
+/**
+ * Popup component for the extension popup window
+ * Optimized with memoization and performance considerations
+ */
 const Popup: React.FC = () => {
+  // Memoize support URL to avoid recalculation
+  const supportUrl = useMemo(() => `${repositoryUrl}/issues`, []);
+
   return (
     <ThemeProvider theme={theme}>
       <PopupContainer>
@@ -127,22 +142,14 @@ const Popup: React.FC = () => {
             alt="Extension Icon"
           />
           <Title>{extensionName}</Title>
-        </Header>
-
-        <SectionTitle>Shortcuts &amp; Hotkeys</SectionTitle>
+        </Header>        <SectionTitle>Shortcuts &amp; Hotkeys</SectionTitle>
         <ShortcutList>
-          <ShortcutItem>
-            <KeyCombo>Ctrl + Shift + S</KeyCombo>
-            <span>Select current calendar event</span>
-          </ShortcutItem>
-          <ShortcutItem>
-            <KeyCombo>Ctrl + Shift + C</KeyCombo>
-            <span>Clear selected event</span>
-          </ShortcutItem>
-          <ShortcutItem>
-            <KeyCombo>Ctrl + Shift + O</KeyCombo>
-            <span>Open Google Calendar</span>
-          </ShortcutItem>
+          {shortcuts.map((shortcut, index) => (
+            <ShortcutItem key={index}>
+              <KeyCombo>{shortcut.keys}</KeyCombo>
+              <span>{shortcut.description}</span>
+            </ShortcutItem>
+          ))}
         </ShortcutList>
 
         <HelperText>
@@ -151,12 +158,11 @@ const Popup: React.FC = () => {
           You can customize hotkeys in your browser's extension settings.
         </HelperText>
 
-        <SectionTitle>Support</SectionTitle>
-        <HelperText>
+        <SectionTitle>Support</SectionTitle>        <HelperText>
           Need help or want to report an issue?
           <br />
           <Link
-            href={`${repositoryUrl}/issues`}
+            href={supportUrl}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -165,7 +171,7 @@ const Popup: React.FC = () => {
         </HelperText>
 
         <Copyright>
-          &copy; {new Date().getFullYear()} {extensionName} {version}
+          &copy; {currentYear} {extensionName} {version}
           <br />
           Not affiliated with Google LLC.
           <br />
@@ -181,6 +187,8 @@ const Popup: React.FC = () => {
     </ThemeProvider>
   );
 };
+
+export default React.memo(Popup);
 
 // Create root element and render
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);

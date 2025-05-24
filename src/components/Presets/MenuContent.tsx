@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { 
   MenuItem,
   IconButton,
@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { DropdownItem } from "../../types/DropdownItem";
+import { startPerformanceTracking, endPerformanceTracking } from '../../utils/logger';
 
 interface MenuContentProps {
   items: DropdownItem[];
@@ -18,6 +19,10 @@ interface MenuContentProps {
   onKeyDown: (e: React.KeyboardEvent) => void;
 }
 
+/**
+ * Menu content component for the presets menu
+ * Displays searchable list of preset items
+ */
 const MenuContent: React.FC<MenuContentProps> = ({
   items,
   searchValue,
@@ -26,9 +31,30 @@ const MenuContent: React.FC<MenuContentProps> = ({
   onSearchChange,
   onKeyDown
 }) => {
-  const filteredItems = items.filter(item =>
-    item.text.toLowerCase().includes(searchValue.toLowerCase())
-  );
+  // Memoize filtered items to prevent unnecessary recalculations
+  const filteredItems = useMemo(() => {
+    startPerformanceTracking('menuContent.filterItems');
+    const result = items.filter(item =>
+      item.text.toLowerCase().includes(searchValue.toLowerCase())
+    );
+    endPerformanceTracking('menuContent.filterItems');
+    return result;
+  }, [items, searchValue]);
+
+  // Memoize the click handler for each item
+  const handleItemClick = useCallback((item: DropdownItem) => {
+    startPerformanceTracking('menuContent.itemClick');
+    onItemSelect(item);
+    endPerformanceTracking('menuContent.itemClick');
+  }, [onItemSelect]);
+
+  // Memoize the delete handler for each item
+  const handleDeleteClick = useCallback((event: React.MouseEvent, item: DropdownItem) => {
+    startPerformanceTracking('menuContent.deleteClick');
+    event.stopPropagation();
+    onItemDelete(item);
+    endPerformanceTracking('menuContent.deleteClick');
+  }, [onItemDelete]);
 
   return (
     <>
@@ -51,7 +77,7 @@ const MenuContent: React.FC<MenuContentProps> = ({
         filteredItems.map((item) => (
           <MenuItem 
             key={item.value} 
-            onClick={() => onItemSelect(item)}
+            onClick={() => handleItemClick(item)}
             sx={{ display: 'flex', justifyContent: 'space-between' }}
           >
             <ListItemText primary={item.text} />
@@ -59,10 +85,7 @@ const MenuContent: React.FC<MenuContentProps> = ({
               <IconButton 
                 edge="end" 
                 size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onItemDelete(item);
-                }}
+                onClick={(e) => handleDeleteClick(e, item)}
               >
                 <DeleteIcon fontSize="small" />
               </IconButton>
@@ -74,4 +97,4 @@ const MenuContent: React.FC<MenuContentProps> = ({
   );
 };
 
-export default MenuContent;
+export default React.memo(MenuContent);

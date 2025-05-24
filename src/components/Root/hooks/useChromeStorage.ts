@@ -1,163 +1,216 @@
 import { useEffect, useRef, useCallback } from 'react';
-import CalendarManager from '../../../services/calendar_manager';
+import CalendarManager from '../../../services/CalendarManager';
 import { useCalendarContext } from '../context/CalendarContext';
+import { throttle } from '../../../utils/common';
+import * as Logger from '../../../utils/logger';
 
-// Simple debounce function to limit operations
-const debounce = (fn: Function, ms = 300) => {
-  let timeoutId: ReturnType<typeof setTimeout>;
-  return function(this: any, ...args: any[]) {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn.apply(this, args), ms);
-  };
+// Storage keys used by the application
+const STORAGE_KEYS = {
+  GROUPS: 'gcSelector_groups',
+  LAST_UPDATED: 'gcSelector_last_updated',
+  SETTINGS: 'gcSelector_settings'
 };
 
+/**
+ * Chrome storage integration hook
+ * Manages synchronization of calendar groups with Chrome's storage API
+ */
 export function useChromeStorage() {
-  // Get refreshGroupsState from context, but don't use it as a direct dependency
+  // Get refreshGroupsState from context
   const { refreshGroupsState } = useCalendarContext();
-  const refreshRef = useRef(refreshGroupsState);
+  
+  // Refs to track state between renders
   const lastSavedRef = useRef<string>('');
   const isSavingRef = useRef<boolean>(false);
+  const isLoadingRef = useRef<boolean>(false);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
-  // Keep the refreshGroupsState reference updated but don't cause effect reruns
-  useEffect(() => {
-    refreshRef.current = refreshGroupsState;
-  }, [refreshGroupsState]);
-  
-  // Create stable callbacks that don't change on re-renders
-  const safeRefreshGroups = useCallback(() => {
-    if (refreshRef.current) {
-      refreshRef.current();
-    }
+  // Check if Chrome storage is available
+  const isChromeStorageAvailable = useCallback((): boolean => {
+    return typeof chrome !== 'undefined' && !!chrome.storage && !!chrome.storage.sync;
   }, []);
   
-  const loadFromStorage = useCallback(() => {
-    try {
-      if (typeof chrome !== 'undefined' && chrome.storage) {
-        console.log('Loading groups from Chrome storage');
-        chrome.storage.sync.get(['gcSelector_groups', 'gcSelector_last_updated'], (items) => {
-          if (items.gcSelector_groups) {
-            try {
-              const loadedGroups = JSON.parse(items.gcSelector_groups);
-              // Save this as our last saved state to avoid immediate re-saving
-              lastSavedRef.current = items.gcSelector_groups;
-              
-              console.log('Loaded groups from storage:', Object.keys(loadedGroups).filter(k => !k.startsWith('__')));
-              CalendarManager.setGroups(loadedGroups);
-              safeRefreshGroups();
-            } catch (e) {
-              console.error('Error parsing saved groups:', e);
-            }
-          } else {
-            console.log('No saved groups found in storage');
-          }
-        });
-      } else {
-        console.warn('Chrome storage API not available');
-      }
-    } catch (e) {
-      console.warn('Not running in Chrome extension environment');
+  // Load groups from Chrome storage
+  const loadFromStorage = useCallback(async () => {
+    if (!isChromeStorageAvailable() || isLoadingRef.current) {
+      return;
     }
-  }, [safeRefreshGroups]);
-  
-  useEffect(() => {
-    console.log('Setting up Chrome storage integration');
     
-    // Save to storage when groups change - with debouncing and change detection
-    const saveGroups = debounce(() => {
+    try {
+      isLoadingRef.current = true;
+      Logger.startPerformanceTracking('loadFromStorage');
+      
+      const items = await new Promise<{ [key: string]: any }>((resolve) => {
+        chrome.storage.sync.get([STORAGE_KEYS.GROUPS], (result) => {
+          resolve(result);
+        });
+      });
+      
+      if (!items[STORAGE_KEYS.GROUPS]) {
+        Logger.debug('No calendar groups found in storage');
+        return;
+      }
+      
+      const loadedGroups = JSON.parse(items[STORAGE_KEYS.GROUPS]);
+      
+      // Save this as our last saved state to avoid immediate re-saving
+      lastSavedRef.current = items[STORAGE_KEYS.GROUPS];
+      
+      // Update CalendarManager with the loaded groups
+      CalendarManager.setGroups(loadedGroups);
+      refreshGroupsState();
+      
+      Logger.info('Loaded calendar groups from storage', { 
+        groupCount: Object.keys(loadedGroups).filter(k => !k.startsWith('__')).length 
+      });
+    } catch (error) {
+      Logger.error('Error loading saved groups:', error);
+    } finally {
+      isLoadingRef.current = false;
+      Logger.endPerformanceTracking('loadFromStorage');
+    }
+  }, [isChromeStorageAvailable, refreshGroupsState]);
+  
+  // Save groups to Chrome storage with throttling
+  const saveGroups = useCallback(
+    throttle(async () => {
+      // Prevent saving if we're already in process or storage isn't available
+      if (isSavingRef.current || !isChromeStorageAvailable()) {
+        return;
+      }
+      
       try {
-        // Prevent saving if we're already in the process
-        if (isSavingRef.current) {
+        Logger.startPerformanceTracking('saveGroups');
+        
+        // Get groups to export, including internal ones
+        const exportedGroups = CalendarManager.exportGroups(true);
+        
+        // Skip saving if there are no groups to save
+        const groupKeys = Object.keys(exportedGroups).filter(k => !k.startsWith('__'));
+        if (groupKeys.length === 0) {
+          Logger.debug('No groups to save');
           return;
         }
         
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-          const exportedGroups = CalendarManager.exportGroups(true);
-          
-          // Skip saving if there are no groups to save
-          const groupKeys = Object.keys(exportedGroups).filter(k => !k.startsWith('__'));
-          if (groupKeys.length === 0) {
-            console.log('No groups to save, skipping storage update');
-            return;
-          }
-          
-          // Convert to string for comparison and storage
-          const exportedGroupsString = JSON.stringify(exportedGroups);
-          
-          // Only save if the data has actually changed
-          if (exportedGroupsString === lastSavedRef.current) {
-            console.log('Groups unchanged, skipping storage update');
-            return;
-          }
-          
-          console.log(`Saving ${groupKeys.length} groups to Chrome storage:`, groupKeys);
-          
-          // Mark that we're saving to prevent concurrent saves
-          isSavingRef.current = true;
-          
-          chrome.storage.sync.set({ 
-            gcSelector_groups: exportedGroupsString,
-            gcSelector_last_updated: new Date().toISOString()
-          }, () => {
-            // Update last saved state and reset saving flag
-            lastSavedRef.current = exportedGroupsString;
-            isSavingRef.current = false;
-            console.log('Successfully saved groups to Chrome storage');
+        // Convert to string for comparison and storage
+        const exportedGroupsString = JSON.stringify(exportedGroups);
+        
+        // Only save if the data has actually changed
+        if (exportedGroupsString === lastSavedRef.current) {
+          Logger.debug('Groups unchanged, skipping save');
+          return;
+        }
+        
+        // Mark that we're saving to prevent concurrent saves
+        isSavingRef.current = true;
+        
+        // Create data to save
+        const dataToSave = { 
+          [STORAGE_KEYS.GROUPS]: exportedGroupsString,
+          [STORAGE_KEYS.LAST_UPDATED]: new Date().toISOString()
+        };
+        
+        await new Promise<void>((resolve) => {
+          chrome.storage.sync.set(dataToSave, () => {
+            resolve();
           });
-        }
-      } catch (e) {
-        console.warn('Unable to save to Chrome storage:', e);
+        });
+        
+        // Update last saved state
+        lastSavedRef.current = exportedGroupsString;
+        Logger.info('Saved calendar groups to storage', { groupCount: groupKeys.length });
+      } catch (error) {
+        Logger.error('Error saving groups to storage:', error);
+      } finally {
+        // Reset saving flag
         isSavingRef.current = false;
+        Logger.endPerformanceTracking('saveGroups');
       }
-    }, 1000); // 1 second debounce
-    
+    }, 1000), 
+    [isChromeStorageAvailable]
+  );
+  
+  // Effect for storage management
+  useEffect(() => {
     // Handle storage changes from other instances
-    const handleStorageChange = (changes: any, areaName: string) => {
-      if (areaName === 'sync' && changes.gcSelector_groups) {
-        try {
-          // Skip if we're the ones who made the change
-          const newValue = changes.gcSelector_groups.newValue;
-          if (newValue === lastSavedRef.current) {
-            console.log('Ignoring storage change triggered by this instance');
-            return;
-          }
-          
-          const newGroups = JSON.parse(newValue);
-          console.log('Storage updated from another instance, loading new groups');
-          
-          // Update our saved state
-          lastSavedRef.current = newValue;
-          
-          // Update CalendarManager
-          CalendarManager.setGroups(newGroups);
-          safeRefreshGroups();
-        } catch (e) {
-          console.error('Error handling storage change:', e);
-        }
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }, areaName: string) => {
+      if (areaName !== 'sync' || !changes[STORAGE_KEYS.GROUPS]) {
+        return;
+      }
+      
+      // Skip if we're the ones who made the change
+      const newValue = changes[STORAGE_KEYS.GROUPS].newValue;
+      if (newValue === lastSavedRef.current) {
+        return;
+      }
+      
+      try {
+        Logger.startPerformanceTracking('handleStorageChange');
+        
+        const newGroups = JSON.parse(newValue);
+        
+        // Update our saved state
+        lastSavedRef.current = newValue;
+        
+        // Update CalendarManager
+        CalendarManager.setGroups(newGroups);
+        refreshGroupsState();
+        
+        Logger.info('Updated calendar groups from external storage change', {
+          groupCount: Object.keys(newGroups).filter(k => !k.startsWith('__')).length
+        });
+      } catch (error) {
+        Logger.error('Error handling storage change:', error);
+      } finally {
+        Logger.endPerformanceTracking('handleStorageChange');
       }
     };
     
-    // Listen for the custom event from CalendarManager, with debouncing
-    const handleGroupsChanged = debounce(() => {
-      console.log('Groups changed event detected, preparing to save');
-      saveGroups();
-    }, 500);
+    // Listen for the custom event from CalendarManager
+    const handleGroupsChanged = () => {
+      // Clear any pending save timeout
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      
+      // Schedule a save with a short delay to batch multiple rapid changes
+      saveTimeoutRef.current = setTimeout(() => {
+        saveGroups();
+        saveTimeoutRef.current = null;
+      }, 300);
+    };
     
     // Set up event listeners
     document.addEventListener('calendar-groups-changed', handleGroupsChanged);
     
-    if (typeof chrome !== 'undefined' && chrome.storage) {
+    // Set up storage change listener if available
+    if (isChromeStorageAvailable()) {
       chrome.storage.onChanged.addListener(handleStorageChange);
     }
+    
+    // Register with CalendarManager to get notifications
+    const cleanup = CalendarManager.addChangeListener(handleGroupsChanged);
     
     // Initial load
     loadFromStorage();
     
-    // Cleanup
+    // Cleanup function
     return () => {
       document.removeEventListener('calendar-groups-changed', handleGroupsChanged);
-      if (typeof chrome !== 'undefined' && chrome.storage) {
+      
+      if (isChromeStorageAvailable()) {
         chrome.storage.onChanged.removeListener(handleStorageChange);
       }
+      
+      // Remove change listener
+      cleanup();
+      
+      // Clear any pending timeout
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
     };
-  }, [loadFromStorage, safeRefreshGroups]);
+  }, [loadFromStorage, saveGroups, refreshGroupsState, isChromeStorageAvailable]);
+  
+  // Return nothing - this hook just handles side effects
 }

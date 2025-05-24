@@ -1,16 +1,36 @@
-import React, { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react';
-import CalendarManager from '../../../services/calendar_manager';
+import React, { createContext, useContext, useEffect, useReducer, useCallback, useMemo, useRef } from 'react';
+import CalendarManager from '../../../services/CalendarManager';
 import { CalendarGroup } from "../../../types/CalendarGroup";
 import { DropdownItem } from "../../../types/DropdownItem";
+import { throttle } from '../../../utils/common';
+import * as Logger from '../../../utils/logger';
+import { memoize } from '../../../utils/memoize';
 
+// Define the context type
 interface CalendarContextType {
   groups: CalendarGroup;
   dropdownItems: DropdownItem[];
   refreshGroupsState: () => void;
+  isLoading: boolean;
 }
 
+// Action types for the reducer
+type CalendarAction = 
+  | { type: 'REFRESH_GROUPS'; groups: CalendarGroup }
+  | { type: 'SET_DROPDOWN_ITEMS'; items: DropdownItem[] }
+  | { type: 'SET_LOADING'; isLoading: boolean };
+
+// State interface for the reducer
+interface CalendarState {
+  groups: CalendarGroup;
+  dropdownItems: DropdownItem[];
+  isLoading: boolean;
+}
+
+// Create the context with a default value
 export const CalendarContext = createContext<CalendarContextType | null>(null);
 
+// Custom hook to use the calendar context
 export function useCalendarContext() {
   const context = useContext(CalendarContext);
   if (!context) {
@@ -19,122 +39,135 @@ export function useCalendarContext() {
   return context;
 }
 
-// Simple debounce function
-const debounce = (fn: Function, ms = 300) => {
-  let timeoutId: ReturnType<typeof setTimeout>;
-  return function(this: any, ...args: any[]) {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn.apply(this, args), ms);
-  };
-};
-
-export function CalendarProvider({ children }: { children: React.ReactNode }) {
-  const [groups, setGroups] = useState<CalendarGroup>(CalendarManager.groups || {});
-  const [dropdownItems, setDropdownItems] = useState<DropdownItem[]>([]);
-  const isUpdatingRef = useRef(false);
-  const refreshFunctionRef = useRef<any>(null);
+// Memoized function to generate dropdown items from groups
+const generateDropdownItems = memoize((groups: CalendarGroup): DropdownItem[] => {
+  const items: DropdownItem[] = [];
   
-  // Group-related functions with debouncing to prevent excessive updates
-  // Use useCallback to ensure function identity is preserved across renders
+  Object.keys(groups)
+    .filter(key => !key.startsWith('__') && !key.startsWith('saved_'))
+    .forEach(key => {
+      items.push({
+        text: key,
+        value: key
+      });
+    });
+  
+  return items;
+});
+
+// Reducer function for predictable state updates
+function calendarReducer(state: CalendarState, action: CalendarAction): CalendarState {
+  switch (action.type) {
+    case 'REFRESH_GROUPS':
+      return {
+        ...state,
+        groups: action.groups,
+      };
+    case 'SET_DROPDOWN_ITEMS':
+      return {
+        ...state,
+        dropdownItems: action.items,
+      };
+    case 'SET_LOADING':
+      return {
+        ...state,
+        isLoading: action.isLoading
+      };
+    default:
+      return state;
+  }
+}
+
+// Provider component
+export function CalendarProvider({ children }: { children: React.ReactNode }) {
+  // Initialize state with reducer
+  const [state, dispatch] = useReducer(calendarReducer, {
+    groups: CalendarManager.groups || {},
+    dropdownItems: [],
+    isLoading: false
+  });
+  
+  // Reference to track previous groups
+  const previousGroupsRef = useRef<string>('{}');
+
+  // Create a stable refresh function that processes groups and updates dropdown items
   const refreshGroupsState = useCallback(() => {
-    // Skip if we're already in the process of updating
-    if (isUpdatingRef.current) return;
+    // Get latest groups from CalendarManager
+    const currentGroups = CalendarManager.groups || {};
+    const currentGroupsJSON = JSON.stringify(currentGroups);
     
-    try {
-      isUpdatingRef.current = true;
-      console.log('Refreshing groups state...');
+    // Only update if there's an actual change
+    if (currentGroupsJSON !== previousGroupsRef.current) {
+      // Set loading state
+      dispatch({ type: 'SET_LOADING', isLoading: true });
       
-      // Get latest groups from CalendarManager
-      const currentGroups = CalendarManager.groups || {};
-      setGroups({ ...currentGroups });
+      // Update our reference
+      previousGroupsRef.current = currentGroupsJSON;
       
-      // Update dropdown items
-      const items: DropdownItem[] = [];
-      for (const key in currentGroups) {
-        if (!key.startsWith('__') && !key.startsWith('saved_')) {
-          items.push({
-            text: key,
-            value: key
-          });
-        }
-      }
+      // Update groups state
+      dispatch({ type: 'REFRESH_GROUPS', groups: { ...currentGroups } });
       
-      setDropdownItems(items);
-      console.log('Updated dropdown items:', items);
-    } finally {
-      // Reset the flag after a short delay to allow other updates to complete
-      setTimeout(() => {
-        isUpdatingRef.current = false;
-      }, 100);
+      // Generate and update dropdown items
+      const items = generateDropdownItems(currentGroups);
+      dispatch({ type: 'SET_DROPDOWN_ITEMS', items });
+      
+      Logger.debug('Updated dropdown items', { count: items.length });
+      
+      // Clear loading state
+      dispatch({ type: 'SET_LOADING', isLoading: false });
     }
   }, []);
   
-  // Create a stable debounced version of refreshGroupsState that won't change on every render
-  useEffect(() => {
-    refreshFunctionRef.current = debounce(refreshGroupsState, 300);
-  }, [refreshGroupsState]);
+  // Create a throttled version of refreshGroupsState to avoid rapid updates
+  // Using throttle instead of debounce to ensure updates happen promptly
+  const throttledRefresh = useMemo(() => 
+    throttle(refreshGroupsState, 300)
+  , [refreshGroupsState]);
   
-  // Listen for custom events from CalendarManager
+  // Set up listeners for calendar changes
   useEffect(() => {
-    const debouncedRefresh = refreshFunctionRef.current;
-    if (!debouncedRefresh) return;
-    
-    console.log('Setting up calendar change listeners');
-    
-    // Store the original callback
+    // Store the original callback to preserve it
     const originalOnGroupsChange = CalendarManager.onGroupsChange;
     
-    // Set up our callback
-    CalendarManager.onGroupsChange = () => {
-      debouncedRefresh();
-      // Only call original if it's not our function and not undefined
-      if (originalOnGroupsChange && 
-          originalOnGroupsChange !== debouncedRefresh && 
-          originalOnGroupsChange !== refreshGroupsState) {
-        originalOnGroupsChange();
-      }
-    };
+    // Define a cleanup function to track active listeners
+    const cleanup = CalendarManager.addChangeListener(throttledRefresh);
     
-    // Also listen for the custom event, but avoid duplicate refreshes
-    const handleGroupsChanged = (event: Event) => {
-      console.log('Detected groups changed event');
-      // Only refresh if we're not already updating and onGroupsChange isn't our function
-      if (!isUpdatingRef.current && 
-          CalendarManager.onGroupsChange !== debouncedRefresh && 
-          CalendarManager.onGroupsChange !== refreshGroupsState) {
-        debouncedRefresh();
-      }
-    };
+    // Set our callback for backward compatibility
+    CalendarManager.onGroupsChange = throttledRefresh;
     
+    // Handle custom event
+    const handleGroupsChanged = () => throttledRefresh();
     document.addEventListener('calendar-groups-changed', handleGroupsChanged);
     
-    // Initialize state with a delay to ensure everything is loaded
-    // Using a timeout to ensure we don't start a re-render cycle during mount
+    // Initial refresh with a delay to ensure everything is loaded
     const initTimeout = setTimeout(() => {
-      debouncedRefresh();
+      throttledRefresh();
     }, 200);
     
+    // Clean up
     return () => {
-      // Clean up
       document.removeEventListener('calendar-groups-changed', handleGroupsChanged);
+      cleanup(); // Clean up our change listener
       
       // Restore original callback only if our callback was set
-      if (CalendarManager.onGroupsChange === debouncedRefresh || 
+      if (CalendarManager.onGroupsChange === throttledRefresh || 
           CalendarManager.onGroupsChange === refreshGroupsState) {
         CalendarManager.onGroupsChange = originalOnGroupsChange;
       }
       
       clearTimeout(initTimeout);
     };
-  }, [refreshGroupsState]);
+  }, [refreshGroupsState, throttledRefresh]);
   
-  // Set up the context value - using the original non-debounced function for the API
-  const contextValue = React.useMemo(() => ({
-    groups,
-    dropdownItems,
+  // Create memoized context value to prevent unnecessary re-renders
+  const contextValue = useMemo<CalendarContextType>(() => ({
+    groups: state.groups,
+    dropdownItems: state.dropdownItems,
     refreshGroupsState,
-  }), [groups, dropdownItems, refreshGroupsState]);
+    isLoading: state.isLoading
+  }), [state.groups, state.dropdownItems, state.isLoading, refreshGroupsState]);
   
+  // Render the provider
   return (
     <CalendarContext.Provider value={contextValue}>
       {children}
