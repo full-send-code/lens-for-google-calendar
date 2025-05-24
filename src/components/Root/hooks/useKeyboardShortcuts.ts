@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
 import Mousetrap from 'mousetrap';
 import 'mousetrap/plugins/global-bind/mousetrap-global-bind';
+import React from 'react';
 
 interface CalendarActions {
   enableCalendar: () => Promise<void>;
-  toggleCalendar: () => Promise<void>;
   saveAs: () => Promise<void>;
   restore: () => Promise<void>;
   clear: () => Promise<void>;
+  openPresetsMenu: (event?: React.MouseEvent<HTMLElement>) => Promise<void>;
   handleImport?: (importedGroups: any) => void;
   handleItemSelect?: (item: { text: string; value: string }) => void;
   handleItemDelete?: (item: { text: string; value: string }) => void;
@@ -39,15 +40,27 @@ export function useKeyboardShortcuts(actions: CalendarActions) {
       Mousetrap.bindGlobal('ctrl', () => {
         hideShortcuts();
       }, 'keyup');
-      
-      // Bind keys to actions
+        // Bind keys to actions
       const keyMap: Record<string, () => void> = {
         'e': () => actions.enableCalendar(),
-        't': () => actions.toggleCalendar(),
         's': () => actions.saveAs(),
         'r': () => actions.restore(),
         'c': () => actions.clear(),
-        'p': () => document.querySelector('[data-shortcut="p"]')?.dispatchEvent(new MouseEvent('click')),
+        'p': () => {
+          // Create a simulated click event on the Presets button when using keyboard shortcut
+          const presetsButton = document.querySelector('[data-action-button="Presets"]') || 
+                               document.getElementById('action-button-Presets');
+          if (presetsButton) {
+            const syntheticEvent = new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              view: window
+            });
+            presetsButton.dispatchEvent(syntheticEvent);
+          } else {
+            actions.openPresetsMenu();
+          }
+        },
         'x': () => document.querySelector('[data-shortcut="x"]')?.dispatchEvent(new MouseEvent('click')),
         'i': () => document.querySelector('[data-shortcut="i"]')?.dispatchEvent(new MouseEvent('click')),
       };

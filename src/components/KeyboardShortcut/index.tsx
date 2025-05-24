@@ -27,16 +27,14 @@ const KeyboardShortcut: React.FC<KeyboardShortcutProps> = ({ text, onShortcutKey
       onShortcutKeys(shortcut.key);
     }
   }, [shortcut, onShortcutKeys]);
-
+  // Keep the functionality but make the element visually hidden
   if (!shortcut.enabled) {
-    return <span>{text}</span>;
+    return null;
   }
 
   return (
-    <span>
-      {shortcut.pre}
+    <span style={{ position: 'absolute', width: '1px', height: '1px', padding: '0', margin: '-1px', overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: '0' }}>
       <span className="kbd-hint" onClick={onKbd}>{shortcut.key}</span>
-      {shortcut.post}
     </span>
   );
 };

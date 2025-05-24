@@ -1,6 +1,8 @@
+import React from 'react';
 
 export interface ButtonItem {
   text: string;
   tooltip: string;
-  click: () => Promise<void>;
+  icon: React.ReactElement;
+  click: (event?: React.MouseEvent<HTMLElement>) => Promise<void>;
 }

@@ -1,3 +1,4 @@
+import React from 'react';
 import ActionButton from '../ActionButton';
 import { ButtonItem } from "../../types/ButtonItem";
 
@@ -13,7 +14,8 @@ export function CalendarControls({ buttons }: CalendarControlsProps) {
           key={button.text}
           text={button.text}
           tooltip={button.tooltip}
-          onClick={button.click}
+          onClick={(e) => button.click(e)}
+          icon={button.icon}
         />
       ))}
     </div>

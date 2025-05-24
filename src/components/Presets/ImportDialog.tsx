@@ -12,6 +12,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import ActionButton from '../ActionButton';
 import { CalendarGroup } from "../../types/CalendarGroup";
+import FileUploadIcon from '@mui/icons-material/FileUpload';
 
 interface ImportDialogProps {
   onImport: (groups: CalendarGroup) => void;
@@ -66,7 +67,8 @@ const ImportDialog: React.FC<ImportDialogProps> = ({ onImport }) => {
       <ActionButton 
         text="&import" 
         tooltip="Import presets" 
-        onClick={handleClickOpen} 
+        onClick={handleClickOpen}
+        icon={<FileUploadIcon />}
       />
       
       <Dialog 

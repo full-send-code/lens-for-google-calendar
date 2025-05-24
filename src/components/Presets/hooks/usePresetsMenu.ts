@@ -1,19 +1,17 @@
 import React from 'react';
 import { DropdownItem } from "../../../types/DropdownItem";
 
-export const usePresetsMenu = (onItemSelect: (item: DropdownItem) => void) => {
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+export const usePresetsMenu = (
+  onItemSelect: (item: DropdownItem) => void,
+  externalOnClose?: () => void
+) => {
   const [searchValue, setSearchValue] = React.useState('');
   
-  const handleClick = () => {
-    // Since ActionButton's onClick doesn't provide an event, use document.activeElement as fallback
-    const target = document.activeElement as HTMLElement | null;
-    setAnchorEl(target);
-  };
-
   const handleClose = () => {
-    setAnchorEl(null);
     setSearchValue('');
+    if (externalOnClose) {
+      externalOnClose();
+    }
   };
 
   const handleItemSelect = (item: DropdownItem) => {
@@ -32,10 +30,8 @@ export const usePresetsMenu = (onItemSelect: (item: DropdownItem) => void) => {
   };
 
   return {
-    anchorEl,
     searchValue,
-    isOpen: Boolean(anchorEl),
-    handleClick,
+    isOpen: true, // Now controlled by the parent component
     handleClose,
     handleItemSelect,
     handleSearchChange,

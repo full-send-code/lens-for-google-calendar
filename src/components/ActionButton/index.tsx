@@ -1,6 +1,6 @@
 // ActionButton.tsx
-import React, { useMemo } from 'react';
-import { Button, Tooltip } from '@mui/material';
+import React, { ReactElement, useMemo } from 'react';
+import { Fab, Tooltip } from '@mui/material';
 import KeyboardShortcut from '../KeyboardShortcut';
 import useKeyboardShortcut from './hooks/useKeyboardShortcut';
 
@@ -8,17 +8,17 @@ import useKeyboardShortcut from './hooks/useKeyboardShortcut';
 const styles = {
   button: {
     margin: '4px',
-    minWidth: '80px'
   }
 };
 
 interface ActionButtonProps {
   text: string;
   tooltip: string;
-  onClick: () => void;
+  onClick: (event: React.MouseEvent<HTMLElement>) => void;
+  icon: ReactElement
 }
 
-const ActionButton: React.FC<ActionButtonProps> = ({ text, tooltip, onClick }) => {
+const ActionButton: React.FC<ActionButtonProps> = ({ text, tooltip, onClick, icon }) => {
   const { keyboardShortcut, setKeyboardShortcut, handleKeyAction } = useKeyboardShortcut(onClick);
   
   // Memoize the tooltip text to prevent unnecessary re-renders
@@ -28,19 +28,20 @@ const ActionButton: React.FC<ActionButtonProps> = ({ text, tooltip, onClick }) =
 
   return (
     <Tooltip title={tooltipText} enterDelay={500}>
-      <Button 
-        variant="contained" 
-        size="small" 
-        onClick={onClick} 
-        className="gcs"
-        sx={styles.button}
+      <Fab
+        size="small"
+        onClick={(e) => onClick(e)}
+        aria-label={tooltip}
+        id={`action-button-${text.replace('&', '')}`}
+        data-action-button={text.replace('&', '')}
       >
-        <KeyboardShortcut 
-          text={text} 
-          onKbd={handleKeyAction} 
-          onShortcutKeys={(key) => setKeyboardShortcut(key)} 
+        {icon}
+        <KeyboardShortcut
+          text={text}
+          onKbd={handleKeyAction}
+          onShortcutKeys={(key) => setKeyboardShortcut(key)}
         />
-      </Button>
+      </Fab>
     </Tooltip>
   );
 };

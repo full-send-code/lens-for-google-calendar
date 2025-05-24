@@ -12,6 +12,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import ActionButton from '../ActionButton';
 import { CalendarGroup } from "../../types/CalendarGroup";
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
 interface ExportDialogProps {
   groups: CalendarGroup;
@@ -54,6 +55,7 @@ const ExportDialog: React.FC<ExportDialogProps> = ({ groups }) => {
         text="e&xport" 
         tooltip="Export presets" 
         onClick={handleClickOpen} 
+        icon={<FileDownloadIcon />}
       />
       
       <Dialog 
