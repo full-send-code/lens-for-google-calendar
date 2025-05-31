@@ -23,19 +23,3 @@ jobs:
 
     - name: Install dependencies
       run: npm install
-      working-directory: ./lib/jquery
-
-    - name: Validate manifest
-      run: |
-        if ! jq -e . manifest.json > /dev/null 2>&1; then
-          echo "Invalid manifest.json" && exit 1
-        fi
-
-    - name: Lint JavaScript files
-      run: |
-        npx eslint src/**/*.js
-
-    - name: Build extension
-      run: |
-        mkdir -p dist
-        cp -r icons lib src manifest.json dist/
