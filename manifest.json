@@ -1,20 +1,25 @@
 {
   "name": "Calendar Selector for Google Calendar",
-  "version": "0.1.5",
-  "manifest_version": 2,
+  "version": "0.2.0",
+  "manifest_version": 3,
   "description": "Save and restore groups of calendars selected",
   "permissions": [
     "storage"
   ],
   "icons": {
+    "16": "icons/icon16.png",
+    "19": "icons/icon19.png",
+    "48": "icons/icon48.png",
     "128": "icons/cs128.png"
   },
   "background": {
-    "scripts": ["src/background.js"],
-    "persistent": false
+    "service_worker": "src/background.js"
   },
   "web_accessible_resources": [
-    "lib/vue/vuetify_scoped.css"
+    {
+      "resources": ["lib/vue/vuetify_scoped.css"],
+      "matches": ["https://calendar.google.com/*"]
+    }
   ],
   "content_scripts": [
     {
