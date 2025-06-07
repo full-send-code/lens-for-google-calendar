@@ -115,7 +115,7 @@ function insertUI(insertLoc){
         props: {
           bottom: true,
           'open-delay': 500,
-          transition: false
+          transition: 'slide-y-transition',
         }
       }, [
         h('v-btn', {
