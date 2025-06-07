@@ -1,5 +1,5 @@
-if(chrome && chrome.extension){
-  chrome.extension.sendMessage({}, function(response) {
+if(chrome && chrome.runtime){
+  chrome.runtime.sendMessage({}, function(response) {
     var readyStateCheckInterval = setInterval(function() {
       if (document.readyState === "complete") {
         clearInterval(readyStateCheckInterval);
@@ -614,7 +614,7 @@ function setupKeyboardShortcuts(){
 }
 
 // autoload UI if running in an extension
-if(window.chrome && chrome.extension){
+if(window.chrome && chrome.runtime){
   insertUI()
 }
 // do this in the future after all components are registered:
