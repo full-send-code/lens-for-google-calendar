@@ -5,9 +5,110 @@ if(chrome && chrome.runtime){
         clearInterval(readyStateCheckInterval);
         // do stuff here...
       }
-    }, 10);
+    }, CALENDAR_SELECTOR_CONFIG.timing.readyStateCheckInterval);
   });
 }
+
+// Configuration object to centralize all hardcoded values
+const CALENDAR_SELECTOR_CONFIG = {
+  // Timing and delays
+  timing: {
+    readyStateCheckInterval: 10,     // ms interval for readyState check
+    presetsMenuDelay: 100,           // ms timeout for presets menu
+    uiInsertionDelay: 1000,          // ms timeout for UI insertion
+    keyboardShortcutsDelay: 2000,    // ms timeout for keyboard shortcuts setup
+    deleteConfirmationDelay: 800,    // ms timeout for delete confirmation
+    snackbarDuration: 3000,          // ms duration for snackbar messages
+  },
+  
+  // CSS selectors
+  selectors: {
+    uiInsertionLocation: 'header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)',
+    materialIconsClass: 'material-icons',
+    snackbarClass: 'mdl-js-snackbar mdl-snackbar',
+  },
+  
+  // Storage settings
+  storage: {
+    maxAutosaveStates: 3,            // Number of autosaved states to keep
+    groupsKey: 'groups',             // Storage key for groups data
+    autosavePrefix: 'autosave_',     // Prefix for autosave keys
+  },
+  
+  // UI text strings
+  text: {
+    buttons: {
+      save: 'Save',
+      cancel: 'Cancel',
+      delete: 'Delete',
+      import: 'Import',
+      export: 'Export',
+      close: 'Close',
+      yes: 'Yes',
+      no: 'No',
+    },
+    tooltips: {
+      addGroup: 'Add new group',
+      deleteGroup: 'Delete group',
+      exportData: 'Export calendar data',
+      importData: 'Import calendar data',
+      showHideCalendars: 'Show/hide calendars',
+    },
+    dialogs: {
+      exportTitle: 'Export Calendar Groups',
+      importTitle: 'Import Calendar Groups',
+      deleteConfirmation: 'Are you sure you want to delete this group?',
+      importSuccess: 'Groups imported successfully!',
+      importError: 'Error importing groups. Please check the format.',
+      exportInstructions: 'Copy the text below to backup your calendar groups:',
+      importInstructions: 'Paste your exported calendar groups data below:',
+    },
+    placeholders: {
+      groupName: 'Enter group name...',
+      importData: 'Paste exported data here...',
+    },
+    messages: {
+      groupSaved: 'Group saved successfully',
+      groupDeleted: 'Group deleted',
+      noGroupsFound: 'No groups found',
+      loadingError: 'Error loading calendar groups',
+    }
+  },
+  
+  // Keyboard shortcuts
+  shortcuts: {
+    modifierKeys: ['ctrlKey', 'shiftKey'], // Required modifier keys
+    toggleKey: 'KeyH',                     // Key to toggle calendar visibility
+  },
+  
+  // Default data
+  defaults: {
+    groups: {
+      'work': {
+        'name': 'Work',
+        'calendars': {}
+      }
+    }
+  },
+  
+  // External resources
+  resources: {
+    fonts: {
+      roboto: 'https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons',
+    },
+    vuetify: {
+      css: 'lib/vue/vuetify_scoped.css',
+    }
+  },
+  
+  // CSS classes for theming
+  classes: {
+    importExportBar: 'import-export-bar',
+    dialogCard: 'dialog-card',
+    listTile: 'list__tile',
+  }
+};
+
 console.log(window.CalendarManager && CalendarManager.groups)
 
 const parseShortcutText = (text) => {
@@ -32,19 +133,19 @@ function insertUI(insertLoc){
 
   $('head').append(
     $('<link rel="stylesheet" type="text/css" />')
-      .attr('href', "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons")
+      .attr('href', CALENDAR_SELECTOR_CONFIG.resources.fonts.roboto)
   )
   try {
     $('head').append(
       $('<link rel="stylesheet" type="text/css" />')
-        .attr('href', chrome.runtime.getURL('lib/vue/vuetify_scoped.css'))
+        .attr('href', chrome.runtime.getURL(CALENDAR_SELECTOR_CONFIG.resources.vuetify.css))
     )
   } catch(e) {
     // not running in an extension environment
   }
 
   snackbar = $.parseHTML(`
-    <div id="snackbar" class="mdl-js-snackbar mdl-snackbar">
+    <div id="snackbar" class="${CALENDAR_SELECTOR_CONFIG.selectors.snackbarClass}">
       <div class="mdl-snackbar__text"></div>
     <button class="mdl-snackbar__action" type="button"></button>
   `)[1]
@@ -197,7 +298,7 @@ function insertUI(insertLoc){
           slot: 'activator'
         }),
         h('v-card', {
-          class: 'grey lighten-5'
+          class: 'dialog-card'
         }, [
           h('v-card-title', {
             class: 'headline'
@@ -309,7 +410,7 @@ function insertUI(insertLoc){
           slot: 'activator'
         }),
         h('v-card', {
-          class: 'grey lighten-5'
+          class: 'dialog-card'
         }, [
           h('v-form', {
             props: {
@@ -416,7 +517,7 @@ function insertUI(insertLoc){
           vm.$refs.select.focusInput()
           vm.$refs.select.showMenu()
         }
-      }, 100)
+      }, CALENDAR_SELECTOR_CONFIG.timing.presetsMenuDelay)
     },
   }
 
@@ -430,7 +531,7 @@ function insertUI(insertLoc){
       $(insertLoc).append(mountElement)
     } else {
       var insertAfter = document
-          .querySelectorAll('header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)')[0]
+          .querySelectorAll(CALENDAR_SELECTOR_CONFIG.selectors.uiInsertionLocation)[0]
       $(insertAfter).after(mountElement)
     }
 
@@ -571,7 +672,7 @@ function insertUI(insertLoc){
                       ref: 'presets_menu'
                     }, [
                       h('v-layout', {
-                        class: 'white'
+                        class: 'import-export-bar'
                       }, [
                         h('v-flex', {
                           props: {
@@ -626,15 +727,22 @@ function insertUI(insertLoc){
                         ref: 'select',
                         scopedSlots: {
                           item: function(props) {
-                            return h('template', [
-                              h('v-list-tile-content', [
-                                h('v-list-tile-title', {
+                            return h('div', {
+                              class: 'list__tile list__tile--link'
+                            }, [
+                              h('div', {
+                                class: 'list__tile__content'
+                              }, [
+                                h('div', {
+                                  class: 'list__tile__title',
                                   domProps: {
                                     innerHTML: props.item.text
                                   }
                                 })
                               ]),
-                              h('v-list-tile-action', [
+                              h('div', {
+                                class: 'list__tile__action'
+                              }, [
                                 h('v-btn', {
                                   props: {
                                     icon: true,

@@ -2,6 +2,47 @@
  * Place your custom CSS styles here.
  **/
 
+/* CSS Custom Properties for configurable styling values */
+#calendar_selector_ui {
+  /* Light theme colors */
+  --cs-bg-primary: white;
+  --cs-bg-secondary: #f5f5f5;
+  --cs-text-primary: #333;
+  --cs-text-secondary: #666;
+  --cs-text-muted: #b0b0b0;
+  
+  /* Dark theme colors */
+  --cs-dark-bg-primary: #2d2d2d;
+  --cs-dark-bg-secondary: #333;
+  --cs-dark-bg-hover: #404040;
+  --cs-dark-text-primary: #e0e0e0;
+  --cs-dark-text-secondary: #b0b0b0;
+  
+  /* Accent colors */
+  --cs-accent-primary: #1976d2;
+  --cs-accent-danger: #ff5252;
+  --cs-border-color: #e0e0e0;
+  --cs-dark-border-color: #444;
+  
+  /* Spacing */
+  --cs-spacing-xs: 8px;
+  --cs-spacing-sm: 16px;
+  --cs-spacing-md: 20px;
+  --cs-spacing-lg: 24px;
+  --cs-spacing-xl: 32px;
+  
+  /* Typography */
+  --cs-font-size-base: 16px;
+  --cs-font-weight-normal: 400;
+  --cs-font-weight-bold: bold;
+  --cs-line-height-base: 1.5;
+  
+  /* Component sizing */
+  --cs-list-item-height: 48px;
+  --cs-button-min-width: 40px;
+  --cs-border-width: 1px;
+}
+
 /******** override default vuetify styles here *********/
 /* remove min-height from application--wrap */
 #calendar_selector_ui .application--wrap {
@@ -20,9 +61,470 @@
  * menu item selection (gray highlight) doesn't work either
  */
 #calendar_selector_ui .menu__content.menuable__content__active {
-  background: white
+  background: var(--cs-bg-primary);
 }
 
+/* Import/Export button bar styling */
+#calendar_selector_ui .import-export-bar {
+  background: var(--cs-bg-primary) !important;
+  color: var(--cs-text-primary) !important;
+}
+
+/* Hide the calendar data/IDs in the preset dropdown */
+#calendar_selector_ui .list__tile__sub-title {
+  display: none !important;
+}
+
+/* Styling for the v-select dropdown input field */
+#calendar_selector_ui .select .input-group__input {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .select .input-group__input input {
+  color: var(--cs-text-primary) !important;
+  caret-color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .select .input-group__selections {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .select .input-group label {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .select .input-group--text-field label {
+  color: var(--cs-text-primary) !important;
+}
+
+/* More specific targeting for the v-select label */
+#calendar_selector_ui .select .input-group--text-field .input-group__label {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .select .input-group__label {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .select .input-group__label--active {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .select .input-group--focused .input-group__label {
+  color: var(--cs-text-primary) !important;
+}
+
+/* Targeted fix for blue v-select label text */
+#calendar_selector_ui .select .input-group--text-field.primary--text label,
+#calendar_selector_ui .select .input-group__label.primary--text {
+  color: var(--cs-text-primary) !important;
+}
+
+/* Ensure custom list items take full width and display properly */
+#calendar_selector_ui .list__tile {
+  display: flex !important;
+  align-items: center !important;
+  min-height: var(--cs-list-item-height) !important;
+  padding: 0 var(--cs-spacing-sm) !important;
+  width: 100% !important;
+  cursor: pointer !important;
+  position: relative !important;
+}
+
+#calendar_selector_ui .list__tile__content {
+  flex: 1 1 auto !important;
+  overflow: hidden !important;
+}
+
+#calendar_selector_ui .list__tile__title {
+  font-size: var(--cs-font-size-base) !important;
+  font-weight: var(--cs-font-weight-normal) !important;
+  line-height: var(--cs-line-height-base) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+#calendar_selector_ui .list__tile__action {
+  flex: 0 0 auto !important;
+  align-self: center !important;
+  padding: var(--cs-spacing-md) !important;
+  min-width: var(--cs-button-min-width) !important;
+}
+
+/* Dialog styling for light and dark modes */
+#calendar_selector_ui .dialog-card {
+  background: var(--cs-bg-primary) !important;
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .dialog-card .text-field__input {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .dialog-card .text-field textarea {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .dialog-card .text-field input {
+  color: var(--cs-text-primary) !important;
+}
+
+/* More specific selectors for Vuetify text fields */
+#calendar_selector_ui .dialog-card .input-group textarea,
+#calendar_selector_ui .dialog-card .input-group input,
+#calendar_selector_ui .dialog-card .input-group__input textarea,
+#calendar_selector_ui .dialog-card .input-group__input input {
+  color: var(--cs-text-primary) !important;
+}
+
+/* Universal selectors for all inputs and textareas in dialogs */
+#calendar_selector_ui .dialog-card textarea,
+#calendar_selector_ui .dialog-card input[type="text"] {
+  color: var(--cs-text-primary) !important;
+}
+
+/* Nuclear option - target everything in dialogs */
+#calendar_selector_ui .dialog-card * {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .dialog-card textarea,
+#calendar_selector_ui .dialog-card input {
+  color: var(--cs-text-primary) !important;
+  caret-color: var(--cs-text-primary) !important;
+}
+
+/* Light mode v-select label styling */
+#calendar_selector_ui .select .input-group__input {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .select .input-group__input input {
+  color: var(--cs-text-primary) !important;
+  caret-color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .select .input-group__selections {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .select .input-group label {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .select .input-group--text-field label {
+  color: var(--cs-text-primary) !important;
+}
+
+/* More specific targeting for the v-select label - light mode */
+#calendar_selector_ui .select .input-group--text-field .input-group__label {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .select .input-group__label {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .select .input-group__label--active {
+  color: var(--cs-text-primary) !important;
+}
+
+#calendar_selector_ui .select .input-group--focused .input-group__label {
+  color: var(--cs-text-primary) !important;
+}
+
+/* Targeted fix for blue v-select label text - light mode */
+#calendar_selector_ui .select .input-group--text-field.primary--text label,
+#calendar_selector_ui .select .input-group__label.primary--text {
+  color: var(--cs-text-primary) !important;
+}
+
+/* Direct targeting of unclassed label elements - light mode */
+#calendar_selector_ui .select label,
+#calendar_selector_ui .v-select label,
+#calendar_selector_ui label {
+  color: var(--cs-text-primary) !important;
+}
+
+/* Dark mode preset styles - better visibility and contrast */
+@media (prefers-color-scheme: dark) {
+  /* Dark theme dropdown background */
+  #calendar_selector_ui .menu__content.menuable__content__active {
+    background: var(--cs-dark-bg-primary) !important;
+    border: var(--cs-border-width) solid var(--cs-dark-border-color) !important;
+  }
+  
+  /* Dark theme preset item styling */
+  #calendar_selector_ui .list__tile__title {
+    color: var(--cs-dark-text-primary) !important;
+    font-weight: var(--cs-font-weight-bold) !important;
+  }
+  
+  /* Dark theme hover effects */
+  #calendar_selector_ui .list__tile:hover {
+    background-color: var(--cs-dark-bg-hover) !important;
+  }
+  
+  /* Dark theme selected item */
+  #calendar_selector_ui .list__tile--active {
+    background-color: var(--cs-accent-primary) !important;
+    color: var(--cs-bg-primary) !important;
+  }
+  
+  /* Dark theme delete button */
+  #calendar_selector_ui .list__tile__action .btn {
+    color: var(--cs-dark-text-secondary) !important;
+  }
+  
+  #calendar_selector_ui .list__tile__action .btn:hover {
+    background-color: var(--cs-accent-danger) !important;
+    color: var(--cs-bg-primary) !important;
+  }
+  
+  /* Dark theme import/export button bar */
+  #calendar_selector_ui .import-export-bar {
+    background: var(--cs-dark-bg-secondary) !important;
+    color: var(--cs-dark-text-primary) !important;
+  }
+  
+  /* Dark theme dialogs */
+  #calendar_selector_ui .dialog-card {
+    background: var(--cs-dark-bg-primary) !important;
+    color: var(--cs-dark-text-primary) !important;
+  }
+  
+  #calendar_selector_ui .dialog-card .text-field__input {
+    color: var(--cs-dark-text-primary) !important;
+  }
+  
+  #calendar_selector_ui .dialog-card .text-field textarea {
+    color: var(--cs-dark-text-primary) !important;
+  }
+  
+  #calendar_selector_ui .dialog-card .text-field input {
+    color: var(--cs-dark-text-primary) !important;
+  }
+  
+  /* More specific selectors for Vuetify text fields in dark mode */
+  #calendar_selector_ui .dialog-card .input-group textarea,
+  #calendar_selector_ui .dialog-card .input-group input,
+  #calendar_selector_ui .dialog-card .input-group__input textarea,
+  #calendar_selector_ui .dialog-card .input-group__input input {
+    color: var(--cs-dark-text-primary) !important;
+  }
+  
+  /* Universal selectors for all inputs and textareas in dialogs - dark mode */
+  #calendar_selector_ui .dialog-card textarea,
+  #calendar_selector_ui .dialog-card input[type="text"] {
+    color: var(--cs-dark-text-primary) !important;
+  }
+  
+  /* Nuclear option - target everything in dialogs - dark mode */
+  #calendar_selector_ui .dialog-card * {
+    color: var(--cs-dark-text-primary) !important;
+  }
+  
+  #calendar_selector_ui .dialog-card textarea,
+  #calendar_selector_ui .dialog-card input {
+    color: var(--cs-dark-text-primary) !important;
+    caret-color: var(--cs-dark-text-primary) !important;
+  }
+  
+  /* Dark mode styling for v-select dropdown */
+  #calendar_selector_ui .select .input-group__input {
+    color: var(--cs-dark-text-primary) !important;
+  }
+
+  #calendar_selector_ui .select .input-group__input input {
+    color: var(--cs-dark-text-primary) !important;
+    caret-color: var(--cs-dark-text-primary) !important;
+  }
+
+  #calendar_selector_ui .select .input-group__selections {
+    color: var(--cs-dark-text-primary) !important;
+  }
+
+  #calendar_selector_ui .select .input-group label {
+    color: var(--cs-dark-text-primary) !important;
+  }
+
+  #calendar_selector_ui .select .input-group--text-field label {
+    color: var(--cs-dark-text-primary) !important;
+  }
+
+  /* More specific targeting for the v-select label - dark mode */
+  #calendar_selector_ui .select .input-group--text-field .input-group__label {
+    color: var(--cs-dark-text-primary) !important;
+  }
+
+  #calendar_selector_ui .select .input-group__label {
+    color: var(--cs-dark-text-primary) !important;
+  }
+
+  #calendar_selector_ui .select .input-group__label--active {
+    color: var(--cs-dark-text-primary) !important;
+  }
+
+  #calendar_selector_ui .select .input-group--focused .input-group__label {
+    color: var(--cs-dark-text-primary) !important;
+  }
+
+  /* Targeted fix for blue v-select label text - dark mode */
+  #calendar_selector_ui .select .input-group--text-field.primary--text label,
+  #calendar_selector_ui .select .input-group__label.primary--text {
+    color: var(--cs-dark-text-primary) !important;
+  }
+
+  /* Direct targeting of unclassed label elements - dark mode */
+  #calendar_selector_ui .select label,
+  #calendar_selector_ui .v-select label,
+  #calendar_selector_ui label {
+    color: var(--cs-dark-text-primary) !important;
+  }
+}
+
+/* Also detect if Google Calendar itself is in dark mode */
+html[data-color-scheme="dark"] #calendar_selector_ui .menu__content.menuable__content__active,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .menu__content.menuable__content__active {
+  background: var(--cs-dark-bg-primary) !important;
+  border: var(--cs-border-width) solid var(--cs-dark-border-color) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .list__tile__title,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .list__tile__title {
+  color: var(--cs-dark-text-primary) !important;
+  font-weight: var(--cs-font-weight-bold) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .list__tile:hover,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .list__tile:hover {
+  background-color: var(--cs-dark-bg-hover) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .list__tile--active,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .list__tile--active {
+  background-color: var(--cs-accent-primary) !important;
+  color: var(--cs-bg-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .list__tile__action .btn,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .list__tile__action .btn {
+  color: var(--cs-dark-text-secondary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .list__tile__action .btn:hover,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .list__tile__action .btn:hover {
+  background-color: var(--cs-accent-danger) !important;
+  color: var(--cs-bg-primary) !important;
+}
+
+/* Dark theme import/export button bar */
+html[data-color-scheme="dark"] #calendar_selector_ui .import-export-bar,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .import-export-bar {
+  background: var(--cs-dark-bg-secondary) !important;
+  color: var(--cs-dark-text-primary) !important;
+}
+
+/* Dark theme dialogs */
+html[data-color-scheme="dark"] #calendar_selector_ui .dialog-card,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .dialog-card {
+  background: var(--cs-dark-bg-primary) !important;
+  color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .dialog-card .text-field__input,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .dialog-card .text-field__input {
+  color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .dialog-card .text-field textarea,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .dialog-card .text-field textarea {
+  color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .dialog-card .text-field input,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .dialog-card .text-field input {
+  color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .dialog-card .input-group textarea,
+html[data-color-scheme="dark"] #calendar_selector_ui .dialog-card .input-group input,
+html[data-color-scheme="dark"] #calendar_selector_ui .dialog-card .input-group__input textarea,
+html[data-color-scheme="dark"] #calendar_selector_ui .dialog-card .input-group__input input,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .dialog-card .input-group textarea,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .dialog-card .input-group input,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .dialog-card .input-group__input textarea,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .dialog-card .input-group__input input {
+  color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .dialog-card textarea,
+html[data-color-scheme="dark"] #calendar_selector_ui .dialog-card input[type="text"],
+[data-darkreader-scheme="dark"] #calendar_selector_ui .dialog-card textarea,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .dialog-card input[type="text"] {
+  color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .dialog-card *,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .dialog-card * {
+  color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .dialog-card textarea,
+html[data-color-scheme="dark"] #calendar_selector_ui .dialog-card input,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .dialog-card textarea,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .dialog-card input {
+  color: var(--cs-dark-text-primary) !important;
+  caret-color: var(--cs-dark-text-primary) !important;
+}
+
+/* Dark mode styling for v-select dropdown - Google Calendar and Dark Reader */
+html[data-color-scheme="dark"] #calendar_selector_ui .select .input-group__input,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .select .input-group__input {
+  color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .select .input-group__input input,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .select .input-group__input input {
+  color: var(--cs-dark-text-primary) !important;
+  caret-color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .select .input-group__selections,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .select .input-group__selections {
+  color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .select .input-group label,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .select .input-group label {
+  color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .select .input-group--text-field label,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .select .input-group--text-field label {
+  color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .select .input-group--text-field .input-group__label,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .select .input-group--text-field .input-group__label {
+  color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .select .input-group__label,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .select .input-group__label {
+  color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .select .input-group__label--active,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .select .input-group__label--active {
+  color: var(--cs-dark-text-primary) !important;
+}
+
+html[data-color-scheme="dark"] #calendar_selector_ui .select .input-group--focused .input-group__label,
+[data-darkreader-scheme="dark"] #calendar_selector_ui .select .input-group--focused .input-group__label {
+  color: var(--cs-dark-text-primary) !important;
+}
 
 .kbd-hint {
 /*  box-shadow: inset 0 -2px 0 white, inset 0 -4px 0 red;*/
