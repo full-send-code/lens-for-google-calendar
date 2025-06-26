@@ -1,13 +1,114 @@
-if(chrome && chrome.extension){
-  chrome.extension.sendMessage({}, function(response) {
+if(chrome && chrome.runtime){
+  chrome.runtime.sendMessage({}, function(response) {
     var readyStateCheckInterval = setInterval(function() {
       if (document.readyState === "complete") {
         clearInterval(readyStateCheckInterval);
         // do stuff here...
       }
-    }, 10);
+    }, CALENDAR_SELECTOR_CONFIG.timing.readyStateCheckInterval);
   });
 }
+
+// Configuration object to centralize all hardcoded values
+const CALENDAR_SELECTOR_CONFIG = {
+  // Timing and delays
+  timing: {
+    readyStateCheckInterval: 10,     // ms interval for readyState check
+    presetsMenuDelay: 100,           // ms timeout for presets menu
+    uiInsertionDelay: 1000,          // ms timeout for UI insertion
+    keyboardShortcutsDelay: 2000,    // ms timeout for keyboard shortcuts setup
+    deleteConfirmationDelay: 800,    // ms timeout for delete confirmation
+    snackbarDuration: 3000,          // ms duration for snackbar messages
+  },
+  
+  // CSS selectors
+  selectors: {
+    uiInsertionLocation: 'header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)',
+    materialIconsClass: 'material-icons',
+    snackbarClass: 'mdl-js-snackbar mdl-snackbar',
+  },
+  
+  // Storage settings
+  storage: {
+    maxAutosaveStates: 3,            // Number of autosaved states to keep
+    groupsKey: 'groups',             // Storage key for groups data
+    autosavePrefix: 'autosave_',     // Prefix for autosave keys
+  },
+  
+  // UI text strings
+  text: {
+    buttons: {
+      save: 'Save',
+      cancel: 'Cancel',
+      delete: 'Delete',
+      import: 'Import',
+      export: 'Export',
+      close: 'Close',
+      yes: 'Yes',
+      no: 'No',
+    },
+    tooltips: {
+      addGroup: 'Add new group',
+      deleteGroup: 'Delete group',
+      exportData: 'Export calendar data',
+      importData: 'Import calendar data',
+      showHideCalendars: 'Show/hide calendars',
+    },
+    dialogs: {
+      exportTitle: 'Export Calendar Groups',
+      importTitle: 'Import Calendar Groups',
+      deleteConfirmation: 'Are you sure you want to delete this group?',
+      importSuccess: 'Groups imported successfully!',
+      importError: 'Error importing groups. Please check the format.',
+      exportInstructions: 'Copy the text below to backup your calendar groups:',
+      importInstructions: 'Paste your exported calendar groups data below:',
+    },
+    placeholders: {
+      groupName: 'Enter group name...',
+      importData: 'Paste exported data here...',
+    },
+    messages: {
+      groupSaved: 'Group saved successfully',
+      groupDeleted: 'Group deleted',
+      noGroupsFound: 'No groups found',
+      loadingError: 'Error loading calendar groups',
+    }
+  },
+  
+  // Keyboard shortcuts
+  shortcuts: {
+    modifierKeys: ['ctrlKey', 'shiftKey'], // Required modifier keys
+    toggleKey: 'KeyH',                     // Key to toggle calendar visibility
+  },
+  
+  // Default data
+  defaults: {
+    groups: {
+      'work': {
+        'name': 'Work',
+        'calendars': {}
+      }
+    }
+  },
+  
+  // External resources
+  resources: {
+    fonts: {
+      roboto: 'https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons',
+    },
+    vuetify: {
+      css: 'lib/vue/vuetify_scoped.css',
+    }
+  },
+  
+  // CSS classes for theming
+  classes: {
+    importExportBar: 'import-export-bar',
+    dialogCard: 'dialog-card',
+    listTile: 'list__tile',
+  }
+};
+
 console.log(window.CalendarManager && CalendarManager.groups)
 
 const parseShortcutText = (text) => {
@@ -32,19 +133,19 @@ function insertUI(insertLoc){
 
   $('head').append(
     $('<link rel="stylesheet" type="text/css" />')
-      .attr('href', "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons")
+      .attr('href', CALENDAR_SELECTOR_CONFIG.resources.fonts.roboto)
   )
   try {
     $('head').append(
       $('<link rel="stylesheet" type="text/css" />')
-        .attr('href', chrome.runtime.getURL('lib/vue/vuetify_scoped.css'))
+        .attr('href', chrome.runtime.getURL(CALENDAR_SELECTOR_CONFIG.resources.vuetify.css))
     )
   } catch(e) {
     // not running in an extension environment
   }
 
   snackbar = $.parseHTML(`
-    <div id="snackbar" class="mdl-js-snackbar mdl-snackbar">
+    <div id="snackbar" class="${CALENDAR_SELECTOR_CONFIG.selectors.snackbarClass}">
       <div class="mdl-snackbar__text"></div>
     <button class="mdl-snackbar__action" type="button"></button>
   `)[1]
@@ -109,18 +210,38 @@ function insertUI(insertLoc){
         this.$el.getElementsByTagName('button')[0].click()
       },
     },
-    template: `
- <v-tooltip bottom open-delay="500" transition="false">
-   <v-btn
-       small
-       slot="activator"
-       :class="['gcs']"
-       v-on="$listeners"
-     >
-     <label-kb-shortcut :text="text" @kbd="keyAction" @shortcut-keys="keyboardShortcut = $event"/>
-   </v-btn>
-   <span>{{ tooltip }} {{ keyboardShortcut ? '[' + keyboardShortcut +']' : '' }}</span>
- </v-tooltip>`
+    render: function (h) {
+      var self = this;
+      return h('v-tooltip', {
+        props: {
+          bottom: true,
+          'open-delay': 500,
+          transition: 'slide-y-transition',
+        }
+      }, [
+        h('v-btn', {
+          props: {
+            small: true
+          },
+          class: ['gcs'],
+          slot: 'activator',
+          on: this.$listeners
+        }, [
+          h('label-kb-shortcut', {
+            props: {
+              text: this.text
+            },
+            on: {
+              kbd: this.keyAction,
+              'shortcut-keys': function(event) {
+                self.keyboardShortcut = event;
+              }
+            }
+          })
+        ]),
+        h('span', this.tooltip + (this.keyboardShortcut ? ' [' + this.keyboardShortcut + ']' : ''))
+      ]);
+    }
   })
 
   Vue.component('export-dialog', {
@@ -150,27 +271,77 @@ function insertUI(insertLoc){
         return JSON.stringify(this.groups, null)
       },
     },
-    template: `
-<v-dialog v-model="showDialog" max-width="750px" @keydown.esc="close()" transition="slide-y-transition" origin="top center 0">
-  <gcs-button slot="activator" text="e&xport"></gcs-button>
-  <v-card class="grey lighten-5">
-    <v-card-title class="headline">
-    Export Presets
-
-    <v-spacer></v-spacer>
-    <v-btn icon @click.native="close()">
-      <v-icon>close</v-icon>
-    </v-btn>
-    </v-card-title>
-    <v-card-text>
-      <v-text-field box multi-line readonly ref="txt" v-model="content"></v-text-field>
-    </v-card-text>
-    <v-card-actions>
-      <v-spacer></v-spacer>
-      <v-btn color="primary" flat @click.stop="close()">Close</v-btn>
-    </v-card-actions>
-  </v-card>
-</v-dialog>`
+    render: function (h) {
+      var self = this;
+      return h('v-dialog', {
+        props: {
+          value: this.showDialog,
+          'max-width': '750px',
+          transition: 'slide-y-transition',
+          origin: 'top center 0'
+        },
+        on: {
+          input: function(val) {
+            self.showDialog = val;
+          },
+          keydown: function(e) {
+            if (e.key === 'Escape') {
+              self.close();
+            }
+          }
+        }
+      }, [
+        h('gcs-button', {
+          props: {
+            text: 'e&xport'
+          },
+          slot: 'activator'
+        }),
+        h('v-card', {
+          class: 'dialog-card'
+        }, [
+          h('v-card-title', {
+            class: 'headline'
+          }, [
+            'Export Presets',
+            h('v-spacer'),
+            h('v-btn', {
+              props: {
+                icon: true
+              },
+              on: {
+                click: this.close
+              }
+            }, [
+              h('v-icon', 'close')
+            ])
+          ]),
+          h('v-card-text', [
+            h('v-text-field', {
+              props: {
+                box: true,
+                'multi-line': true,
+                readonly: true,
+                value: this.content
+              },
+              ref: 'txt'
+            })
+          ]),
+          h('v-card-actions', [
+            h('v-spacer'),
+            h('v-btn', {
+              props: {
+                color: 'primary',
+                flat: true
+              },
+              on: {
+                click: this.close
+              }
+            }, 'Close')
+          ])
+        ])
+      ]);
+    }
   })
 
 
@@ -212,31 +383,95 @@ function insertUI(insertLoc){
         this.close()
       }
     },
-    template: `
-<v-dialog v-model="showDialog" max-width="750px" @keydown.esc="close()" transition="slide-y-transition" origin="top center 0">
-  <gcs-button slot="activator" text="&import"></gcs-button>
-  <v-card class="grey lighten-5">
-    <v-form v-model="valid" ref="form">
-      <v-card-title class="headline">
-        Import Presets
-
-        <v-spacer></v-spacer>
-        <v-btn icon @click.native="close()">
-          <v-icon>close</v-icon>
-        </v-btn>
-      </v-card-title>
-
-
-      <v-card-text>
-        <v-text-field box multi-line v-model="content" ref="txt" :rules="contentRules"></v-text-field>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="primary" flat @click.stop="save" :disabled="!valid">Save</v-btn>
-      </v-card-actions>
-    </v-form>
-  </v-card>
-</v-dialog>`
+    render: function (h) {
+      var self = this;
+      return h('v-dialog', {
+        props: {
+          value: this.showDialog,
+          'max-width': '750px',
+          transition: 'slide-y-transition',
+          origin: 'top center 0'
+        },
+        on: {
+          input: function(val) {
+            self.showDialog = val;
+          },
+          keydown: function(e) {
+            if (e.key === 'Escape') {
+              self.close();
+            }
+          }
+        }
+      }, [
+        h('gcs-button', {
+          props: {
+            text: '&import'
+          },
+          slot: 'activator'
+        }),
+        h('v-card', {
+          class: 'dialog-card'
+        }, [
+          h('v-form', {
+            props: {
+              value: this.valid
+            },
+            on: {
+              input: function(val) {
+                self.valid = val;
+              }
+            },
+            ref: 'form'
+          }, [
+            h('v-card-title', {
+              class: 'headline'
+            }, [
+              'Import Presets',
+              h('v-spacer'),
+              h('v-btn', {
+                props: {
+                  icon: true
+                },
+                on: {
+                  click: this.close
+                }
+              }, [
+                h('v-icon', 'close')
+              ])
+            ]),
+            h('v-card-text', [
+              h('v-text-field', {
+                props: {
+                  box: true,
+                  'multi-line': true,
+                  value: this.content,
+                  rules: this.contentRules
+                },
+                on: {
+                  input: function(val) {
+                    self.content = val;
+                  }
+                },
+                ref: 'txt'
+              })
+            ]),
+            h('v-card-actions', [
+              h('v-spacer'),
+              h('v-btn', {
+                props: {
+                  color: 'primary',
+                  flat: true,
+                  disabled: !this.valid
+                },
+                on: {
+                  click: this.save
+                }
+              }, 'Save')
+            ])
+          ])
+        ])
+      ]);
+    }
   })
 
 
@@ -282,94 +517,25 @@ function insertUI(insertLoc){
           vm.$refs.select.focusInput()
           vm.$refs.select.showMenu()
         }
-      }, 100)
+      }, CALENDAR_SELECTOR_CONFIG.timing.presetsMenuDelay)
     },
   }
 
 
-  var div = $.parseHTML(`
-<v-app id="calendar_selector_ui">
-  <main>
-     <v-container fluid grid-list-md text-xs-center>
-       <v-layout row>
-         <v-flex md6 class="pt-3">
-           <span class="btn-toggle">
-             <gcs-button
-               v-for="button in buttons"
-               :key="button.text"
-               v-bind:text="button.text"
-               v-bind:tooltip="button.tooltip"
-               @click="button.click()"
-             ></gcs-button>
-
-             <v-menu bottom
-                     offset-y
-                     :close-on-content-click="false"
-                     v-model="presets_menu_open"
-                     ref="presets_menu"
-             >
-               <v-layout class="white">
-                 <v-flex md12 class="text-xs-right">
-                   <span class="btn-toggle">
-                     <import-dialog @import="import_presets"></import-dialog>
-                     <export-dialog :groups="groups"></export-dialog>
-                   </span>
-                 </v-flex>
-               </v-layout>
-               <gcs-button
-                 slot="activator"
-                 @click="presets_open()"
-                 tooltip="Manage preset groups"
-                 text="&Presets">
-               </gcs-button>
-               <v-select
-                 class="select"
-                 v-bind:items="dropdown"
-                 label="Load preset..."
-                 editable
-                 small
-                 return-object
-                 hide-details
-                 item-value="text"
-                 ref="select"
-                 :filter="custom_preset_filter"
-                 @keyup.esc="presets_menu_open = false"
-                 @input="select_input"
-               >
-                 <template slot="item" slot-scope="data">
-                   <v-list-tile-content>
-                     <v-list-tile-title v-html="data.item.text"></v-list-tile-title>
-                   </v-list-tile-content>
-
-                   <v-list-tile-action>
-                     <v-btn icon ripple @click.stop="select_delete(data.item)">
-                       <v-icon color="grey lighten-1">delete</v-icon>
-                     </v-btn>
-                   </v-list-tile-action>
-                 </template>
-               </v-select>
-             </v-menu>
-
-           </span>
-         </v-flex>
-       </v-layout>
-     </v-container>
-  </main>
-</v-app>
-  `)
-
   // insert the extension UI. Do it after a timeout to give dependencies a chance to load
   setTimeout(() => {
+    // Create a mount element for Vue
+    var mountElement = document.createElement('div')
+
     if(insertLoc){
-      $(insertLoc).append(div)
+      $(insertLoc).append(mountElement)
     } else {
       var insertAfter = document
-          .querySelectorAll('header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)')[0]
-      $(insertAfter).after(div)
+          .querySelectorAll(CALENDAR_SELECTOR_CONFIG.selectors.uiInsertionLocation)[0]
+      $(insertAfter).after(mountElement)
     }
 
     vm = new Vue({
-      el: '#calendar_selector_ui',
       data: {
         highlight_kb_shortcuts: false,
         presets_menu_open: false,
@@ -448,7 +614,170 @@ function insertUI(insertLoc){
           return CalendarManager.exportGroups(false, this.allGroups)
         },
       },
+      render: function(h) {
+        var self = this;
+        return h('v-app', {
+          attrs: {
+            id: 'calendar_selector_ui'
+          }
+        }, [
+          h('main', [
+            h('v-container', {
+              props: {
+                fluid: true,
+                'grid-list-md': true,
+                'text-xs-center': true
+              }
+            }, [
+              h('v-layout', {
+                props: {
+                  row: true
+                }
+              }, [
+                h('v-flex', {
+                  props: {
+                    md6: true
+                  },
+                  class: 'pt-3'
+                }, [
+                  h('span', {
+                    class: 'btn-toggle'
+                  }, [
+                    // Render buttons
+                    ...this.buttons.map(button => {
+                      return h('gcs-button', {
+                        key: button.text,
+                        props: {
+                          text: button.text,
+                          tooltip: button.tooltip
+                        },
+                        on: {
+                          click: button.click
+                        }
+                      })
+                    }),
+                    // Render presets menu
+                    h('v-menu', {
+                      props: {
+                        bottom: true,
+                        'offset-y': true,
+                        'close-on-content-click': false,
+                        value: this.presets_menu_open
+                      },
+                      on: {
+                        input: function(val) {
+                          self.presets_menu_open = val;
+                        }
+                      },
+                      ref: 'presets_menu'
+                    }, [
+                      h('v-layout', {
+                        class: 'import-export-bar'
+                      }, [
+                        h('v-flex', {
+                          props: {
+                            md12: true
+                          },
+                          class: 'text-xs-right'
+                        }, [
+                          h('span', {
+                            class: 'btn-toggle'
+                          }, [
+                            h('import-dialog', {
+                              on: {
+                                import: this.import_presets
+                              }
+                            }),
+                            h('export-dialog', {
+                              props: {
+                                groups: this.groups
+                              }
+                            })
+                          ])
+                        ])
+                      ]),
+                      h('gcs-button', {
+                        slot: 'activator',
+                        props: {
+                          tooltip: 'Manage preset groups',
+                          text: '&Presets'
+                        },
+                        on: {
+                          click: this.presets_open
+                        }
+                      }),
+                      h('v-select', {
+                        class: 'select',
+                        props: {
+                          items: this.dropdown,
+                          label: 'Load preset...',
+                          editable: true,
+                          small: true,
+                          'return-object': true,
+                          'hide-details': true,
+                          'item-value': 'text',
+                          filter: this.custom_preset_filter
+                        },
+                        on: {
+                          'keyup.esc': function() {
+                            self.presets_menu_open = false;
+                          },
+                          input: this.select_input
+                        },
+                        ref: 'select',
+                        scopedSlots: {
+                          item: function(props) {
+                            return h('div', {
+                              class: 'list__tile list__tile--link'
+                            }, [
+                              h('div', {
+                                class: 'list__tile__content'
+                              }, [
+                                h('div', {
+                                  class: 'list__tile__title',
+                                  domProps: {
+                                    innerHTML: props.item.text
+                                  }
+                                })
+                              ]),
+                              h('div', {
+                                class: 'list__tile__action'
+                              }, [
+                                h('v-btn', {
+                                  props: {
+                                    icon: true,
+                                    ripple: true
+                                  },
+                                  on: {
+                                    click: function(e) {
+                                      e.stopPropagation();
+                                      self.select_delete(props.item);
+                                    }
+                                  }
+                                }, [
+                                  h('v-icon', {
+                                    props: {
+                                      color: 'grey lighten-1'
+                                    }
+                                  }, 'delete')
+                                ])
+                              ])
+                            ]);
+                          }
+                        }
+                      })
+                    ])
+                  ])
+                ])
+              ])
+            ])
+          ])
+        ]);
+      }
     })
+
+    // Mount Vue to the created element
+    vm.$mount(mountElement)
 
     // needed to ensure that Vue picks up changes to groups, but only store the
     // calendar groups/presets, not internal ones
@@ -614,7 +943,7 @@ function setupKeyboardShortcuts(){
 }
 
 // autoload UI if running in an extension
-if(window.chrome && chrome.extension){
+if(window.chrome && chrome.runtime){
   insertUI()
 }
 // do this in the future after all components are registered:
