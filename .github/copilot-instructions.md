@@ -97,6 +97,6 @@ Chrome sync storage uses this format:
 
 ## Key Integration Points
 - **Calendar Discovery**: Scans Google Calendar's virtual-scrolled list
-- **DOM Injection**: Inserts Vue.js UI into Google Calendar header
+- **DOM Injection**: Insert Vue.js UI into Google Calendar header
 - **Chrome APIs**: Uses storage.sync for cross-device calendar groups
 - **Theming**: CSS custom properties automatically adapt to Google Calendar themes
