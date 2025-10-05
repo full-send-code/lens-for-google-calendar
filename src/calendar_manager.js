@@ -76,8 +76,10 @@
     /* el: li_item */
     constructor(el, calendar){
       this.el = el
-      this.label_el = $('div', el)
-      this.checkbox_el = $("input[type='checkbox']", el)
+      // More specific selector - look for div with data-id attribute
+      this.label_el = $('div[data-id]', el)
+      // More specific selector - look for input with aria-label
+      this.checkbox_el = $("input[type='checkbox'][aria-label]", el)
 
       this.calendar = calendar
     }
