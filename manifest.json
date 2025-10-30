@@ -33,6 +33,8 @@
       "js": [
         "lib/jquery/jquery.min.js",
         "lib/mdl/material.js",
+        "lib/jszip/jszip.min.js",
+        "src/logger.js",
         "src/calendar_manager.js",
         "lib/vue/vue.js",
         "lib/vue/vuetify.js",
