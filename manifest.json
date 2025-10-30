@@ -12,6 +12,16 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "19": "icons/icon19.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "Lens for Google Calendar - Settings"
+  },
   "background": {
     "service_worker": "src/background.js"
   },
@@ -33,6 +43,8 @@
       "js": [
         "lib/jquery/jquery.min.js",
         "lib/mdl/material.js",
+        "lib/jszip/jszip.min.js",
+        "src/logger.js",
         "src/calendar_manager.js",
         "lib/vue/vue.js",
         "lib/vue/vuetify.js",
