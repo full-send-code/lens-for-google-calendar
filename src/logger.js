@@ -206,6 +206,12 @@
    * @param {Function} onError - Error callback
    */
   function exportLogs(onSuccess, onError) {
+    // Check if JSZip is available
+    if (typeof JSZip === 'undefined') {
+      if (onError) onError(new Error('JSZip library not loaded'));
+      return;
+    }
+
     getLogs((logs) => {
       if (logs.length === 0) {
         if (onError) onError(new Error('No logs to export'));
@@ -223,7 +229,7 @@
         // Add metadata file
         const metadata = {
           exportDate: new Date().toISOString(),
-          extensionVersion: chrome.runtime.getManifest().version,
+          extensionVersion: (chrome && chrome.runtime) ? chrome.runtime.getManifest().version : 'unknown',
           totalLogs: logs.length,
           oldestLog: logs.length > 0 ? logs[0].timestamp : null,
           newestLog: logs.length > 0 ? logs[logs.length - 1].timestamp : null,
