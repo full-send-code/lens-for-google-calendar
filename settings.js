@@ -43,14 +43,14 @@
    * Update the log count display
    */
   function updateLogCount() {
-    if (typeof LensLogger === 'undefined') {
+    if (typeof window.LensLogger === 'undefined') {
       logCountElement.textContent = '0';
       downloadLogsBtn.disabled = true;
       clearLogsBtn.disabled = true;
       return;
     }
     
-    LensLogger.getLogs(function(logs) {
+    window.LensLogger.getLogs(function(logs) {
       const count = logs.length;
       logCountElement.textContent = count;
       
@@ -84,7 +84,7 @@
    * Handle download logs button click
    */
   function handleDownloadLogs() {
-    if (typeof LensLogger === 'undefined') {
+    if (typeof window.LensLogger === 'undefined') {
       showStatus('Logger not available', 'error');
       return;
     }
@@ -93,13 +93,13 @@
     downloadLogsBtn.disabled = true;
     downloadLogsBtn.textContent = 'Exporting...';
     
-    LensLogger.exportLogs(
+    window.LensLogger.exportLogs(
       function() {
         // Success
         showStatus('Logs exported successfully', 'success');
         
         // Clear logs after successful export
-        LensLogger.clearLogs(function() {
+        window.LensLogger.clearLogs(function() {
           console.log('Logs cleared after export');
           updateLogCount();
         });
@@ -124,7 +124,7 @@
    * Handle clear logs button click
    */
   function handleClearLogs() {
-    if (typeof LensLogger === 'undefined') {
+    if (typeof window.LensLogger === 'undefined') {
       showStatus('Logger not available', 'error');
       return;
     }
@@ -138,7 +138,7 @@
     clearLogsBtn.disabled = true;
     clearLogsBtn.textContent = 'Clearing...';
     
-    LensLogger.clearLogs(function() {
+    window.LensLogger.clearLogs(function() {
       showStatus('Logs cleared successfully', 'success');
       updateLogCount();
       
