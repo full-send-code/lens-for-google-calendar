@@ -22,7 +22,7 @@ This extension collects minimal data necessary for its functionality:
 
 ### Support Logs (Optional)
 - **Extension logs**: When you choose to download support logs, console messages are captured locally
-- **Log retention**: Logs are stored for up to 7 days with a maximum of 500 entries
+- **Log retention**: Logs are stored for up to 24 hours with a maximum of 500 entries
 - **Anonymization**: Calendar IDs and email addresses in logs are automatically anonymized before storage
 - **User-initiated only**: Logs are only exported when you explicitly click the "Download Logs" button
 - **Local export only**: Logs are downloaded as a ZIP file to your computer; nothing is sent to external servers

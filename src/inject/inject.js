@@ -475,158 +475,6 @@ function insertUI(insertLoc){
   })
 
 
-  Vue.component('download-logs-dialog', {
-    data: function(){
-      return {
-        showDialog: false,
-        downloading: false,
-        logCount: 0,
-        error: null,
-      }
-    },
-    watch: {
-      showDialog: function(v){
-        if(v){
-          this.updateLogCount()
-        } else {
-          this.error = null
-        }
-      }
-    },
-    methods: {
-      close: function(){
-        this.showDialog = false
-      },
-      updateLogCount: function(){
-        var self = this;
-        if(window.LensLogger){
-          LensLogger.getLogs(function(logs){
-            self.logCount = logs.length
-          })
-        }
-      },
-      downloadLogs: function(){
-        var self = this;
-        this.downloading = true
-        this.error = null
-        
-        if(!window.LensLogger){
-          this.error = 'Logger not initialized'
-          this.downloading = false
-          return
-        }
-        
-        LensLogger.exportLogs(
-          function() {
-            // Success
-            self.downloading = false
-            message('Logs exported successfully')
-            
-            // Clear logs after successful export
-            LensLogger.clearLogs(function(){
-              console.log('Logs cleared after export')
-              self.updateLogCount()
-            })
-          },
-          function(error) {
-            // Error
-            self.downloading = false
-            self.error = error.message || 'Failed to export logs'
-            console.error('Failed to export logs:', error)
-          }
-        )
-      }
-    },
-    render: function (h) {
-      var self = this;
-      return h('v-dialog', {
-        props: {
-          value: this.showDialog,
-          'max-width': '600px',
-          transition: 'slide-y-transition',
-          origin: 'top center 0'
-        },
-        on: {
-          input: function(val) {
-            self.showDialog = val;
-          },
-          keydown: function(e) {
-            if (e.key === 'Escape') {
-              self.close();
-            }
-          }
-        }
-      }, [
-        h('gcs-button', {
-          props: {
-            text: '&logs',
-            tooltip: 'Download support logs'
-          },
-          slot: 'activator'
-        }),
-        h('v-card', {
-          class: 'dialog-card'
-        }, [
-          h('v-card-title', {
-            class: 'headline'
-          }, [
-            'Download Support Logs',
-            h('v-spacer'),
-            h('v-btn', {
-              props: {
-                icon: true
-              },
-              on: {
-                click: this.close
-              }
-            }, [
-              h('v-icon', 'close')
-            ])
-          ]),
-          h('v-card-text', [
-            h('p', {
-              style: {
-                marginBottom: '16px'
-              }
-            }, `This will download extension logs as a ZIP file for troubleshooting. The logs contain ${this.logCount} entries.`),
-            h('p', {
-              style: {
-                marginBottom: '16px'
-              }
-            }, 'Calendar names and IDs have been anonymized for privacy. No data is sent externally.'),
-            this.error ? h('v-alert', {
-              props: {
-                value: true,
-                type: 'error'
-              }
-            }, this.error) : null
-          ]),
-          h('v-card-actions', [
-            h('v-spacer'),
-            h('v-btn', {
-              props: {
-                flat: true
-              },
-              on: {
-                click: this.close
-              }
-            }, 'Cancel'),
-            h('v-btn', {
-              props: {
-                color: 'primary',
-                flat: true,
-                loading: this.downloading,
-                disabled: this.downloading || this.logCount === 0
-              },
-              on: {
-                click: this.downloadLogs
-              }
-            }, 'Download')
-          ])
-        ])
-      ]);
-    }
-  })
 
 
   console.log('groups in live', CalendarManager.groups)
@@ -672,10 +520,6 @@ function insertUI(insertLoc){
           vm.$refs.select.showMenu()
         }
       }, CALENDAR_SELECTOR_CONFIG.timing.presetsMenuDelay)
-    },
-    download_logs: () => {
-      console.log('clicked on download logs button')
-      // This will be triggered from the Vue component
     },
   }
 
@@ -850,8 +694,7 @@ function insertUI(insertLoc){
                               props: {
                                 groups: this.groups
                               }
-                            }),
-                            h('download-logs-dialog')
+                            })
                           ])
                         ])
                       ]),

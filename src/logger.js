@@ -11,7 +11,7 @@
   const LOGGER_CONFIG = {
     storageKey: 'extension_logs',
     maxLogs: 500,  // Maximum number of log entries to store
-    maxLogAge: 7 * 24 * 60 * 60 * 1000,  // 7 days in milliseconds
+    maxLogAge: 24 * 60 * 60 * 1000,  // 24 hours in milliseconds
     anonymize: true,  // Whether to anonymize calendar data
   };
 

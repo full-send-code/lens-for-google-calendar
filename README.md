@@ -72,9 +72,9 @@ This creates a ZIP file in the `dist/` directory that can be loaded as an unpack
 ### Support Logs
 
 - **Download Logs**: Export extension logs as a ZIP file for troubleshooting
-  - Click "Presets" button, then click "Logs" in the import/export bar
+  - Click the extension icon in the browser toolbar to open settings
   - Logs are automatically anonymized (calendar IDs and email addresses replaced)
-  - Contains console messages from the last 7 days (max 500 entries)
+  - Contains console messages from the last 24 hours (max 500 entries)
   - ZIP file includes logs.json and metadata.json
   - Logs are automatically cleared after successful export
   - No data is sent externally - everything stays on your computer
