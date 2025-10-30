@@ -15,6 +15,7 @@ A Chrome extension that allows you to save and restore groups of calendar select
 - **Auto-save**: Automatically saves your last 3 calendar selections for easy restoration
 - **Dark Mode Support**: Seamlessly adapts to Google Calendar's dark theme
 - **Local Storage**: All data is stored locally in your browser with Chrome sync support
+- **Support Logs**: Download anonymized logs for troubleshooting (privacy-focused with no external data transmission)
 
 ## 📦 Installation
 
@@ -68,6 +69,16 @@ This creates a ZIP file in the `dist/` directory that can be loaded as an unpack
 - **Export**: Backup your calendar groups to a JSON file
 - **Import**: Restore calendar groups from a previously exported file
 
+### Support Logs
+
+- **Download Logs**: Export extension logs as a ZIP file for troubleshooting
+  - Click "Presets" button, then click "Logs" in the import/export bar
+  - Logs are automatically anonymized (calendar IDs and email addresses replaced)
+  - Contains console messages from the last 7 days (max 500 entries)
+  - ZIP file includes logs.json and metadata.json
+  - Logs are automatically cleared after successful export
+  - No data is sent externally - everything stays on your computer
+
 ## 🏗️ Architecture
 
 ### Core Components
@@ -91,6 +102,7 @@ This creates a ZIP file in the `dist/` directory that can be loaded as an unpack
 - **Vuetify**: Material Design component library (scoped to avoid conflicts)
 - **Material Design Lite**: Additional UI components and styling
 - **Mousetrap**: Keyboard shortcut handling
+- **JSZip**: ZIP file creation for log exports
 
 ## 🔧 Development
 

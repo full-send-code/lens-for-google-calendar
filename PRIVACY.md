@@ -20,12 +20,20 @@ This extension collects minimal data necessary for its functionality:
 - **Group names**: The names you assign to your calendar preset groups
 - **Autosave states**: Temporary saves of your last 3 calendar selections for restoration
 
+### Support Logs (Optional)
+- **Extension logs**: When you choose to download support logs, console messages are captured locally
+- **Log retention**: Logs are stored for up to 7 days with a maximum of 500 entries
+- **Anonymization**: Calendar IDs and email addresses in logs are automatically anonymized before storage
+- **User-initiated only**: Logs are only exported when you explicitly click the "Download Logs" button
+- **Local export only**: Logs are downloaded as a ZIP file to your computer; nothing is sent to external servers
+
 ## Data Storage
 
-- **Local storage only**: All data is stored locally in your browser using Chrome's sync storage
+- **Local storage only**: All data is stored locally in your browser using Chrome's sync and local storage
 - **No external servers**: No data is transmitted to external servers or third parties
-- **Sync across devices**: Data syncs across your Chrome browsers when signed into the same Google account (standard Chrome sync functionality)
+- **Sync across devices**: Calendar groups sync across your Chrome browsers when signed into the same Google account (standard Chrome sync functionality)
 - **Limited retention**: Only the most recent 3 autosave states are kept; older ones are automatically deleted
+- **Support logs**: Extension logs are stored locally for troubleshooting and are automatically cleared after export
 
 ## Data Usage
 
