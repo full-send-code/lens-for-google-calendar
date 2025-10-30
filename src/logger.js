@@ -1,0 +1,1 @@
+{"name": "Lens Logger", "version": "1.0.0", "description": "Logger system for Lens for Google Calendar", "main": "src/logger.js", "scripts": {"test": "echo \"Error: no test specified\" && exit 1"}, "keywords": [], "author": "", "license": "ISC", "dependencies": {}, "devDependencies": {}}
