@@ -7,6 +7,18 @@
     return (startNode || document).querySelectorAll(selector)
   };
 
+  // Debug logging flag - declare early to avoid temporal dead zone
+  let cm_debug_enabled = false
+  
+  function cm_debug(...args){
+    if(args[0]){
+      args[0] = `[${args[0]}]`
+    }
+    if(cm_debug_enabled){
+      console.debug(...args)
+    }
+  }
+
   class Overlay {
     // 8 pixels is the width of the scrollbar
     constructor(targetEl, opts = {}){
@@ -996,15 +1008,5 @@ async function scrollThroughElement(el, opts = {}, scrollIncrementedCb){
   cm_debug('scrollThroughIncrement', 'doing last scan')
   if(typeof scrollIncrementedCb == 'function'){
     await scrollIncrementedCb()
-  }
-}
-
-let cm_debug_enabled = false
-function cm_debug(...args){
-  if(args[0]){
-    args[0] = `[${args[0]}]`
-  }
-  if(cm_debug_enabled){
-    console.debug(...args)
   }
 }
