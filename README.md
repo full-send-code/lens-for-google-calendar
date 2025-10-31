@@ -15,7 +15,8 @@ A Chrome extension that allows you to save and restore groups of calendar select
 - **Auto-save**: Automatically saves your last 3 calendar selections for easy restoration
 - **Dark Mode Support**: Seamlessly adapts to Google Calendar's dark theme
 - **Local Storage**: All data is stored locally in your browser with Chrome sync support
-- **Support Logs**: Download anonymized logs for troubleshooting (privacy-focused with no external data transmission)
+- **Settings Page**: Access extension settings and logs by clicking the extension icon in the toolbar
+- **Support Logs**: View, filter, search, and export anonymized logs for troubleshooting (privacy-focused with no external data transmission)
 
 ## 📦 Installation
 
@@ -69,15 +70,21 @@ This creates a ZIP file in the `dist/` directory that can be loaded as an unpack
 - **Export**: Backup your calendar groups to a JSON file
 - **Import**: Restore calendar groups from a previously exported file
 
-### Support Logs
+### Settings Page & Logs
 
-- **Download Logs**: Export extension logs as a ZIP file for troubleshooting
-  - Click "Presets" button, then click "Logs" in the import/export bar
-  - Logs are automatically anonymized (calendar IDs and email addresses replaced)
+The extension settings page can be accessed by clicking the extension icon in the Chrome toolbar. The settings page provides:
+
+- **View Logs**: Browse all extension logs with detailed timestamps and log levels
+- **Filter Logs**: Filter logs by level (Log, Info, Warn, Error, Debug)
+- **Search Logs**: Search logs by content, timestamp, or level
+- **Export Logs**: Download logs as a ZIP file for troubleshooting
+  - Logs are automatically anonymized (calendar IDs and email addresses replaced with placeholders)
   - Contains console messages from the last 24 hours (max 500 entries)
   - ZIP file includes logs.json and metadata.json
   - Logs are automatically cleared after successful export
   - No data is sent externally - everything stays on your computer
+- **Clear Logs**: Remove all stored logs from local storage
+- **Statistics**: View total log count and time range of logged events
 
 ## 🏗️ Architecture
 
@@ -85,8 +92,10 @@ This creates a ZIP file in the `dist/` directory that can be loaded as an unpack
 
 - **CalendarManager** (`src/calendar_manager.js`): Core logic for calendar discovery and manipulation
 - **UI Components** (`src/inject/inject.js`): Vue.js-based user interface injected into Google Calendar
+- **Logger** (`src/logger.js`): Logging system that captures console messages and stores them anonymized
+- **Settings Page** (`src/options.html`, `src/options.js`): Standalone settings page for viewing logs and managing extension
 - **Content Scripts**: Automatically inject the extension into Google Calendar pages
-- **Background Service Worker**: Handles extension lifecycle and messaging
+- **Background Service Worker** (`src/background.js`): Handles extension lifecycle, messaging, and toolbar icon clicks
 
 ### Key Classes
 
@@ -116,10 +125,14 @@ This creates a ZIP file in the `dist/` directory that can be loaded as an unpack
 │   ├── jquery/
 │   ├── vue/
 │   ├── mdl/              # Material Design Lite
-│   └── mousetrap/        # Keyboard shortcuts
+│   ├── mousetrap/        # Keyboard shortcuts
+│   └── jszip/            # ZIP file generation
 ├── src/
 │   ├── background.js      # Service worker
 │   ├── calendar_manager.js # Core calendar logic
+│   ├── logger.js          # Logging system
+│   ├── options.html       # Settings/options page
+│   ├── options.js         # Settings page logic
 │   └── inject/
 │       ├── inject.js      # UI injection and Vue components
 │       └── inject.css     # Extension-specific styles
