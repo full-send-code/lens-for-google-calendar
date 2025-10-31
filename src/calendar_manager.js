@@ -1,3 +1,15 @@
+// Debug logging flag - declare globally to be accessible by utility functions
+let cm_debug_enabled = false
+
+function cm_debug(...args){
+  if(args[0]){
+    args[0] = `[${args[0]}]`
+  }
+  if(cm_debug_enabled){
+    console.debug(...args)
+  }
+}
+
 ;(async function(){
   var $ = function(selector, startNode){
     return (startNode || document).querySelector(selector)
@@ -6,18 +18,6 @@
   var $$ = function(selector, startNode){
     return (startNode || document).querySelectorAll(selector)
   };
-
-  // Debug logging flag - declare early to avoid temporal dead zone
-  let cm_debug_enabled = false
-  
-  function cm_debug(...args){
-    if(args[0]){
-      args[0] = `[${args[0]}]`
-    }
-    if(cm_debug_enabled){
-      console.debug(...args)
-    }
-  }
 
   class Overlay {
     // 8 pixels is the width of the scrollbar
