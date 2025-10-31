@@ -5,4 +5,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true; // Keep message channel open for async response
 });
 
+// Handle extension icon click to open options page
+chrome.action.onClicked.addListener((tab) => {
+  chrome.runtime.openOptionsPage();
+});
+
 // setTimeout( () => chrome.browserAction.disable(), 5000 )

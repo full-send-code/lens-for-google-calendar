@@ -106,33 +106,42 @@
       return; // Not in extension environment
     }
 
-    chrome.storage.local.get(LOGGER_CONFIG.storageKey, (result) => {
-      let logs = result[LOGGER_CONFIG.storageKey] || [];
+    // Check if logging is enabled before storing
+    chrome.storage.local.get('logging_enabled', (settingsResult) => {
+      const loggingEnabled = settingsResult.logging_enabled !== false; // Default to true for backward compatibility
       
-      // Add new log entry
-      logs.push(logEntry);
-      
-      // Remove old logs (older than maxLogAge)
-      const now = Date.now();
-      logs = logs.filter(log => {
-        const logTime = new Date(log.timestamp).getTime();
-        return (now - logTime) < LOGGER_CONFIG.maxLogAge;
-      });
-      
-      // Trim to max logs if needed
-      if (logs.length > LOGGER_CONFIG.maxLogs) {
-        logs = logs.slice(-LOGGER_CONFIG.maxLogs);
+      if (!loggingEnabled) {
+        return; // Don't store logs when logging is disabled
       }
-      
-      // Save back to storage
-      const data = {};
-      data[LOGGER_CONFIG.storageKey] = logs;
-      
-      chrome.storage.local.set(data, () => {
-        if (chrome.runtime.lastError) {
-          // Can't log to console here as it would cause recursion
-          // Silently fail
+
+      chrome.storage.local.get(LOGGER_CONFIG.storageKey, (result) => {
+        let logs = result[LOGGER_CONFIG.storageKey] || [];
+        
+        // Add new log entry
+        logs.push(logEntry);
+        
+        // Remove old logs (older than maxLogAge)
+        const now = Date.now();
+        logs = logs.filter(log => {
+          const logTime = new Date(log.timestamp).getTime();
+          return (now - logTime) < LOGGER_CONFIG.maxLogAge;
+        });
+        
+        // Trim to max logs if needed
+        if (logs.length > LOGGER_CONFIG.maxLogs) {
+          logs = logs.slice(-LOGGER_CONFIG.maxLogs);
         }
+        
+        // Save back to storage
+        const data = {};
+        data[LOGGER_CONFIG.storageKey] = logs;
+        
+        chrome.storage.local.set(data, () => {
+          if (chrome.runtime.lastError) {
+            // Can't log to console here as it would cause recursion
+            // Silently fail
+          }
+        });
       });
     });
   }

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lens for Google Calendar - Settings</title>
+  
+  <!-- Material Design Lite CSS -->
+  <link rel="stylesheet" href="../lib/mdl/material.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  
+  <style>
+    body {
+      font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    
+    .settings-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    
+    .settings-header {
+      background: white;
+      padding: 24px;
+      margin-bottom: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .settings-header h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+      font-weight: 400;
+      color: #202124;
+    }
+    
+    .settings-header .version {
+      color: #5f6368;
+      font-size: 14px;
+    }
+    
+    .settings-section {
+      background: white;
+      padding: 24px;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .settings-section h2 {
+      margin: 0 0 16px 0;
+      font-size: 20px;
+      font-weight: 500;
+      color: #202124;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .logs-toolbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    /* MDL Button overrides */
+    .mdl-button--raised.mdl-button--colored {
+      background: #1a73e8;
+    }
+    
+    .mdl-button--raised.mdl-button--colored:hover {
+      background: #1557b0;
+    }
+    
+    .mdl-button--accent {
+      color: #c5221f;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="settings-container">
+    <div class="settings-header">
+      <h1>Lens for Google Calendar Settings</h1>
+      <div class="version">Version 1.0.1</div>
+    </div>
+    
+    <div class="settings-section">
+      <h2>
+        <i class="material-icons">settings</i>
+        Logging Settings
+      </h2>
+      
+      <div style="margin-bottom: 24px;">
+        <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="logging-toggle">
+          <input type="checkbox" id="logging-toggle" class="mdl-switch__input">
+          <span class="mdl-switch__label">Enable Extension Logging</span>
+        </label>
+        <p style="color: #5f6368; margin: 8px 0 0 0; font-size: 14px;">
+          When enabled, the extension will collect debugging information to help troubleshoot issues.
+        </p>
+      </div>
+      
+      <div class="logs-toolbar">
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+                id="export-btn" disabled>
+          <i class="material-icons" style="vertical-align: middle; margin-right: 4px;">download</i>
+          Download Logs
+        </button>
+        
+        <div style="margin-left: 12px; color: #5f6368; font-size: 14px;" id="log-status">
+          Logging disabled
+        </div>
+      </div>
+    </div>
+    
+    <div class="settings-section">
+      <h2>
+        <i class="material-icons">info</i>
+        About Logs
+      </h2>
+      <p style="color: #5f6368; margin: 0; line-height: 1.6;">
+        Extension logs are stored locally on your device and are automatically anonymized 
+        (calendar IDs and email addresses are replaced with placeholders). Logs are retained 
+        for 24 hours and limited to a maximum of 500 entries. When logging is enabled, you can 
+        download logs as a ZIP file for troubleshooting purposes. No data is sent to external servers.
+      </p>
+    </div>
+  </div>
+  
+  <!-- Snackbar for notifications -->
+  <div id="snackbar" class="mdl-js-snackbar mdl-snackbar">
+    <div class="mdl-snackbar__text"></div>
+    <button class="mdl-snackbar__action" type="button"></button>
+  </div>
+  
+  <!-- Scripts -->
+  <script src="../lib/mdl/material.min.js"></script>
+  <script src="../lib/jszip/jszip.min.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
