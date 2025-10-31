@@ -88,7 +88,7 @@
           url: 'https://calendar.google.com/',
         },
       ];
-      loggingEnabled = true;
+      loggingEnabled = false; // Default to disabled for privacy
       console.log('Using mock data - chrome.storage not available');
       updateUI();
       return;
@@ -97,7 +97,7 @@
     // Load both logs and logging setting
     chrome.storage.local.get([LOGGER_STORAGE_KEY, LOGGING_ENABLED_KEY], (result) => {
       logs = result[LOGGER_STORAGE_KEY] || [];
-      loggingEnabled = result[LOGGING_ENABLED_KEY] !== false; // Default to true
+      loggingEnabled = result[LOGGING_ENABLED_KEY] === true; // Default to false (disabled)
       console.log('Loaded', logs.length, 'log entries, logging enabled:', loggingEnabled);
       updateUI();
     });

@@ -71,6 +71,18 @@
   function formatLogArgs(args) {
     return Array.from(args).map(arg => {
       if (typeof arg === 'object' && arg !== null) {
+        // Handle Error objects specially to capture stack traces
+        if (arg instanceof Error) {
+          const errorInfo = {
+            name: arg.name,
+            message: anonymizeData(arg.message),
+            stack: anonymizeData(arg.stack || 'No stack trace available'),
+            fileName: arg.fileName || 'unknown',
+            lineNumber: arg.lineNumber || 'unknown',
+            columnNumber: arg.columnNumber || 'unknown',
+          };
+          return JSON.stringify(errorInfo, null, 2);
+        }
         try {
           return JSON.stringify(anonymizeData(arg), null, 2);
         } catch (e) {
@@ -88,13 +100,28 @@
    * @returns {Object} - Log entry object
    */
   function createLogEntry(level, args) {
-    return {
+    const entry = {
       timestamp: new Date().toISOString(),
       level: level,
       message: formatLogArgs(args),
       userAgent: navigator.userAgent,
       url: window.location.href,
     };
+
+    // For errors, also capture the current stack trace for context
+    if (level === 'error') {
+      try {
+        // Capture current stack trace
+        const stackTrace = new Error().stack;
+        if (stackTrace) {
+          entry.contextStack = anonymizeData(stackTrace);
+        }
+      } catch (e) {
+        // Ignore if we can't get stack trace
+      }
+    }
+
+    return entry;
   }
 
   /**
@@ -108,7 +135,7 @@
 
     // Check if logging is enabled before storing
     chrome.storage.local.get('logging_enabled', (settingsResult) => {
-      const loggingEnabled = settingsResult.logging_enabled !== false; // Default to true for backward compatibility
+      const loggingEnabled = settingsResult.logging_enabled === true; // Default to false (disabled)
       
       if (!loggingEnabled) {
         return; // Don't store logs when logging is disabled
@@ -191,6 +218,25 @@
 
     // Store original methods for potential restoration
     console._original = originalConsole;
+
+    // Capture unhandled errors
+    window.addEventListener('error', (event) => {
+      const errorEntry = createLogEntry('error', [
+        `Unhandled Error: ${event.message}`,
+        `File: ${event.filename}:${event.lineno}:${event.colno}`,
+        event.error
+      ]);
+      storeLog(errorEntry);
+    });
+
+    // Capture unhandled promise rejections
+    window.addEventListener('unhandledrejection', (event) => {
+      const errorEntry = createLogEntry('error', [
+        'Unhandled Promise Rejection:',
+        event.reason
+      ]);
+      storeLog(errorEntry);
+    });
   }
 
   /**
