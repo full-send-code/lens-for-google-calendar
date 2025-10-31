@@ -5,6 +5,7 @@ A Chrome extension that allows you to save and restore groups of calendar select
 ![Extension Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Manifest](https://img.shields.io/badge/manifest-v3-orange)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.5.3-blue)
 
 ## 🚀 Features
 
@@ -15,16 +16,19 @@ A Chrome extension that allows you to save and restore groups of calendar select
 - **Auto-save**: Automatically saves your last 3 calendar selections for easy restoration
 - **Dark Mode Support**: Seamlessly adapts to Google Calendar's dark theme
 - **Local Storage**: All data is stored locally in your browser with Chrome sync support
+- **TypeScript**: Fully typed codebase with comprehensive test coverage
 
 ## 📦 Installation
 
 ### From Source
 
 1. Clone or download this repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" in the top right
-4. Click "Load unpacked" and select the extension directory
-5. Navigate to [Google Calendar](https://calendar.google.com) to start using the extension
+2. Install dependencies: `npm install`
+3. Build the TypeScript code: `npm run build`
+4. Open Chrome and navigate to `chrome://extensions/`
+5. Enable "Developer mode" in the top right
+6. Click "Load unpacked" and select the extension directory
+7. Navigate to [Google Calendar](https://calendar.google.com) to start using the extension
 
 ### Building a Release Package
 
@@ -35,6 +39,45 @@ Use the included PowerShell script to create a distributable package:
 ```
 
 This creates a ZIP file in the `dist/` directory that can be loaded as an unpacked extension.
+
+## 🛠️ Development
+
+### TypeScript Build
+
+The project is written in TypeScript and must be compiled to JavaScript before use:
+
+```bash
+# Install dependencies
+npm install
+
+# Build TypeScript to JavaScript
+npm run build
+
+# Watch mode (auto-rebuild on changes)
+npm run build:watch
+```
+
+See [TYPESCRIPT.md](TYPESCRIPT.md) for detailed information about the TypeScript setup and migration.
+
+### Testing
+
+The project includes comprehensive Jest tests:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+```
+
+**Test Coverage**: 46 tests across 3 test suites covering:
+- Service worker message handling
+- Calendar management operations
+- UI utility functions and storage integration
 
 ## 🎯 How to Use
 
@@ -72,10 +115,10 @@ This creates a ZIP file in the `dist/` directory that can be loaded as an unpack
 
 ### Core Components
 
-- **CalendarManager** (`src/calendar_manager.js`): Core logic for calendar discovery and manipulation
-- **UI Components** (`src/inject/inject.js`): Vue.js-based user interface injected into Google Calendar
+- **CalendarManager** (`src/calendar_manager.ts`): Core logic for calendar discovery and manipulation (compiled to `dist/calendar_manager.js`)
+- **UI Components** (`src/inject/inject.ts`): Vue.js-based user interface injected into Google Calendar (compiled to `dist/inject/inject.js`)
 - **Content Scripts**: Automatically inject the extension into Google Calendar pages
-- **Background Service Worker**: Handles extension lifecycle and messaging
+- **Background Service Worker** (`src/background.ts`): Handles extension lifecycle and messaging (compiled to `dist/background.js`)
 
 ### Key Classes
 
@@ -92,28 +135,48 @@ This creates a ZIP file in the `dist/` directory that can be loaded as an unpack
 - **Material Design Lite**: Additional UI components and styling
 - **Mousetrap**: Keyboard shortcut handling
 
+### Development Dependencies
+
+- **TypeScript**: Type-safe JavaScript development
+- **Jest**: Testing framework with jsdom environment
+- **ts-jest**: TypeScript preprocessor for Jest
+
 ## 🔧 Development
 
 ### File Structure
 
 ```
-├── manifest.json           # Extension manifest (Manifest V3)
-├── index.html             # Standalone test/demo page
-├── icons/                 # Extension icons (16, 19, 48, 128px)
-├── lib/                   # Third-party libraries
+├── manifest.json           # Extension manifest (Manifest V3, uses dist/ files)
+├── package.json            # npm dependencies and build scripts
+├── tsconfig.json           # TypeScript configuration
+├── jest.config.js          # Jest test configuration
+├── index.html              # Standalone test/demo page
+├── icons/                  # Extension icons (16, 19, 48, 128px)
+├── lib/                    # Third-party libraries
 │   ├── jquery/
 │   ├── vue/
-│   ├── mdl/              # Material Design Lite
-│   └── mousetrap/        # Keyboard shortcuts
-├── src/
-│   ├── background.js      # Service worker
-│   ├── calendar_manager.js # Core calendar logic
+│   ├── mdl/               # Material Design Lite
+│   └── mousetrap/         # Keyboard shortcuts
+├── src/                    # TypeScript source files
+│   ├── background.ts       # Service worker
+│   ├── calendar_manager.ts # Core calendar logic (~900 lines)
 │   └── inject/
-│       ├── inject.js      # UI injection and Vue components
-│       └── inject.css     # Extension-specific styles
-├── docs/                  # Documentation
-├── screenshots/           # Extension screenshots
-└── release.ps1          # Build script
+│       ├── inject.ts       # UI injection and Vue components (~960 lines)
+│       └── inject.css      # Extension-specific styles
+├── dist/                   # Compiled JavaScript (generated by npm run build)
+│   ├── background.js
+│   ├── calendar_manager.js
+│   └── inject/
+│       └── inject.js
+├── tests/                  # Jest test files
+│   ├── setup.ts
+│   ├── background.test.ts  # 4 tests
+│   ├── calendar_manager.test.ts # 21 tests
+│   └── inject.test.ts      # 21 tests
+├── docs/                   # Documentation
+├── screenshots/            # Extension screenshots
+├── TYPESCRIPT.md           # TypeScript migration guide
+└── release.ps1            # Build script
 ```
 
 ### Configuration
