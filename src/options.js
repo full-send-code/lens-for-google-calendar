@@ -132,46 +132,61 @@
     const filterContainer = document.querySelector('.filter-container');
     if (logs.length > 0) {
       filterContainer.style.display = 'flex';
-      filterContainer.innerHTML = `
-        <span style="color: #5f6368; font-size: 14px; margin-right: 8px;">Filter by level:</span>
-        <span class="mdl-chip mdl-chip--contact filter-chip ${selectedLevel === 'all' ? 'active' : ''}" data-level="all">
-          <span class="mdl-chip__contact mdl-color--blue mdl-color-text--white">${levelCounts.all}</span>
-          <span class="mdl-chip__text">All</span>
-        </span>
-        ${levelCounts.log > 0 ? `
-        <span class="mdl-chip mdl-chip--contact filter-chip ${selectedLevel === 'log' ? 'active' : ''}" data-level="log">
-          <span class="mdl-chip__contact mdl-color--blue mdl-color-text--white">${levelCounts.log}</span>
-          <span class="mdl-chip__text">Log</span>
-        </span>` : ''}
-        ${levelCounts.info > 0 ? `
-        <span class="mdl-chip mdl-chip--contact filter-chip ${selectedLevel === 'info' ? 'active' : ''}" data-level="info">
-          <span class="mdl-chip__contact mdl-color--green mdl-color-text--white">${levelCounts.info}</span>
-          <span class="mdl-chip__text">Info</span>
-        </span>` : ''}
-        ${levelCounts.warn > 0 ? `
-        <span class="mdl-chip mdl-chip--contact filter-chip ${selectedLevel === 'warn' ? 'active' : ''}" data-level="warn">
-          <span class="mdl-chip__contact mdl-color--amber mdl-color-text--white">${levelCounts.warn}</span>
-          <span class="mdl-chip__text">Warn</span>
-        </span>` : ''}
-        ${levelCounts.error > 0 ? `
-        <span class="mdl-chip mdl-chip--contact filter-chip ${selectedLevel === 'error' ? 'active' : ''}" data-level="error">
-          <span class="mdl-chip__contact mdl-color--red mdl-color-text--white">${levelCounts.error}</span>
-          <span class="mdl-chip__text">Error</span>
-        </span>` : ''}
-        ${levelCounts.debug > 0 ? `
-        <span class="mdl-chip mdl-chip--contact filter-chip ${selectedLevel === 'debug' ? 'active' : ''}" data-level="debug">
-          <span class="mdl-chip__contact mdl-color--purple mdl-color-text--white">${levelCounts.debug}</span>
-          <span class="mdl-chip__text">Debug</span>
-        </span>` : ''}
-      `;
       
-      // Add event listeners to filter chips
-      filterContainer.querySelectorAll('.filter-chip').forEach(chip => {
+      // Clear existing content
+      filterContainer.innerHTML = '';
+      
+      // Add label
+      const label = document.createElement('span');
+      label.style.color = '#5f6368';
+      label.style.fontSize = '14px';
+      label.style.marginRight = '8px';
+      label.textContent = 'Filter by level:';
+      filterContainer.appendChild(label);
+      
+      // Helper function to create filter chip
+      const createChip = (level, count, colorClass) => {
+        const chip = document.createElement('span');
+        chip.className = `mdl-chip mdl-chip--contact filter-chip ${selectedLevel === level ? 'active' : ''}`;
+        chip.dataset.level = level;
+        chip.style.cursor = 'pointer';
+        
+        const contact = document.createElement('span');
+        contact.className = `mdl-chip__contact mdl-color--${colorClass} mdl-color-text--white`;
+        contact.textContent = String(count);
+        
+        const text = document.createElement('span');
+        text.className = 'mdl-chip__text';
+        text.textContent = level.charAt(0).toUpperCase() + level.slice(1);
+        
+        chip.appendChild(contact);
+        chip.appendChild(text);
+        
         chip.addEventListener('click', () => {
-          selectedLevel = chip.dataset.level;
+          selectedLevel = level;
           render();
         });
-      });
+        
+        return chip;
+      };
+      
+      // Add filter chips
+      filterContainer.appendChild(createChip('all', levelCounts.all, 'blue'));
+      if (levelCounts.log > 0) {
+        filterContainer.appendChild(createChip('log', levelCounts.log, 'blue'));
+      }
+      if (levelCounts.info > 0) {
+        filterContainer.appendChild(createChip('info', levelCounts.info, 'green'));
+      }
+      if (levelCounts.warn > 0) {
+        filterContainer.appendChild(createChip('warn', levelCounts.warn, 'amber'));
+      }
+      if (levelCounts.error > 0) {
+        filterContainer.appendChild(createChip('error', levelCounts.error, 'red'));
+      }
+      if (levelCounts.debug > 0) {
+        filterContainer.appendChild(createChip('debug', levelCounts.debug, 'purple'));
+      }
     } else {
       filterContainer.style.display = 'none';
     }
@@ -183,22 +198,47 @@
     if (filteredLogs.length > 0) {
       logsContainer.style.display = 'block';
       emptyState.style.display = 'none';
-      logsContainer.innerHTML = filteredLogs.map(log => `
-        <div class="log-entry">
-          <div class="log-entry-header">
-            <span class="log-timestamp">${formatTimestamp(log.timestamp)}</span>
-            <span class="log-level ${log.level}">${log.level}</span>
-          </div>
-          <div class="log-message">${escapeHtml(log.message)}</div>
-        </div>
-      `).join('');
+      
+      // Clear existing content
+      logsContainer.innerHTML = '';
+      
+      // Create log entries using DOM methods for security
+      filteredLogs.forEach(log => {
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log-entry';
+        
+        const header = document.createElement('div');
+        header.className = 'log-entry-header';
+        
+        const timestamp = document.createElement('span');
+        timestamp.className = 'log-timestamp';
+        timestamp.textContent = formatTimestamp(log.timestamp);
+        
+        const level = document.createElement('span');
+        level.className = `log-level ${escapeHtml(log.level)}`;
+        level.textContent = log.level;
+        
+        header.appendChild(timestamp);
+        header.appendChild(level);
+        
+        const message = document.createElement('div');
+        message.className = 'log-message';
+        message.textContent = log.message;
+        
+        logEntry.appendChild(header);
+        logEntry.appendChild(message);
+        logsContainer.appendChild(logEntry);
+      });
     } else {
       logsContainer.style.display = 'none';
       emptyState.style.display = 'block';
-      if (logs.length === 0) {
-        emptyState.querySelector('div:nth-child(2)').textContent = 'Extension logs will appear here as you use the extension';
-      } else {
-        emptyState.querySelector('div:nth-child(2)').textContent = 'Try adjusting your search or filter criteria';
+      const emptyMessage = emptyState.querySelector('div:nth-child(2)');
+      if (emptyMessage) {
+        if (logs.length === 0) {
+          emptyMessage.textContent = 'Extension logs will appear here as you use the extension';
+        } else {
+          emptyMessage.textContent = 'Try adjusting your search or filter criteria';
+        }
       }
     }
     
@@ -386,16 +426,7 @@
     getExtensionVersion();
     loadLogs();
     
-    // Add event listeners
-    document.querySelector('button[onclick*="exportLogs"]')?.addEventListener('click', exportLogs);
-    document.querySelector('button[onclick*="clearLogs"]')?.addEventListener('click', clearLogs);
-    document.querySelector('button[onclick*="refreshLogs"]')?.addEventListener('click', refreshLogs);
-    document.querySelector('#search')?.addEventListener('input', (e) => {
-      searchQuery = e.target.value;
-      render();
-    });
-    
-    // Find buttons by their icon content
+    // Add event listeners to buttons by their text content
     const buttons = document.querySelectorAll('.logs-toolbar button');
     buttons.forEach(btn => {
       if (btn.textContent.includes('Export')) {
@@ -406,6 +437,15 @@
         btn.addEventListener('click', refreshLogs);
       }
     });
+    
+    // Add event listener to search input
+    const searchInput = document.querySelector('#search');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        render();
+      });
+    }
   }
 
   // Initialize when DOM is ready
