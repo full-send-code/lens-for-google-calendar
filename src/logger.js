@@ -190,25 +190,23 @@
     };
   }
 
+  // Store original console methods globally
+  const originalConsole = {
+    log: console.log,
+    error: console.error,
+    warn: console.warn,
+    info: console.info,
+    debug: console.debug,
+  };
+
+  let loggingActive = false;
+
   /**
-   * Initializes the logger by wrapping console methods
+   * Enables console logging capture
    */
-  function initLogger() {
-    // Check if we're in an extension environment
-    if (!chrome || !chrome.storage || !chrome.storage.local) {
-      console.log('Lens Logger: Not in extension environment, skipping console wrapping');
-      return;
-    }
-
-    // Store original console methods
-    const originalConsole = {
-      log: console.log,
-      error: console.error,
-      warn: console.warn,
-      info: console.info,
-      debug: console.debug,
-    };
-
+  function enableLogging() {
+    if (loggingActive) return;
+    
     // Wrap console methods
     console.log = wrapConsoleMethod('log', originalConsole.log);
     console.error = wrapConsoleMethod('error', originalConsole.error);
@@ -216,26 +214,65 @@
     console.info = wrapConsoleMethod('info', originalConsole.info);
     console.debug = wrapConsoleMethod('debug', originalConsole.debug);
 
-    // Store original methods for potential restoration
-    console._original = originalConsole;
+    loggingActive = true;
+  }
 
-    // Capture unhandled errors
-    window.addEventListener('error', (event) => {
-      const errorEntry = createLogEntry('error', [
-        `Unhandled Error: ${event.message}`,
-        `File: ${event.filename}:${event.lineno}:${event.colno}`,
-        event.error
-      ]);
-      storeLog(errorEntry);
-    });
+  /**
+   * Disables console logging capture and restores original methods
+   */
+  function disableLogging() {
+    if (!loggingActive) return;
+    
+    // Restore original console methods
+    console.log = originalConsole.log;
+    console.error = originalConsole.error;
+    console.warn = originalConsole.warn;
+    console.info = originalConsole.info;
+    console.debug = originalConsole.debug;
 
-    // Capture unhandled promise rejections
-    window.addEventListener('unhandledrejection', (event) => {
-      const errorEntry = createLogEntry('error', [
-        'Unhandled Promise Rejection:',
-        event.reason
-      ]);
-      storeLog(errorEntry);
+    loggingActive = false;
+  }
+
+  /**
+   * Initializes the logger by checking user preferences
+   */
+  function initLogger() {
+    // Check if we're in an extension environment
+    if (!chrome || !chrome.storage || !chrome.storage.local) {
+      console.log('Lens Logger: Not in extension environment, skipping initialization');
+      return;
+    }
+
+    // Check user logging preference before initializing
+    chrome.storage.local.get('logging_enabled', (result) => {
+      const loggingEnabled = result.logging_enabled === true; // Default to false (disabled)
+      
+      if (loggingEnabled) {
+        enableLogging();
+        
+        // Capture unhandled errors only if logging is enabled
+        window.addEventListener('error', (event) => {
+          const errorEntry = createLogEntry('error', [
+            `Unhandled Error: ${event.message}`,
+            `File: ${event.filename}:${event.lineno}:${event.colno}`,
+            event.error
+          ]);
+          storeLog(errorEntry);
+        });
+
+        // Capture unhandled promise rejections only if logging is enabled
+        window.addEventListener('unhandledrejection', (event) => {
+          const errorEntry = createLogEntry('error', [
+            'Unhandled Promise Rejection:',
+            event.reason
+          ]);
+          storeLog(errorEntry);
+        });
+        
+        console.log('Lens Logger initialized and enabled');
+      } else {
+        console.log('Lens Logger initialized but disabled (user preference)');
+      }
     });
   }
 
@@ -336,11 +373,15 @@
     getLogs: getLogs,
     clearLogs: clearLogs,
     exportLogs: exportLogs,
+    enableLogging: enableLogging,
+    disableLogging: disableLogging,
+    isLoggingActive: () => loggingActive,
     config: LOGGER_CONFIG,
   };
 
-  // Only log initialization message if we're in extension environment
-  if (chrome && chrome.storage && chrome.storage.local) {
-    console.log('Lens Logger initialized');
-  }
+  // Initialize logger
+  initLogger();
+
+  // Note: Don't log initialization here as it would immediately trigger logging
+  // The initLogger function will log appropriately based on user preference
 })();

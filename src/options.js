@@ -98,6 +98,16 @@
     chrome.storage.local.get([LOGGER_STORAGE_KEY, LOGGING_ENABLED_KEY], (result) => {
       logs = result[LOGGER_STORAGE_KEY] || [];
       loggingEnabled = result[LOGGING_ENABLED_KEY] === true; // Default to false (disabled)
+      
+      // Sync logger state with saved preference
+      if (window.LensLogger) {
+        if (loggingEnabled && !window.LensLogger.isLoggingActive()) {
+          window.LensLogger.enableLogging();
+        } else if (!loggingEnabled && window.LensLogger.isLoggingActive()) {
+          window.LensLogger.disableLogging();
+        }
+      }
+      
       console.log('Loaded', logs.length, 'log entries, logging enabled:', loggingEnabled);
       updateUI();
     });
@@ -120,6 +130,12 @@
       // Just save the setting when enabling
       chrome.storage.local.set({ [LOGGING_ENABLED_KEY]: enabled }, () => {
         loggingEnabled = enabled;
+        
+        // Enable logging in the logger if available
+        if (window.LensLogger && window.LensLogger.enableLogging) {
+          window.LensLogger.enableLogging();
+        }
+        
         updateUI();
         showSnackbar('Logging enabled');
       });
@@ -129,6 +145,12 @@
         chrome.storage.local.set({ [LOGGING_ENABLED_KEY]: enabled }, () => {
           logs = [];
           loggingEnabled = enabled;
+          
+          // Disable logging in the logger if available
+          if (window.LensLogger && window.LensLogger.disableLogging) {
+            window.LensLogger.disableLogging();
+          }
+          
           updateUI();
           showSnackbar('Logging disabled - existing logs cleared');
         });
@@ -227,6 +249,36 @@
       });
     }
   }
+
+  /**
+   * Sync logger state when it becomes available
+   */
+  function syncLoggerState() {
+    if (window.LensLogger && window.LensLogger.isLoggingActive) {
+      const loggerActive = window.LensLogger.isLoggingActive();
+      
+      // If states are mismatched, sync them
+      if (loggingEnabled && !loggerActive) {
+        window.LensLogger.enableLogging();
+        console.log('Enabled logger to match saved preference');
+      } else if (!loggingEnabled && loggerActive) {
+        window.LensLogger.disableLogging();
+        console.log('Disabled logger to match saved preference');
+      }
+    }
+  }
+
+  // Check for logger availability periodically for the first few seconds
+  let loggerCheckCount = 0;
+  const loggerCheckInterval = setInterval(() => {
+    syncLoggerState();
+    loggerCheckCount++;
+    
+    // Stop checking after 10 attempts (5 seconds)
+    if (loggerCheckCount >= 10 || (window.LensLogger && window.LensLogger.isLoggingActive)) {
+      clearInterval(loggerCheckInterval);
+    }
+  }, 500);
 
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
