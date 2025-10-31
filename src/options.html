@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lens for Google Calendar - Settings</title>
+  
+  <!-- Material Design Lite CSS -->
+  <link rel="stylesheet" href="../lib/mdl/material.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  
+  <style>
+    body {
+      font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    
+    .settings-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    
+    .settings-header {
+      background: white;
+      padding: 24px;
+      margin-bottom: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .settings-header h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+      font-weight: 400;
+      color: #202124;
+    }
+    
+    .settings-header .version {
+      color: #5f6368;
+      font-size: 14px;
+    }
+    
+    .settings-section {
+      background: white;
+      padding: 24px;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .settings-section h2 {
+      margin: 0 0 16px 0;
+      font-size: 20px;
+      font-weight: 500;
+      color: #202124;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .logs-toolbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    .logs-stats {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .logs-stats .stat {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .logs-stats .stat-label {
+      color: #5f6368;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .logs-stats .stat-value {
+      color: #202124;
+      font-size: 18px;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+    
+    .logs-container {
+      max-height: 600px;
+      overflow-y: auto;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      background: #fff;
+    }
+    
+    .log-entry {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 13px;
+    }
+    
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+    
+    .log-entry:hover {
+      background: #f8f9fa;
+    }
+    
+    .log-entry-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+    
+    .log-timestamp {
+      color: #5f6368;
+      font-size: 12px;
+    }
+    
+    .log-level {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    
+    .log-level.log {
+      background: #e8f0fe;
+      color: #1967d2;
+    }
+    
+    .log-level.info {
+      background: #e6f4ea;
+      color: #137333;
+    }
+    
+    .log-level.warn {
+      background: #fef7e0;
+      color: #e37400;
+    }
+    
+    .log-level.error {
+      background: #fce8e6;
+      color: #c5221f;
+    }
+    
+    .log-level.debug {
+      background: #f3e8fd;
+      color: #7c4dff;
+    }
+    
+    .log-message {
+      color: #202124;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: #5f6368;
+    }
+    
+    .empty-state i {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.3;
+    }
+    
+    .filter-container {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    .filter-chip {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .filter-chip.active {
+      background-color: #1a73e8 !important;
+      color: white !important;
+    }
+    
+    /* MDL Button overrides */
+    .mdl-button--raised.mdl-button--colored {
+      background: #1a73e8;
+    }
+    
+    .mdl-button--raised.mdl-button--colored:hover {
+      background: #1557b0;
+    }
+    
+    .mdl-button--accent {
+      color: #c5221f;
+    }
+    
+    /* Search box styling */
+    .search-box {
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    .mdl-textfield {
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="settings-container">
+    <div class="settings-header">
+      <h1>Lens for Google Calendar Settings</h1>
+      <div class="version">Version {{ extensionVersion }}</div>
+    </div>
+    
+    <div class="settings-section">
+      <h2>
+        <i class="material-icons">article</i>
+        Extension Logs
+      </h2>
+      
+      <div class="logs-stats" v-if="logs.length > 0">
+        <div class="stat">
+          <span class="stat-label">Total Logs</span>
+          <span class="stat-value">{{ filteredLogs.length }} / {{ logs.length }}</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Oldest Entry</span>
+          <span class="stat-value">{{ oldestLog }}</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Newest Entry</span>
+          <span class="stat-value">{{ newestLog }}</span>
+        </div>
+      </div>
+      
+      <div class="logs-toolbar">
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
+                @click="exportLogs"
+                :disabled="logs.length === 0">
+          <i class="material-icons" style="vertical-align: middle; margin-right: 4px;">download</i>
+          Export Logs
+        </button>
+        
+        <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent"
+                @click="clearLogs"
+                :disabled="logs.length === 0">
+          <i class="material-icons" style="vertical-align: middle; margin-right: 4px;">delete</i>
+          Clear Logs
+        </button>
+        
+        <button class="mdl-button mdl-js-button mdl-button--raised"
+                @click="refreshLogs">
+          <i class="material-icons" style="vertical-align: middle; margin-right: 4px;">refresh</i>
+          Refresh
+        </button>
+        
+        <div class="search-box">
+          <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+            <input class="mdl-textfield__input" type="text" id="search" v-model="searchQuery">
+            <label class="mdl-textfield__label" for="search">Search logs...</label>
+          </div>
+        </div>
+      </div>
+      
+      <div class="filter-container" v-if="logs.length > 0">
+        <span style="color: #5f6368; font-size: 14px; margin-right: 8px;">Filter by level:</span>
+        <span class="mdl-chip mdl-chip--contact filter-chip"
+              :class="{ active: selectedLevel === 'all' }"
+              @click="selectedLevel = 'all'">
+          <span class="mdl-chip__contact mdl-color--blue mdl-color-text--white">{{ levelCounts.all }}</span>
+          <span class="mdl-chip__text">All</span>
+        </span>
+        <span class="mdl-chip mdl-chip--contact filter-chip"
+              :class="{ active: selectedLevel === 'log' }"
+              @click="selectedLevel = 'log'"
+              v-if="levelCounts.log > 0">
+          <span class="mdl-chip__contact mdl-color--blue mdl-color-text--white">{{ levelCounts.log }}</span>
+          <span class="mdl-chip__text">Log</span>
+        </span>
+        <span class="mdl-chip mdl-chip--contact filter-chip"
+              :class="{ active: selectedLevel === 'info' }"
+              @click="selectedLevel = 'info'"
+              v-if="levelCounts.info > 0">
+          <span class="mdl-chip__contact mdl-color--green mdl-color-text--white">{{ levelCounts.info }}</span>
+          <span class="mdl-chip__text">Info</span>
+        </span>
+        <span class="mdl-chip mdl-chip--contact filter-chip"
+              :class="{ active: selectedLevel === 'warn' }"
+              @click="selectedLevel = 'warn'"
+              v-if="levelCounts.warn > 0">
+          <span class="mdl-chip__contact mdl-color--amber mdl-color-text--white">{{ levelCounts.warn }}</span>
+          <span class="mdl-chip__text">Warn</span>
+        </span>
+        <span class="mdl-chip mdl-chip--contact filter-chip"
+              :class="{ active: selectedLevel === 'error' }"
+              @click="selectedLevel = 'error'"
+              v-if="levelCounts.error > 0">
+          <span class="mdl-chip__contact mdl-color--red mdl-color-text--white">{{ levelCounts.error }}</span>
+          <span class="mdl-chip__text">Error</span>
+        </span>
+        <span class="mdl-chip mdl-chip--contact filter-chip"
+              :class="{ active: selectedLevel === 'debug' }"
+              @click="selectedLevel = 'debug'"
+              v-if="levelCounts.debug > 0">
+          <span class="mdl-chip__contact mdl-color--purple mdl-color-text--white">{{ levelCounts.debug }}</span>
+          <span class="mdl-chip__text">Debug</span>
+        </span>
+      </div>
+      
+      <div class="logs-container" v-if="filteredLogs.length > 0">
+        <div class="log-entry" v-for="(log, index) in filteredLogs" :key="index">
+          <div class="log-entry-header">
+            <span class="log-timestamp">{{ formatTimestamp(log.timestamp) }}</span>
+            <span class="log-level" :class="log.level">{{ log.level }}</span>
+          </div>
+          <div class="log-message">{{ log.message }}</div>
+        </div>
+      </div>
+      
+      <div class="empty-state" v-else>
+        <i class="material-icons">inbox</i>
+        <div>
+          <div style="font-size: 18px; margin-bottom: 8px;">No logs found</div>
+          <div v-if="logs.length === 0">Extension logs will appear here as you use the extension</div>
+          <div v-else>Try adjusting your search or filter criteria</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="settings-section">
+      <h2>
+        <i class="material-icons">info</i>
+        About Logs
+      </h2>
+      <p style="color: #5f6368; margin: 0; line-height: 1.6;">
+        Extension logs are stored locally on your device and are automatically anonymized 
+        (calendar IDs and email addresses are replaced with placeholders). Logs are retained 
+        for 24 hours and limited to a maximum of 500 entries. When you export logs, they are 
+        packaged as a ZIP file and automatically cleared after successful export. 
+        No data is sent to external servers.
+      </p>
+    </div>
+  </div>
+  
+  <!-- Snackbar for notifications -->
+  <div id="snackbar" class="mdl-js-snackbar mdl-snackbar">
+    <div class="mdl-snackbar__text"></div>
+    <button class="mdl-snackbar__action" type="button"></button>
+  </div>
+  
+  <!-- Scripts -->
+  <script src="../lib/mdl/material.min.js"></script>
+  <script src="../lib/jszip/jszip.min.js"></script>
+  <script src="../lib/vue/vue.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
