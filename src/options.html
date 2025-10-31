@@ -64,140 +64,8 @@
     .logs-toolbar {
       display: flex;
       gap: 12px;
-      margin-bottom: 16px;
       flex-wrap: wrap;
       align-items: center;
-    }
-    
-    .logs-stats {
-      display: flex;
-      gap: 24px;
-      margin-bottom: 16px;
-      padding: 12px;
-      background: #f8f9fa;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-    
-    .logs-stats .stat {
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .logs-stats .stat-label {
-      color: #5f6368;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .logs-stats .stat-value {
-      color: #202124;
-      font-size: 18px;
-      font-weight: 500;
-      margin-top: 4px;
-    }
-    
-    .logs-container {
-      max-height: 600px;
-      overflow-y: auto;
-      border: 1px solid #dadce0;
-      border-radius: 4px;
-      background: #fff;
-    }
-    
-    .log-entry {
-      padding: 12px 16px;
-      border-bottom: 1px solid #f0f0f0;
-      font-family: 'Roboto Mono', monospace;
-      font-size: 13px;
-    }
-    
-    .log-entry:last-child {
-      border-bottom: none;
-    }
-    
-    .log-entry:hover {
-      background: #f8f9fa;
-    }
-    
-    .log-entry-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 4px;
-    }
-    
-    .log-timestamp {
-      color: #5f6368;
-      font-size: 12px;
-    }
-    
-    .log-level {
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 500;
-      text-transform: uppercase;
-    }
-    
-    .log-level.log {
-      background: #e8f0fe;
-      color: #1967d2;
-    }
-    
-    .log-level.info {
-      background: #e6f4ea;
-      color: #137333;
-    }
-    
-    .log-level.warn {
-      background: #fef7e0;
-      color: #e37400;
-    }
-    
-    .log-level.error {
-      background: #fce8e6;
-      color: #c5221f;
-    }
-    
-    .log-level.debug {
-      background: #f3e8fd;
-      color: #7c4dff;
-    }
-    
-    .log-message {
-      color: #202124;
-      word-break: break-word;
-      white-space: pre-wrap;
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: 48px 24px;
-      color: #5f6368;
-    }
-    
-    .empty-state i {
-      font-size: 64px;
-      margin-bottom: 16px;
-      opacity: 0.3;
-    }
-    
-    .filter-container {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    
-    .filter-chip {
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    .filter-chip.active {
-      background-color: #1a73e8 !important;
-      color: white !important;
     }
     
     /* MDL Button overrides */
@@ -212,16 +80,6 @@
     .mdl-button--accent {
       color: #c5221f;
     }
-    
-    /* Search box styling */
-    .search-box {
-      flex: 1;
-      min-width: 200px;
-    }
-    
-    .mdl-textfield {
-      width: 100%;
-    }
   </style>
 </head>
 <body>
@@ -233,63 +91,29 @@
     
     <div class="settings-section">
       <h2>
-        <i class="material-icons">article</i>
-        Extension Logs
+        <i class="material-icons">settings</i>
+        Logging Settings
       </h2>
       
-      <div class="logs-stats" style="display: none;">
-        <div class="stat">
-          <span class="stat-label">Total Logs</span>
-          <span class="stat-value">0 / 0</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Oldest Entry</span>
-          <span class="stat-value">-</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Newest Entry</span>
-          <span class="stat-value">-</span>
-        </div>
+      <div style="margin-bottom: 24px;">
+        <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="logging-toggle">
+          <input type="checkbox" id="logging-toggle" class="mdl-switch__input">
+          <span class="mdl-switch__label">Enable Extension Logging</span>
+        </label>
+        <p style="color: #5f6368; margin: 8px 0 0 0; font-size: 14px;">
+          When enabled, the extension will collect debugging information to help troubleshoot issues.
+        </p>
       </div>
       
       <div class="logs-toolbar">
         <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored"
-                id="export-btn">
+                id="export-btn" disabled>
           <i class="material-icons" style="vertical-align: middle; margin-right: 4px;">download</i>
-          Export Logs
+          Download Logs
         </button>
         
-        <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent"
-                id="clear-btn">
-          <i class="material-icons" style="vertical-align: middle; margin-right: 4px;">delete</i>
-          Clear Logs
-        </button>
-        
-        <button class="mdl-button mdl-js-button mdl-button--raised"
-                id="refresh-btn">
-          <i class="material-icons" style="vertical-align: middle; margin-right: 4px;">refresh</i>
-          Refresh
-        </button>
-        
-        <div class="search-box">
-          <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-            <input class="mdl-textfield__input" type="text" id="search">
-            <label class="mdl-textfield__label" for="search">Search logs...</label>
-          </div>
-        </div>
-      </div>
-      
-      <div class="filter-container" style="display: none;">
-      </div>
-      
-      <div class="logs-container" style="display: none;">
-      </div>
-      
-      <div class="empty-state">
-        <i class="material-icons">inbox</i>
-        <div>
-          <div style="font-size: 18px; margin-bottom: 8px;">No logs found</div>
-          <div>Extension logs will appear here as you use the extension</div>
+        <div style="margin-left: 12px; color: #5f6368; font-size: 14px;" id="log-status">
+          Logging disabled
         </div>
       </div>
     </div>
@@ -302,9 +126,8 @@
       <p style="color: #5f6368; margin: 0; line-height: 1.6;">
         Extension logs are stored locally on your device and are automatically anonymized 
         (calendar IDs and email addresses are replaced with placeholders). Logs are retained 
-        for 24 hours and limited to a maximum of 500 entries. When you export logs, they are 
-        packaged as a ZIP file and automatically cleared after successful export. 
-        No data is sent to external servers.
+        for 24 hours and limited to a maximum of 500 entries. When logging is enabled, you can 
+        download logs as a ZIP file for troubleshooting purposes. No data is sent to external servers.
       </p>
     </div>
   </div>

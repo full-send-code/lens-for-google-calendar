@@ -16,7 +16,7 @@ A Chrome extension that allows you to save and restore groups of calendar select
 - **Dark Mode Support**: Seamlessly adapts to Google Calendar's dark theme
 - **Local Storage**: All data is stored locally in your browser with Chrome sync support
 - **Settings Page**: Access extension settings and logs by clicking the extension icon in the toolbar
-- **Support Logs**: View, filter, search, and export anonymized logs for troubleshooting (privacy-focused with no external data transmission)
+- **Privacy-First Logging**: Opt-in logging system for troubleshooting with anonymized data and local-only storage
 
 ## 📦 Installation
 
@@ -70,21 +70,20 @@ This creates a ZIP file in the `dist/` directory that can be loaded as an unpack
 - **Export**: Backup your calendar groups to a JSON file
 - **Import**: Restore calendar groups from a previously exported file
 
-### Settings Page & Logs
+### Settings Page & Logging
 
 The extension settings page can be accessed by clicking the extension icon in the Chrome toolbar. The settings page provides:
 
-- **View Logs**: Browse all extension logs with detailed timestamps and log levels
-- **Filter Logs**: Filter logs by level (Log, Info, Warn, Error, Debug)
-- **Search Logs**: Search logs by content, timestamp, or level
-- **Export Logs**: Download logs as a ZIP file for troubleshooting
+- **Logging Settings**: Control whether the extension collects debugging information
+  - **Opt-in Logging**: Logging is disabled by default - users must explicitly enable it
+  - **Privacy First**: When disabled, no debugging data is collected or stored
+  - **Automatic Cleanup**: Disabling logging immediately deletes all existing logs
+  - **Troubleshooting**: Enable logging temporarily when experiencing issues
+- **Download Logs**: Export logs as a ZIP file for troubleshooting (only when logging is enabled)
   - Logs are automatically anonymized (calendar IDs and email addresses replaced with placeholders)
-  - Contains console messages from the last 24 hours (max 500 entries)
+  - Contains debugging information from the last 24 hours (max 500 entries)
   - ZIP file includes logs.json and metadata.json
-  - Logs are automatically cleared after successful export
   - No data is sent externally - everything stays on your computer
-- **Clear Logs**: Remove all stored logs from local storage
-- **Statistics**: View total log count and time range of logged events
 
 ## 🏗️ Architecture
 
@@ -93,7 +92,7 @@ The extension settings page can be accessed by clicking the extension icon in th
 - **CalendarManager** (`src/calendar_manager.js`): Core logic for calendar discovery and manipulation
 - **UI Components** (`src/inject/inject.js`): Vue.js-based user interface injected into Google Calendar
 - **Logger** (`src/logger.js`): Logging system that captures console messages and stores them anonymized
-- **Settings Page** (`src/options.html`, `src/options.js`): Standalone settings page for viewing logs and managing extension
+- **Settings Page** (`src/options.html`, `src/options.js`): Standalone settings page for managing logging preferences and downloading logs
 - **Content Scripts**: Automatically inject the extension into Google Calendar pages
 - **Background Service Worker** (`src/background.js`): Handles extension lifecycle, messaging, and toolbar icon clicks
 
@@ -182,7 +181,9 @@ Calendar groups are stored using Chrome's sync storage API in this format:
 
 - **Local Only**: All data is stored locally using Chrome's secure storage APIs
 - **No Network**: No data is transmitted to external servers
-- **Sync Support**: Data syncs across Chrome browsers signed into the same Google account
+- **Opt-in Logging**: Debugging information is only collected when explicitly enabled by the user
+- **Anonymized Data**: When logging is enabled, all calendar IDs and email addresses are automatically anonymized
+- **Sync Support**: Calendar groups sync across Chrome browsers signed into the same Google account
 - **Limited Retention**: Only the 3 most recent auto-saves are kept
 
 ## 🎨 Theming
