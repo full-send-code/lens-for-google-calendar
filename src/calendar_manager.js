@@ -308,36 +308,47 @@
     }
 
     async _ensureValidDOM(calendar, opts = {restoreScroll: true}) {
+      console.debug(`Validating DOM for calendar: ${calendar.id} (${calendar.name})`);
+      
       // already have valid dom, do nothing
       if(calendar.dom.isAttached()){
+        console.debug(`DOM already valid for: ${calendar.id}`);
         return true
       }
 
+      console.debug(`DOM not attached for ${calendar.id}, attempting to refresh visible calendars`);
       // we might be scrolled to the element already, try to refresh
       this.refreshVisibleCalendarDOMs()
       if(calendar.dom.isAttached()){
+        console.debug(`DOM found after refresh for: ${calendar.id}`);
         return true
       }
 
+      console.info(`DOM still not found for ${calendar.id}, attempting scroll to saved position: ${calendar.scrollPosition}`);
       // try scrolling to calendar, and refresh
       await calendar.dom.scrollTo()
       this.refreshVisibleCalendarDOMs()
       if(calendar.dom.isAttached()){
+        console.info(`DOM found after scroll for: ${calendar.id}`);
         return true
       }
 
+      console.warn(`DOM still not found for ${calendar.id}, rediscovering scroll positions`);
       // our scroll position could be wrong, so rediscover all scroll positions,
       // rescroll, and refresh
       await this.discoverCalendarScrollPositions()
       await sleep(100)
       // console.log('new cal scroll position:', calendar.scrollPosition)
+      console.debug(`New scroll position for ${calendar.id}: ${calendar.scrollPosition}`);
       await calendar.dom.scrollTo()
       this.refreshVisibleCalendarDOMs()
       if(calendar.dom.isAttached()){
+        console.info(`DOM found after position rediscovery for: ${calendar.id}`);
         return true
       }
 
       // if we get here, we can't find the calendar entry in the scroll list
+      console.error(`Failed to find DOM for calendar ${calendar.id} after all attempts. Calendar may no longer exist.`);
       return false
     }
 
@@ -372,19 +383,32 @@
 
     async toggleSingle(cal, opts = {restoreScroll: true}) {
       await this.initialize()
+      
+      console.debug(`Starting toggleSingle for calendar: ${cal.id} (${cal.name})`);
+      const startTime = performance.now();
 
       const valid = await this.ensureValidDOM(cal, opts)
 
       if(!valid){
         console.error('Could not find valid DOM node for calendar entry', cal.id, cal)
+        console.error('Calendar details:', {
+          id: cal.id,
+          name: cal.name,
+          attached: cal.attached,
+          scrollPosition: cal.scrollPosition
+        });
         return
       }
 
+      console.debug(`DOM validated for calendar: ${cal.id}, attempting toggle`);
       let result = cal.toggle()
 
       await sleep(200) // wait for the checkbox to change state
       // console.log('refreshing DOMSs')
       this.refreshVisibleCalendarDOMs(cal) // refresh internal checked state from the DOM
+
+      const endTime = performance.now();
+      console.info(`Toggle completed for ${cal.id} in ${(endTime - startTime).toFixed(2)}ms. Final state: ${cal.isChecked() ? 'enabled' : 'disabled'}`);
 
       return cal.isChecked()
     }
@@ -395,10 +419,15 @@
       }
 
       await this.initialize()
+      
+      console.info('Starting calendar enable operation');
+      const startTime = performance.now();
 
       const cals = this
             .filter(filterFn)
             .disabled()
+
+      console.debug(`Found ${cals.length} calendars to enable:`, cals.map(c => `${c.name} (${c.id})`));
 
       await this.toggleAll(cals)
 
@@ -408,10 +437,19 @@
             .disabled()
 
       if(failed.length){
-        console.error('failed to enable calendars:', failed)
+        console.error('failed to enable calendars:', failed.map(c => `${c.name} (${c.id})`))
+        console.error('Failed calendar details:', failed.map(c => ({
+          id: c.id,
+          name: c.name,
+          attached: c.attached,
+          checked: c.checked
+        })));
 
-        console.log('retrying...')
+        console.warn('retrying...')
         await this.enable(filterFn)
+      } else {
+        const endTime = performance.now();
+        console.info(`Successfully enabled ${cals.length} calendars in ${(endTime - startTime).toFixed(2)}ms`);
       }
     }
 
@@ -421,10 +459,15 @@
       }
 
       await this.initialize()
+      
+      console.info('Starting calendar disable operation');
+      const startTime = performance.now();
 
       const cals = this
             .filter(filterFn)
             .enabled()
+
+      console.debug(`Found ${cals.length} calendars to disable:`, cals.map(c => `${c.name} (${c.id})`));
 
       await this.toggleAll(cals)
 
@@ -434,10 +477,19 @@
             .enabled()
 
       if(failed.length){
-        console.error('failed to disable calendars:', failed)
+        console.error('failed to disable calendars:', failed.map(c => `${c.name} (${c.id})`))
+        console.error('Failed calendar details:', failed.map(c => ({
+          id: c.id,
+          name: c.name,
+          attached: c.attached,
+          checked: c.checked
+        })));
 
-        console.log('retrying...')
+        console.warn('retrying...')
         await this.disable(filterFn)
+      } else {
+        const endTime = performance.now();
+        console.info(`Successfully disabled ${cals.length} calendars in ${(endTime - startTime).toFixed(2)}ms`);
       }
     }
 
@@ -514,11 +566,31 @@
     }
 
     static async getInstance() {
-      if(!CalendarList.__instance){
-        CalendarList.__instance = new CalendarList()
+      console.info('Initializing CalendarList...');
+      const startTime = performance.now();
+      
+      const calendars = new CalendarList()
+      
+      try {
+        const visible = CalendarManager.getVisibleCalendars()
+        console.debug(`Found ${visible.length} visible calendars`);
+        
+        calendars.push(...visible)
+        await calendars.initialize()
+        
+        const endTime = performance.now();
+        console.info(`CalendarList initialization completed in ${(endTime - startTime).toFixed(2)}ms`);
+        console.debug(`Calendar list contains: ${calendars.length} calendars`);
+        
+        return calendars
+      } catch (error) {
+        console.error('Failed to initialize CalendarList:', error);
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
+        throw error;
       }
-
-      return CalendarList.__instance
     }
   }
 
@@ -647,7 +719,7 @@
       var groups = CM.groups = CM.groups || {};
       groups.__last_saved = groups.__last_saved || [];
 
-      console.log('deleting calendar group:', group_name, '=>', groups[group_name]);
+      console.info('deleting calendar group:', group_name, '=>', groups[group_name]);
 
       groups.__last_saved = groups.__last_saved.filter(name => name !== group_name)
       delete groups[group_name];
@@ -676,16 +748,32 @@
       const outerOperation = outer()
 
       // pre steps...
-      // console.log("OPERATION - PRE", name ? name : '', 'outer:', outerOperation)
+      console.info(`Starting operation: ${name || 'unnamed'}`);
+      const operationStartTime = performance.now();
 
       status.current.push(name)
 
       if(outerOperation){
+        console.debug('Ensuring calendar drawer is shown for operation');
         status.state.drawerShown = await CM.setCalendarDrawerShown(true)
       }
 
       try {
-        return await op()
+        const result = await op()
+        
+        const operationEndTime = performance.now();
+        console.info(`Operation "${name || 'unnamed'}" completed successfully in ${(operationEndTime - operationStartTime).toFixed(2)}ms`);
+        
+        return result
+      } catch (error) {
+        console.error(`Operation "${name || 'unnamed'}" failed:`, error);
+        console.error('Operation error details:', {
+          message: error.message,
+          stack: error.stack,
+          operationStack: status.current,
+          drawerShown: status.state.drawerShown
+        });
+        throw error;
       }
       finally {
         // after steps...
@@ -693,14 +781,13 @@
 
         const outerOperation = outer()
 
-        // console.log('currentOperations:', status.current)
+        console.debug(`Cleaning up operation: ${name || 'unnamed'}, remaining operations:`, status.current);
 
         if(outerOperation && !status.state.drawerShown){
+          console.debug('Restoring original drawer state');
           await CM.setCalendarDrawerShown(status.state.drawerShown)
           // delete status.state.drawerShown
         }
-
-        // console.log("OPERATION - POST", name ? name : '', 'outer:', outerOperation)
       }
     },
 
@@ -708,17 +795,43 @@
     /** Top level operations (called form the UI) **/
 
     showGroup: async function(group_name){
+      console.info(`Starting showGroup operation for: ${group_name}`);
+      const startTime = performance.now();
+      
       CM.performOperation(async () => {
+        const groupCalendars = CM.groups[group_name.toLowerCase()];
+        if (!groupCalendars) {
+          console.error(`Group "${group_name}" not found in saved groups`);
+          return;
+        }
+        
+        console.debug(`Group "${group_name}" contains ${groupCalendars.length} calendars:`, groupCalendars);
+        
         await CM.enableGroup(group_name)
         await CM.disableNonGroup(group_name)
+        
+        const endTime = performance.now();
+        console.info(`showGroup operation completed for "${group_name}" in ${(endTime - startTime).toFixed(2)}ms`);
       }, 'showGroup')
     },
 
     enableCalendar: async function(name){
+      console.info(`Starting enableCalendar operation with pattern: "${name}"`);
+      
       CM.performOperation(async () => {
         // name is a regex string
         var re = RegExp(name, 'i');
+        const matchingCalendars = CM.calendars.filter(c => c.name.match(re));
+        console.debug(`Found ${matchingCalendars.length} calendars matching pattern "${name}":`, 
+                   matchingCalendars.map(c => c.name));
+        
+        if (matchingCalendars.length === 0) {
+          console.warn(`No calendars found matching pattern: "${name}"`);
+          return;
+        }
+        
         await CM.calendars.enable(c => c.name.match(re))
+        console.info(`Successfully enabled calendars matching: "${name}"`);
       }, 'enableCalendar')
     },
 
@@ -757,25 +870,29 @@
         groups.__last_saved = groups.__last_saved || [];
         groups.__last_saved.push(group_name);
 
-        console.log('saved calendars:', group_name, '=>', groups[group_name]);
+        console.info('saved calendars:', group_name, '=>', groups[group_name]);
         CM._updated()
         return groups[group_name];
       }, 'saveCalendarSelections')
     },
 
     restoreCalendarSelections: function(){
+      console.info('Starting restoreCalendarSelections operation');
+      
       CM.performOperation(async () => {
         if(!CM.groups.__last_saved){
-          console.error('no saved groups');
+          console.error('no saved groups to restore');
           return;
         }
 
+        console.debug('Available saved groups:', CM.groups.__last_saved);
         var group_name = CM.groups.__last_saved.pop();
 
         if(group_name){
+          console.info(`Restoring calendar group: ${group_name}`);
           CM.showGroup(group_name)
         } else {
-          console.error('nothing to restore');
+          console.error('nothing to restore - __last_saved array is empty');
         }
       }, 'restoreCalendarSelections')
     }
@@ -791,7 +908,7 @@
   const calendars = await CalendarManager.CalendarList.getInstance()
   CalendarManager.calendars = calendars
 
-  console.log('CalendarManager loaded');
+  console.info('CalendarManager loaded');
 })();
 
 
@@ -888,6 +1005,6 @@ function cm_debug(...args){
     args[0] = `[${args[0]}]`
   }
   if(cm_debug_enabled){
-    console.log(...args)
+    console.debug(...args)
   }
 }

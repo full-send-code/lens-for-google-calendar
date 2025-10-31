@@ -1168,28 +1168,25 @@ function storeGroups() {
     // for future proofing, include a version of the saved format
     groups.__v = 1;
 
-    chrome.storage.sync.set(
-      {
-        groups: groups,
-      },
-      () => {
-        if (chrome.runtime.lastError) {
-          // error handling
-          const msg = `Failed to save groups to sync storage: ${chrome.runtime.lastError.message}`;
-          console.error(msg);
-          message(msg);
-        } else {
-          console.log("groups saved to storage", Object.keys(groups));
-          console.log(vm);
-          message(
-            "Presets saved to storage: " +
-              Object.keys(CalendarManager.exportGroups(false, groups)).join(
-                ", "
-              )
-          );
-        }
+    chrome.runtime.sendMessage({
+      action: 'storage-set',
+      data: { groups: groups }
+    }, (response) => {
+      if (response && response.success) {
+        console.log("groups saved to storage", Object.keys(groups));
+        console.log(vm);
+        message(
+          "Presets saved to storage: " +
+            Object.keys(CalendarManager.exportGroups(false, groups)).join(
+              ", "
+            )
+        );
+      } else {
+        const errorMsg = response ? response.error : 'Unknown error';
+        console.error("Failed to save groups to sync storage:", errorMsg);
+        message("Failed to save groups to sync storage: " + errorMsg);
       }
-    );
+    });
   } catch (e) {
     console.error("Failed to save groups to sync storage: " + e.message, e);
     message("Failed to save groups to sync storage: " + e.message);
@@ -1198,13 +1195,36 @@ function storeGroups() {
 
 function loadGroups() {
   try {
-    chrome.storage.sync.get("groups", (items) => {
-      var groups = items.groups;
-      if (groups && Object.keys(groups).length > 0) {
-        CalendarManager.setGroups(groups);
+    chrome.runtime.sendMessage({
+      action: 'storage-get',
+      keys: 'groups'
+    }, (response) => {
+      if (response && response.success) {
+        var groups = response.data.groups;
+        if (groups && Object.keys(groups).length > 0) {
+          CalendarManager.setGroups(groups);
+        }
+        console.log("groups loaded from storage", CalendarManager.groups);
+        // message('Groups loaded: ' + Object.keys(CalendarManager.groups).join(', '))
+      } else {
+        const errorMsg = response ? response.error : 'Unknown error';
+        console.error("Failed to load groups from sync storage:", errorMsg);
+        // Set default groups on error
+        setTimeout(() => {
+          CalendarManager.setGroups({
+            __last_saved: [
+              "saved_1523544210288",
+              "saved_1523544212408",
+              "dev group",
+              "qa team",
+              "conference rooms",
+            ],
+            "conference rooms": ["conf 1", "conf 2"],
+            "dev group": ["dev 1", "dev 2", "dev 3"],
+            "qa team": ["qa 1"],
+          });
+        }, 10);
       }
-      console.log("groups loaded from storage", CalendarManager.groups);
-      // message('Groups loaded: ' + Object.keys(CalendarManager.groups).join(', '))
     });
   } catch (e) {
     console.error("Failed to load groups from sync storage: " + e.message);
