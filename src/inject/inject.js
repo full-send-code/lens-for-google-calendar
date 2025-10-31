@@ -1,6 +1,6 @@
-if(chrome && chrome.runtime){
-  chrome.runtime.sendMessage({}, function(response) {
-    var readyStateCheckInterval = setInterval(function() {
+if (chrome && chrome.runtime) {
+  chrome.runtime.sendMessage({}, function (response) {
+    var readyStateCheckInterval = setInterval(function () {
       if (document.readyState === "complete") {
         clearInterval(readyStateCheckInterval);
         // do stuff here...
@@ -13,134 +13,139 @@ if(chrome && chrome.runtime){
 const CALENDAR_SELECTOR_CONFIG = {
   // Timing and delays
   timing: {
-    readyStateCheckInterval: 10,     // ms interval for readyState check
-    presetsMenuDelay: 100,           // ms timeout for presets menu
-    uiInsertionDelay: 1000,          // ms timeout for UI insertion
-    keyboardShortcutsDelay: 2000,    // ms timeout for keyboard shortcuts setup
-    deleteConfirmationDelay: 800,    // ms timeout for delete confirmation
-    snackbarDuration: 3000,          // ms duration for snackbar messages
+    readyStateCheckInterval: 10, // ms interval for readyState check
+    presetsMenuDelay: 100, // ms timeout for presets menu
+    uiInsertionDelay: 1000, // ms timeout for UI insertion
+    keyboardShortcutsDelay: 2000, // ms timeout for keyboard shortcuts setup
+    deleteConfirmationDelay: 800, // ms timeout for delete confirmation
+    snackbarDuration: 3000, // ms duration for snackbar messages
   },
-  
+
   // CSS selectors
   selectors: {
-    uiInsertionLocation: 'header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)',
-    materialIconsClass: 'material-icons',
-    snackbarClass: 'mdl-js-snackbar mdl-snackbar',
+    uiInsertionLocation:
+      "header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)",
+    materialIconsClass: "material-icons",
+    snackbarClass: "mdl-js-snackbar mdl-snackbar",
   },
-  
+
   // Storage settings
   storage: {
-    maxAutosaveStates: 3,            // Number of autosaved states to keep
-    groupsKey: 'groups',             // Storage key for groups data
-    autosavePrefix: 'autosave_',     // Prefix for autosave keys
+    maxAutosaveStates: 3, // Number of autosaved states to keep
+    groupsKey: "groups", // Storage key for groups data
+    autosavePrefix: "autosave_", // Prefix for autosave keys
   },
-  
+
   // UI text strings
   text: {
     buttons: {
-      save: 'Save',
-      cancel: 'Cancel',
-      delete: 'Delete',
-      import: 'Import',
-      export: 'Export',
-      close: 'Close',
-      yes: 'Yes',
-      no: 'No',
+      save: "Save",
+      cancel: "Cancel",
+      delete: "Delete",
+      import: "Import",
+      export: "Export",
+      close: "Close",
+      yes: "Yes",
+      no: "No",
     },
     tooltips: {
-      addGroup: 'Add new group',
-      deleteGroup: 'Delete group',
-      exportData: 'Export calendar data',
-      importData: 'Import calendar data',
-      showHideCalendars: 'Show/hide calendars',
+      addGroup: "Add new group",
+      deleteGroup: "Delete group",
+      exportData: "Export calendar data",
+      importData: "Import calendar data",
+      showHideCalendars: "Show/hide calendars",
     },
     dialogs: {
-      exportTitle: 'Export Calendar Groups',
-      importTitle: 'Import Calendar Groups',
-      deleteConfirmation: 'Are you sure you want to delete this group?',
-      importSuccess: 'Groups imported successfully!',
-      importError: 'Error importing groups. Please check the format.',
-      exportInstructions: 'Copy the text below to backup your calendar groups:',
-      importInstructions: 'Paste your exported calendar groups data below:',
+      exportTitle: "Export Calendar Groups",
+      importTitle: "Import Calendar Groups",
+      deleteConfirmation: "Are you sure you want to delete this group?",
+      importSuccess: "Groups imported successfully!",
+      importError: "Error importing groups. Please check the format.",
+      exportInstructions: "Copy the text below to backup your calendar groups:",
+      importInstructions: "Paste your exported calendar groups data below:",
     },
     placeholders: {
-      groupName: 'Enter group name...',
-      importData: 'Paste exported data here...',
+      groupName: "Enter group name...",
+      importData: "Paste exported data here...",
     },
     messages: {
-      groupSaved: 'Group saved successfully',
-      groupDeleted: 'Group deleted',
-      noGroupsFound: 'No groups found',
-      loadingError: 'Error loading calendar groups',
-    }
+      groupSaved: "Group saved successfully",
+      groupDeleted: "Group deleted",
+      noGroupsFound: "No groups found",
+      loadingError: "Error loading calendar groups",
+    },
   },
-  
+
   // Keyboard shortcuts
   shortcuts: {
-    modifierKeys: ['ctrlKey', 'shiftKey'], // Required modifier keys
-    toggleKey: 'KeyH',                     // Key to toggle calendar visibility
+    modifierKeys: ["ctrlKey", "shiftKey"], // Required modifier keys
+    toggleKey: "KeyH", // Key to toggle calendar visibility
   },
-  
+
   // Default data
   defaults: {
     groups: {
-      'work': {
-        'name': 'Work',
-        'calendars': {}
-      }
-    }
+      work: {
+        name: "Work",
+        calendars: {},
+      },
+    },
   },
-  
+
   // External resources
   resources: {
     fonts: {
-      roboto: 'https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons',
+      roboto:
+        "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons",
     },
     vuetify: {
-      css: 'lib/vue/vuetify_scoped.css',
-    }
+      css: "lib/vue/vuetify_scoped.css",
+    },
   },
-  
+
   // CSS classes for theming
   classes: {
-    importExportBar: 'import-export-bar',
-    dialogCard: 'dialog-card',
-    listTile: 'list__tile',
-  }
+    importExportBar: "import-export-bar",
+    dialogCard: "dialog-card",
+    listTile: "list__tile",
+  },
 };
 
-console.log(window.CalendarManager && CalendarManager.groups)
+console.log(window.CalendarManager && CalendarManager.groups);
 
 const parseShortcutText = (text) => {
   return {
-    enabled: text.indexOf('&') >= 0,
-    pre:     text.substr(0, text.indexOf('&')),
-    key:     text.substr(text.indexOf('&')+1, 1),
-    post:    text.substr(text.indexOf('&')+2),
-    label:   text.replace('&', ''),
-    text:    text,
+    enabled: text.indexOf("&") >= 0,
+    pre: text.substr(0, text.indexOf("&")),
+    key: text.substr(text.indexOf("&") + 1, 1),
+    post: text.substr(text.indexOf("&") + 2),
+    label: text.replace("&", ""),
+    text: text,
+  };
+};
+
+var snackbar;
+var vm;
+var ui;
+function insertUI(insertLoc) {
+  if (vm) {
+    console.warn("calendar selector menu UI already loaded");
   }
-}
 
-
-var snackbar
-var vm
-var ui
-function insertUI(insertLoc){
-  if(vm){
-    console.warn('calendar selector menu UI already loaded')
-  }
-
-  $('head').append(
-    $('<link rel="stylesheet" type="text/css" />')
-      .attr('href', CALENDAR_SELECTOR_CONFIG.resources.fonts.roboto)
-  )
-  try {
-    $('head').append(
-      $('<link rel="stylesheet" type="text/css" />')
-        .attr('href', chrome.runtime.getURL(CALENDAR_SELECTOR_CONFIG.resources.vuetify.css))
+  $("head").append(
+    $('<link rel="stylesheet" type="text/css" />').attr(
+      "href",
+      CALENDAR_SELECTOR_CONFIG.resources.fonts.roboto
     )
-  } catch(e) {
+  );
+  try {
+    $("head").append(
+      $('<link rel="stylesheet" type="text/css" />').attr(
+        "href",
+        chrome.runtime.getURL(CALENDAR_SELECTOR_CONFIG.resources.vuetify.css)
+      )
+    );
+  } catch (e) {
     // not running in an extension environment
   }
 
@@ -148,549 +153,643 @@ function insertUI(insertLoc){
     <div id="snackbar" class="${CALENDAR_SELECTOR_CONFIG.selectors.snackbarClass}">
       <div class="mdl-snackbar__text"></div>
     <button class="mdl-snackbar__action" type="button"></button>
-  `)[1]
-  componentHandler.upgradeElements(snackbar)
-  $('body').append(snackbar)
+  `)[1];
+  componentHandler.upgradeElements(snackbar);
+  $("body").append(snackbar);
 
-
-  Vue.component('label-kb-shortcut', {
-    props: ['text'],
-    created: function(){
+  Vue.component("label-kb-shortcut", {
+    props: ["text"],
+    created: function () {
       // register this shortcut and action
       // console.log('label-kb-shortcut created', this.shortcut)
 
-      if(this.shortcut.enabled){
+      if (this.shortcut.enabled) {
         const keyboardAction = {
           component: this,
-          modifier: 'ctrl+alt',
+          modifier: "ctrl+alt",
           key: this.shortcut.key.toLowerCase(),
           action: (...args) => {
-            this.$emit('kbd', ...args)
-          }
-        }
-        this.$root.keyboardActions.push(keyboardAction)
+            this.$emit("kbd", ...args);
+          },
+        };
+        this.$root.keyboardActions.push(keyboardAction);
 
-        this.$emit('shortcut-keys', `${keyboardAction.modifier}-${keyboardAction.key}`)
+        this.$emit(
+          "shortcut-keys",
+          `${keyboardAction.modifier}-${keyboardAction.key}`
+        );
       }
     },
     computed: {
-      shortcut: function(){
-        const shortcut = parseShortcutText(this.text)
-        return shortcut
+      shortcut: function () {
+        const shortcut = parseShortcutText(this.text);
+        return shortcut;
+      },
+    },
+    render: function (h) {
+      if (!this.shortcut.enabled) {
+        return h("span", this.text);
+      } else {
+        return h("span", [
+          h("span", this.shortcut.pre),
+          h(
+            "span",
+            {
+              class: {
+                "kbd-hint": this.$root.highlight_kb_shortcuts,
+              },
+            },
+            this.shortcut.key
+          ),
+          h("span", this.shortcut.post),
+        ]);
       }
     },
-    render: function(h){
-      if(!this.shortcut.enabled){
-        return h('span', this.text)
-      } else {
-        return h('span', [
-          h('span', this.shortcut.pre),
-          h('span', {
-            'class': {
-              'kbd-hint': this.$root.highlight_kb_shortcuts
-            }
-          }, this.shortcut.key),
-          h('span', this.shortcut.post),
-        ])
-      }
-    }
-  })
+  });
 
-  Vue.component('gcs-button', {
+  Vue.component("gcs-button", {
     inherit: true,
-    props: ['text', 'tooltip'],
+    props: ["text", "tooltip"],
     data: function () {
       return {
-        keyboardShortcut: ""
-      }
+        keyboardShortcut: "",
+      };
     },
     methods: {
-      keyAction: function(){
+      keyAction: function () {
         // find the button element from there and click it
-        this.$el.getElementsByTagName('button')[0].click()
+        this.$el.getElementsByTagName("button")[0].click();
       },
     },
     render: function (h) {
       var self = this;
-      return h('v-tooltip', {
-        props: {
-          bottom: true,
-          'open-delay': 500,
-          transition: 'slide-y-transition',
-        }
-      }, [
-        h('v-btn', {
+      return h(
+        "v-tooltip",
+        {
           props: {
-            small: true
+            bottom: true,
+            "open-delay": 500,
+            transition: "slide-y-transition",
           },
-          class: ['gcs'],
-          slot: 'activator',
-          on: this.$listeners
-        }, [
-          h('label-kb-shortcut', {
-            props: {
-              text: this.text
+        },
+        [
+          h(
+            "v-btn",
+            {
+              props: {
+                small: true,
+              },
+              class: ["gcs"],
+              slot: "activator",
+              on: this.$listeners,
             },
-            on: {
-              kbd: this.keyAction,
-              'shortcut-keys': function(event) {
-                self.keyboardShortcut = event;
-              }
-            }
-          })
-        ]),
-        h('span', this.tooltip + (this.keyboardShortcut ? ' [' + this.keyboardShortcut + ']' : ''))
-      ]);
-    }
-  })
+            [
+              h("label-kb-shortcut", {
+                props: {
+                  text: this.text,
+                },
+                on: {
+                  kbd: this.keyAction,
+                  "shortcut-keys": function (event) {
+                    self.keyboardShortcut = event;
+                  },
+                },
+              }),
+            ]
+          ),
+          h(
+            "span",
+            this.tooltip +
+              (this.keyboardShortcut ? " [" + this.keyboardShortcut + "]" : "")
+          ),
+        ]
+      );
+    },
+  });
 
-  Vue.component('export-dialog', {
-    props: ['groups'],
-    data: function(){
+  Vue.component("export-dialog", {
+    props: ["groups"],
+    data: function () {
       return {
         showDialog: false,
-      }
+      };
     },
     watch: {
-      showDialog: function(v){
-        if(v){
-          this.$nextTick(function(){
-            this.$refs.txt.focus()
-            this.$refs.txt.$refs.input.select()
-          })
+      showDialog: function (v) {
+        if (v) {
+          this.$nextTick(function () {
+            this.$refs.txt.focus();
+            this.$refs.txt.$refs.input.select();
+          });
         }
-      }
+      },
     },
     methods: {
-      close: function(){
-        this.showDialog = false
+      close: function () {
+        this.showDialog = false;
       },
     },
     computed: {
-      content: function(){
-        return JSON.stringify(this.groups, null)
+      content: function () {
+        return JSON.stringify(this.groups, null);
       },
     },
     render: function (h) {
       var self = this;
-      return h('v-dialog', {
-        props: {
-          value: this.showDialog,
-          'max-width': '750px',
-          transition: 'slide-y-transition',
-          origin: 'top center 0'
-        },
-        on: {
-          input: function(val) {
-            self.showDialog = val;
-          },
-          keydown: function(e) {
-            if (e.key === 'Escape') {
-              self.close();
-            }
-          }
-        }
-      }, [
-        h('gcs-button', {
+      return h(
+        "v-dialog",
+        {
           props: {
-            text: 'e&xport'
+            value: this.showDialog,
+            "max-width": "750px",
+            transition: "slide-y-transition",
+            origin: "top center 0",
           },
-          slot: 'activator'
-        }),
-        h('v-card', {
-          class: 'dialog-card'
-        }, [
-          h('v-card-title', {
-            class: 'headline'
-          }, [
-            'Export Presets',
-            h('v-spacer'),
-            h('v-btn', {
-              props: {
-                icon: true
-              },
-              on: {
-                click: this.close
+          on: {
+            input: function (val) {
+              self.showDialog = val;
+            },
+            keydown: function (e) {
+              if (e.key === "Escape") {
+                self.close();
               }
-            }, [
-              h('v-icon', 'close')
-            ])
-          ]),
-          h('v-card-text', [
-            h('v-text-field', {
-              props: {
-                box: true,
-                'multi-line': true,
-                readonly: true,
-                value: this.content
-              },
-              ref: 'txt'
-            })
-          ]),
-          h('v-card-actions', [
-            h('v-spacer'),
-            h('v-btn', {
-              props: {
-                color: 'primary',
-                flat: true
-              },
-              on: {
-                click: this.close
-              }
-            }, 'Close')
-          ])
-        ])
-      ]);
-    }
-  })
+            },
+          },
+        },
+        [
+          h("gcs-button", {
+            props: {
+              text: "e&xport",
+            },
+            slot: "activator",
+          }),
+          h(
+            "v-card",
+            {
+              class: "dialog-card",
+            },
+            [
+              h(
+                "v-card-title",
+                {
+                  class: "headline",
+                },
+                [
+                  "Export Presets",
+                  h("v-spacer"),
+                  h(
+                    "v-btn",
+                    {
+                      props: {
+                        icon: true,
+                      },
+                      on: {
+                        click: this.close,
+                      },
+                    },
+                    [h("v-icon", "close")]
+                  ),
+                ]
+              ),
+              h("v-card-text", [
+                h("v-text-field", {
+                  props: {
+                    box: true,
+                    "multi-line": true,
+                    readonly: true,
+                    value: this.content,
+                  },
+                  ref: "txt",
+                }),
+              ]),
+              h("v-card-actions", [
+                h("v-spacer"),
+                h(
+                  "v-btn",
+                  {
+                    props: {
+                      color: "primary",
+                      flat: true,
+                    },
+                    on: {
+                      click: this.close,
+                    },
+                  },
+                  "Close"
+                ),
+              ]),
+            ]
+          ),
+        ]
+      );
+    },
+  });
 
-
-  Vue.component('import-dialog', {
-    props: [''],
-    data: function(){
+  Vue.component("import-dialog", {
+    props: [""],
+    data: function () {
       return {
         showDialog: false,
         valid: true,
         content: "",
         contentRules: [
-          v => {
+          (v) => {
             try {
-              JSON.parse(v)
-              return true
-            } catch(e){
-             return 'Must be valid JSON'
+              JSON.parse(v);
+              return true;
+            } catch (e) {
+              return "Must be valid JSON";
             }
-          }
+          },
         ],
-      }
+      };
     },
     watch: {
-      showDialog: function(v){
-        if(v){
-          this.$nextTick(this.$refs.txt.focus)
+      showDialog: function (v) {
+        if (v) {
+          this.$nextTick(this.$refs.txt.focus);
         } else {
-          this.content = ""
+          this.content = "";
         }
-      }
+      },
     },
     methods: {
-      close: function(){
-        this.showDialog = false
+      close: function () {
+        this.showDialog = false;
       },
-      save: function(){
-        const content = JSON.parse(this.content)
-        this.$emit('import', content)
-        this.close()
-      }
+      save: function () {
+        const content = JSON.parse(this.content);
+        this.$emit("import", content);
+        this.close();
+      },
     },
     render: function (h) {
       var self = this;
-      return h('v-dialog', {
-        props: {
-          value: this.showDialog,
-          'max-width': '750px',
-          transition: 'slide-y-transition',
-          origin: 'top center 0'
-        },
-        on: {
-          input: function(val) {
-            self.showDialog = val;
-          },
-          keydown: function(e) {
-            if (e.key === 'Escape') {
-              self.close();
-            }
-          }
-        }
-      }, [
-        h('gcs-button', {
+      return h(
+        "v-dialog",
+        {
           props: {
-            text: '&import'
+            value: this.showDialog,
+            "max-width": "750px",
+            transition: "slide-y-transition",
+            origin: "top center 0",
           },
-          slot: 'activator'
-        }),
-        h('v-card', {
-          class: 'dialog-card'
-        }, [
-          h('v-form', {
-            props: {
-              value: this.valid
+          on: {
+            input: function (val) {
+              self.showDialog = val;
             },
-            on: {
-              input: function(val) {
-                self.valid = val;
+            keydown: function (e) {
+              if (e.key === "Escape") {
+                self.close();
               }
             },
-            ref: 'form'
-          }, [
-            h('v-card-title', {
-              class: 'headline'
-            }, [
-              'Import Presets',
-              h('v-spacer'),
-              h('v-btn', {
-                props: {
-                  icon: true
+          },
+        },
+        [
+          h("gcs-button", {
+            props: {
+              text: "&import",
+            },
+            slot: "activator",
+          }),
+          h(
+            "v-card",
+            {
+              class: "dialog-card",
+            },
+            [
+              h(
+                "v-form",
+                {
+                  props: {
+                    value: this.valid,
+                  },
+                  on: {
+                    input: function (val) {
+                      self.valid = val;
+                    },
+                  },
+                  ref: "form",
                 },
-                on: {
-                  click: this.close
-                }
-              }, [
-                h('v-icon', 'close')
-              ])
-            ]),
-            h('v-card-text', [
-              h('v-text-field', {
-                props: {
-                  box: true,
-                  'multi-line': true,
-                  value: this.content,
-                  rules: this.contentRules
-                },
-                on: {
-                  input: function(val) {
-                    self.content = val;
-                  }
-                },
-                ref: 'txt'
-              })
-            ]),
-            h('v-card-actions', [
-              h('v-spacer'),
-              h('v-btn', {
-                props: {
-                  color: 'primary',
-                  flat: true,
-                  disabled: !this.valid
-                },
-                on: {
-                  click: this.save
-                }
-              }, 'Save')
-            ])
-          ])
-        ])
-      ]);
-    }
-  })
+                [
+                  h(
+                    "v-card-title",
+                    {
+                      class: "headline",
+                    },
+                    [
+                      "Import Presets",
+                      h("v-spacer"),
+                      h(
+                        "v-btn",
+                        {
+                          props: {
+                            icon: true,
+                          },
+                          on: {
+                            click: this.close,
+                          },
+                        },
+                        [h("v-icon", "close")]
+                      ),
+                    ]
+                  ),
+                  h("v-card-text", [
+                    h("v-text-field", {
+                      props: {
+                        box: true,
+                        "multi-line": true,
+                        value: this.content,
+                        rules: this.contentRules,
+                      },
+                      on: {
+                        input: function (val) {
+                          self.content = val;
+                        },
+                      },
+                      ref: "txt",
+                    }),
+                  ]),
+                  h("v-card-actions", [
+                    h("v-spacer"),
+                    h(
+                      "v-btn",
+                      {
+                        props: {
+                          color: "primary",
+                          flat: true,
+                          disabled: !this.valid,
+                        },
+                        on: {
+                          click: this.save,
+                        },
+                      },
+                      "Save"
+                    ),
+                  ]),
+                ]
+              ),
+            ]
+          ),
+        ]
+      );
+    },
+  });
 
-
-  Vue.component('download-logs-dialog', {
-    data: function(){
+  Vue.component("download-logs-dialog", {
+    data: function () {
       return {
         showDialog: false,
         downloading: false,
         logCount: 0,
         error: null,
-      }
+      };
     },
     watch: {
-      showDialog: function(v){
-        if(v){
-          this.updateLogCount()
+      showDialog: function (v) {
+        if (v) {
+          this.updateLogCount();
         } else {
-          this.error = null
+          this.error = null;
         }
-      }
+      },
     },
     methods: {
-      close: function(){
-        this.showDialog = false
+      close: function () {
+        this.showDialog = false;
       },
-      updateLogCount: function(){
+      updateLogCount: function () {
         var self = this;
-        if(window.LensLogger){
-          LensLogger.getLogs(function(logs){
-            self.logCount = logs.length
-          })
+        if (window.LensLogger) {
+          LensLogger.getLogs(function (logs) {
+            self.logCount = logs.length;
+          });
         }
       },
-      downloadLogs: function(){
+      downloadLogs: function () {
         var self = this;
-        this.downloading = true
-        this.error = null
-        
-        if(!window.LensLogger){
-          this.error = 'Logger not initialized'
-          this.downloading = false
-          return
+        this.downloading = true;
+        this.error = null;
+
+        if (!window.LensLogger) {
+          this.error = "Logger not initialized";
+          this.downloading = false;
+          return;
         }
-        
+
         LensLogger.exportLogs(
-          function() {
+          function () {
             // Success
-            self.downloading = false
-            message('Logs exported successfully')
-            
-            // Clear logs after successful export
-            LensLogger.clearLogs(function(){
-              console.log('Logs cleared after export')
-              self.updateLogCount()
-            })
+            self.downloading = false;
+            message("Logs exported successfully");
+
+            // Allow user to decide whether to clear logs after export
+            setTimeout(() => {
+              if (confirm("Export completed. Clear the logs now?")) {
+                LensLogger.clearLogs(function () {
+                  self.updateLogCount();
+                });
+              }
+            }, 100); // Small delay to ensure export is fully complete
           },
-          function(error) {
+          function (error) {
             // Error
-            self.downloading = false
-            self.error = error.message || 'Failed to export logs'
-            console.error('Failed to export logs:', error)
+            self.downloading = false;
+            self.error = error.message || "Failed to export logs";
+            console.error("Failed to export logs:", error);
           }
-        )
-      }
+        );
+      },
     },
     render: function (h) {
       var self = this;
-      return h('v-dialog', {
-        props: {
-          value: this.showDialog,
-          'max-width': '600px',
-          transition: 'slide-y-transition',
-          origin: 'top center 0'
-        },
-        on: {
-          input: function(val) {
-            self.showDialog = val;
-          },
-          keydown: function(e) {
-            if (e.key === 'Escape') {
-              self.close();
-            }
-          }
-        }
-      }, [
-        h('gcs-button', {
+      return h(
+        "v-dialog",
+        {
           props: {
-            text: '&logs',
-            tooltip: 'Download support logs'
+            value: this.showDialog,
+            "max-width": "600px",
+            transition: "slide-y-transition",
+            origin: "top center 0",
           },
-          slot: 'activator'
-        }),
-        h('v-card', {
-          class: 'dialog-card'
-        }, [
-          h('v-card-title', {
-            class: 'headline'
-          }, [
-            'Download Support Logs',
-            h('v-spacer'),
-            h('v-btn', {
-              props: {
-                icon: true
-              },
-              on: {
-                click: this.close
+          on: {
+            input: function (val) {
+              self.showDialog = val;
+            },
+            keydown: function (e) {
+              if (e.key === "Escape") {
+                self.close();
               }
-            }, [
-              h('v-icon', 'close')
-            ])
-          ]),
-          h('v-card-text', [
-            h('p', {
-              style: {
-                marginBottom: '16px'
-              }
-            }, `This will download extension logs as a ZIP file for troubleshooting. The logs contain ${this.logCount} entries.`),
-            h('p', {
-              style: {
-                marginBottom: '16px'
-              }
-            }, 'Calendar names and IDs have been anonymized for privacy. No data is sent externally.'),
-            this.error ? h('v-alert', {
-              props: {
-                value: true,
-                type: 'error'
-              }
-            }, this.error) : null
-          ]),
-          h('v-card-actions', [
-            h('v-spacer'),
-            h('v-btn', {
-              props: {
-                flat: true
-              },
-              on: {
-                click: this.close
-              }
-            }, 'Cancel'),
-            h('v-btn', {
-              props: {
-                color: 'primary',
-                flat: true,
-                loading: this.downloading,
-                disabled: this.downloading || this.logCount === 0
-              },
-              on: {
-                click: this.downloadLogs
-              }
-            }, 'Download')
-          ])
-        ])
-      ]);
-    }
-  })
+            },
+          },
+        },
+        [
+          h("gcs-button", {
+            props: {
+              text: "&logs",
+              tooltip: "Download support logs",
+            },
+            slot: "activator",
+          }),
+          h(
+            "v-card",
+            {
+              class: "dialog-card",
+            },
+            [
+              h(
+                "v-card-title",
+                {
+                  class: "headline",
+                },
+                [
+                  "Download Support Logs",
+                  h("v-spacer"),
+                  h(
+                    "v-btn",
+                    {
+                      props: {
+                        icon: true,
+                      },
+                      on: {
+                        click: this.close,
+                      },
+                    },
+                    [h("v-icon", "close")]
+                  ),
+                ]
+              ),
+              h("v-card-text", [
+                h(
+                  "p",
+                  {
+                    style: {
+                      marginBottom: "16px",
+                    },
+                  },
+                  this.logCount === 0
+                    ? "No logs available to download."
+                    : `This will download extension logs as a ZIP file for troubleshooting. The logs contain ${this.logCount} entries.`
+                ),
+                h(
+                  "p",
+                  {
+                    style: {
+                      marginBottom: "16px",
+                    },
+                  },
+                  "Calendar names and IDs have been anonymized for privacy. No data is sent externally."
+                ),
+                this.error
+                  ? h(
+                      "v-alert",
+                      {
+                        props: {
+                          value: true,
+                          type: "error",
+                        },
+                      },
+                      this.error
+                    )
+                  : null,
+              ]),
+              h("v-card-actions", [
+                h("v-spacer"),
+                h(
+                  "v-btn",
+                  {
+                    props: {
+                      flat: true,
+                    },
+                    on: {
+                      click: this.close,
+                    },
+                  },
+                  "Cancel"
+                ),
+                h(
+                  "v-btn",
+                  {
+                    props: {
+                      color: "primary",
+                      flat: true,
+                      loading: this.downloading,
+                      disabled: this.downloading || this.logCount === 0,
+                    },
+                    on: {
+                      click: this.downloadLogs,
+                    },
+                  },
+                  "Download"
+                ),
+              ]),
+            ]
+          ),
+        ]
+      );
+    },
+  });
 
-
-  console.log('groups in live', CalendarManager.groups)
+  console.log("groups in live", CalendarManager.groups);
 
   ui = {
-    enable_calendar: async ()=>{
-      console.log('clicked on enable calendar button')
-      var calendar_name = prompt('Enable calendar by name (case insensitive regex)')
-      if(!calendar_name)
-        return
-      await CalendarManager.enableCalendar(calendar_name)
+    enable_calendar: async () => {
+      console.log("clicked on enable calendar button");
+      var calendar_name = prompt(
+        "Enable calendar by name (case insensitive regex)"
+      );
+      if (!calendar_name) return;
+      await CalendarManager.enableCalendar(calendar_name);
     },
-    toggle_calendar: async ()=>{
-      var calendar_name = prompt('Toggle calendar by name (case insensitive regex)')
-      if(!calendar_name)
-        return
-      await CalendarManager.toggleCalendar(calendar_name)
+    toggle_calendar: async () => {
+      var calendar_name = prompt(
+        "Toggle calendar by name (case insensitive regex)"
+      );
+      if (!calendar_name) return;
+      await CalendarManager.toggleCalendar(calendar_name);
     },
-    save_as: async ()=>{
-      var group_name = prompt('Save Group name')
-      if(!group_name)
-        return
+    save_as: async () => {
+      var group_name = prompt("Save Group name");
+      if (!group_name) return;
 
-      await CalendarManager.saveCalendarSelections(group_name)
-      storeGroups()
+      await CalendarManager.saveCalendarSelections(group_name);
+      storeGroups();
     },
-    restore: async ()=>{
-      console.log('clicked on restore button')
-      await CalendarManager.restoreCalendarSelections()
+    restore: async () => {
+      console.log("clicked on restore button");
+      await CalendarManager.restoreCalendarSelections();
     },
-    clear: async ()=>{
+    clear: async () => {
       CalendarManager.performOperation(async () => {
-        await CalendarManager.saveCalendarSelections()
-        await CalendarManager.disableAll()
-      }, 'clear')
+        await CalendarManager.saveCalendarSelections();
+        await CalendarManager.disableAll();
+      }, "clear");
     },
     presets_open: async (vm) => {
-      console.log('presets_open', vm)
-      setTimeout(()=>{ // timeout to allow the menu to be rendered first
+      console.log("presets_open", vm);
+      setTimeout(() => {
+        // timeout to allow the menu to be rendered first
         /* console.log(this.$refs.select)*/
-        if(vm.$refs.presets_menu.isActive){
-          vm.$refs.select.focusInput()
-          vm.$refs.select.showMenu()
+        if (vm.$refs.presets_menu.isActive) {
+          vm.$refs.select.focusInput();
+          vm.$refs.select.showMenu();
         }
-      }, CALENDAR_SELECTOR_CONFIG.timing.presetsMenuDelay)
+      }, CALENDAR_SELECTOR_CONFIG.timing.presetsMenuDelay);
     },
-    download_logs: () => {
-      console.log('clicked on download logs button')
-      // This will be triggered from the Vue component
-    },
-  }
-
+  };
 
   // insert the extension UI. Do it after a timeout to give dependencies a chance to load
   setTimeout(() => {
     // Create a mount element for Vue
-    var mountElement = document.createElement('div')
+    var mountElement = document.createElement("div");
 
-    if(insertLoc){
-      $(insertLoc).append(mountElement)
+    if (insertLoc) {
+      $(insertLoc).append(mountElement);
     } else {
-      var insertAfter = document
-          .querySelectorAll(CALENDAR_SELECTOR_CONFIG.selectors.uiInsertionLocation)[0]
-      $(insertAfter).after(mountElement)
+      var insertAfter = document.querySelectorAll(
+        CALENDAR_SELECTOR_CONFIG.selectors.uiInsertionLocation
+      )[0];
+      $(insertAfter).after(mountElement);
     }
 
     vm = new Vue({
@@ -700,411 +799,511 @@ function insertUI(insertLoc){
         allGroups: CalendarManager.groups,
         keyboardActions: [
           // non gcs-button driven actions added here directly
-          { // toggle
-            modifier: 'ctrl+alt',
-            key: 't',
+          {
+            // toggle
+            modifier: "ctrl+alt",
+            key: "t",
             action: ui.toggle_calendar,
-          }
+          },
         ],
         buttons: [
-          {text: '&Enable', tooltip: 'Enable a calendar by name or regexp', click: ui.enable_calendar},
-          {text: "&Save As", tooltip: 'Save current calendars as a named preset', click: ui.save_as},
-          {text: "&Restore", tooltip: 'Restore previous calendars (set by Load & Clear)', click: ui.restore},
-          {text: "&Clear", tooltip: 'Clear all calendars', click: ui.clear},
-        ]
+          {
+            text: "&Enable",
+            tooltip: "Enable a calendar by name or regexp",
+            click: ui.enable_calendar,
+          },
+          {
+            text: "&Save As",
+            tooltip: "Save current calendars as a named preset",
+            click: ui.save_as,
+          },
+          {
+            text: "&Restore",
+            tooltip: "Restore previous calendars (set by Load & Clear)",
+            click: ui.restore,
+          },
+          { text: "&Clear", tooltip: "Clear all calendars", click: ui.clear },
+        ],
       },
       methods: {
-        presets_open: function(){
-          ui.presets_open(this)
+        presets_open: function () {
+          ui.presets_open(this);
         },
-        select_input: async function(value) {
-          console.log('input', value.text, value)
+        select_input: async function (value) {
+          console.log("input", value.text, value);
           // console.log(this)
 
-          this.presets_menu_open = false
+          this.presets_menu_open = false;
 
-          var group_name = value.text
-          if(!group_name)
-            return
+          var group_name = value.text;
+          if (!group_name) return;
 
           CalendarManager.performOperation(async () => {
-            await CalendarManager.saveCalendarSelections()
-            await CalendarManager.showGroup(group_name)
-          }, 'select_input')
+            await CalendarManager.saveCalendarSelections();
+            await CalendarManager.showGroup(group_name);
+          }, "select_input");
         },
-        select_delete: function(item){
-          console.log('DELETE', item.text, item)
-          const del = confirm('Are you sure you want to delete this preset?')
-          if(del){
+        select_delete: function (item) {
+          console.log("DELETE", item.text, item);
+          const del = confirm("Are you sure you want to delete this preset?");
+          if (del) {
             setTimeout(() => {
-              const group_name = item.text
-              console.log('deleting group', group_name)
-              CalendarManager.deleteGroup(group_name)
-              storeGroups()
-            }, 800)
+              const group_name = item.text;
+              console.log("deleting group", group_name);
+              CalendarManager.deleteGroup(group_name);
+              storeGroups();
+            }, 800);
           }
         },
-        import_presets: function(groups){
-          CalendarManager.setGroups(groups)
-          storeGroups()
+        import_presets: function (groups) {
+          CalendarManager.setGroups(groups);
+          storeGroups();
         },
-        custom_preset_filter: function(item, queryText, itemText){
-          var hasValue = val => val != null ? val : ''
+        custom_preset_filter: function (item, queryText, itemText) {
+          var hasValue = (val) => (val != null ? val : "");
 
           var text = hasValue(itemText);
           var query = hasValue(queryText);
 
-          return text.toString().toLowerCase().startsWith(query.toString().toLowerCase());
-        }
+          return text
+            .toString()
+            .toLowerCase()
+            .startsWith(query.toString().toLowerCase());
+        },
       },
       computed: {
-        dropdown: function() {
-          console.log('this.groups', this.groups)
-          return Object.keys(this.groups)
-            .map(group_name => {
-              return {
-                text: group_name,
-                subtitle: this.groups[group_name].join(', '),
-              }
-            })
+        dropdown: function () {
+          console.log("this.groups", this.groups);
+          return Object.keys(this.groups).map((group_name) => {
+            return {
+              text: group_name,
+              subtitle: this.groups[group_name].join(", "),
+            };
+          });
         },
-        groups: function() {
-          return CalendarManager.exportGroups(false, this.allGroups)
+        groups: function () {
+          return CalendarManager.exportGroups(false, this.allGroups);
         },
       },
-      render: function(h) {
+      render: function (h) {
         var self = this;
-        return h('v-app', {
-          attrs: {
-            id: 'calendar_selector_ui'
-          }
-        }, [
-          h('main', [
-            h('v-container', {
-              props: {
-                fluid: true,
-                'grid-list-md': true,
-                'text-xs-center': true
-              }
-            }, [
-              h('v-layout', {
-                props: {
-                  row: true
-                }
-              }, [
-                h('v-flex', {
+        return h(
+          "v-app",
+          {
+            attrs: {
+              id: "calendar_selector_ui",
+            },
+          },
+          [
+            h("main", [
+              h(
+                "v-container",
+                {
                   props: {
-                    md6: true
+                    fluid: true,
+                    "grid-list-md": true,
+                    "text-xs-center": true,
                   },
-                  class: 'pt-3'
-                }, [
-                  h('span', {
-                    class: 'btn-toggle'
-                  }, [
-                    // Render buttons
-                    ...this.buttons.map(button => {
-                      return h('gcs-button', {
-                        key: button.text,
-                        props: {
-                          text: button.text,
-                          tooltip: button.tooltip
-                        },
-                        on: {
-                          click: button.click
-                        }
-                      })
-                    }),
-                    // Render presets menu
-                    h('v-menu', {
+                },
+                [
+                  h(
+                    "v-layout",
+                    {
                       props: {
-                        bottom: true,
-                        'offset-y': true,
-                        'close-on-content-click': false,
-                        value: this.presets_menu_open
+                        row: true,
                       },
-                      on: {
-                        input: function(val) {
-                          self.presets_menu_open = val;
-                        }
-                      },
-                      ref: 'presets_menu'
-                    }, [
-                      h('v-layout', {
-                        class: 'import-export-bar'
-                      }, [
-                        h('v-flex', {
+                    },
+                    [
+                      h(
+                        "v-flex",
+                        {
                           props: {
-                            md12: true
+                            md6: true,
                           },
-                          class: 'text-xs-right'
-                        }, [
-                          h('span', {
-                            class: 'btn-toggle'
-                          }, [
-                            h('import-dialog', {
-                              on: {
-                                import: this.import_presets
-                              }
-                            }),
-                            h('export-dialog', {
-                              props: {
-                                groups: this.groups
-                              }
-                            }),
-                            h('download-logs-dialog')
-                          ])
-                        ])
-                      ]),
-                      h('gcs-button', {
-                        slot: 'activator',
-                        props: {
-                          tooltip: 'Manage preset groups',
-                          text: '&Presets'
+                          class: "pt-3",
                         },
-                        on: {
-                          click: this.presets_open
-                        }
-                      }),
-                      h('v-select', {
-                        class: 'select',
-                        props: {
-                          items: this.dropdown,
-                          label: 'Load preset...',
-                          editable: true,
-                          small: true,
-                          'return-object': true,
-                          'hide-details': true,
-                          'item-value': 'text',
-                          filter: this.custom_preset_filter
-                        },
-                        on: {
-                          'keyup.esc': function() {
-                            self.presets_menu_open = false;
-                          },
-                          input: this.select_input
-                        },
-                        ref: 'select',
-                        scopedSlots: {
-                          item: function(props) {
-                            return h('div', {
-                              class: 'list__tile list__tile--link'
-                            }, [
-                              h('div', {
-                                class: 'list__tile__content'
-                              }, [
-                                h('div', {
-                                  class: 'list__tile__title',
-                                  domProps: {
-                                    innerHTML: props.item.text
-                                  }
-                                })
-                              ]),
-                              h('div', {
-                                class: 'list__tile__action'
-                              }, [
-                                h('v-btn', {
+                        [
+                          h(
+                            "span",
+                            {
+                              class: "btn-toggle",
+                            },
+                            [
+                              // Render buttons
+                              ...this.buttons.map((button) => {
+                                return h("gcs-button", {
+                                  key: button.text,
                                   props: {
-                                    icon: true,
-                                    ripple: true
+                                    text: button.text,
+                                    tooltip: button.tooltip,
                                   },
                                   on: {
-                                    click: function(e) {
-                                      e.stopPropagation();
-                                      self.select_delete(props.item);
-                                    }
-                                  }
-                                }, [
-                                  h('v-icon', {
+                                    click: button.click,
+                                  },
+                                });
+                              }),
+                              // Render presets menu
+                              h(
+                                "v-menu",
+                                {
+                                  props: {
+                                    bottom: true,
+                                    "offset-y": true,
+                                    "close-on-content-click": false,
+                                    value: this.presets_menu_open,
+                                  },
+                                  on: {
+                                    input: function (val) {
+                                      self.presets_menu_open = val;
+                                    },
+                                  },
+                                  ref: "presets_menu",
+                                },
+                                [
+                                  h(
+                                    "v-layout",
+                                    {
+                                      class: "import-export-bar",
+                                    },
+                                    [
+                                      h(
+                                        "v-flex",
+                                        {
+                                          props: {
+                                            md12: true,
+                                          },
+                                          class: "text-xs-right",
+                                        },
+                                        [
+                                          h(
+                                            "span",
+                                            {
+                                              class: "btn-toggle",
+                                            },
+                                            [
+                                              h("import-dialog", {
+                                                on: {
+                                                  import: this.import_presets,
+                                                },
+                                              }),
+                                              h("export-dialog", {
+                                                props: {
+                                                  groups: this.groups,
+                                                },
+                                              }),
+                                              h("download-logs-dialog"),
+                                            ]
+                                          ),
+                                        ]
+                                      ),
+                                    ]
+                                  ),
+                                  h("gcs-button", {
+                                    slot: "activator",
                                     props: {
-                                      color: 'grey lighten-1'
-                                    }
-                                  }, 'delete')
-                                ])
-                              ])
-                            ]);
-                          }
-                        }
-                      })
-                    ])
-                  ])
-                ])
-              ])
-            ])
-          ])
-        ]);
-      }
-    })
+                                      tooltip: "Manage preset groups",
+                                      text: "&Presets",
+                                    },
+                                    on: {
+                                      click: this.presets_open,
+                                    },
+                                  }),
+                                  h("v-select", {
+                                    class: "select",
+                                    props: {
+                                      items: this.dropdown,
+                                      label: "Load preset...",
+                                      editable: true,
+                                      small: true,
+                                      "return-object": true,
+                                      "hide-details": true,
+                                      "item-value": "text",
+                                      filter: this.custom_preset_filter,
+                                    },
+                                    on: {
+                                      "keyup.esc": function () {
+                                        self.presets_menu_open = false;
+                                      },
+                                      input: this.select_input,
+                                    },
+                                    ref: "select",
+                                    scopedSlots: {
+                                      item: function (props) {
+                                        return h(
+                                          "div",
+                                          {
+                                            class:
+                                              "list__tile list__tile--link",
+                                          },
+                                          [
+                                            h(
+                                              "div",
+                                              {
+                                                class: "list__tile__content",
+                                              },
+                                              [
+                                                h("div", {
+                                                  class: "list__tile__title",
+                                                  domProps: {
+                                                    innerHTML: props.item.text,
+                                                  },
+                                                }),
+                                              ]
+                                            ),
+                                            h(
+                                              "div",
+                                              {
+                                                class: "list__tile__action",
+                                              },
+                                              [
+                                                h(
+                                                  "v-btn",
+                                                  {
+                                                    props: {
+                                                      icon: true,
+                                                      ripple: true,
+                                                    },
+                                                    on: {
+                                                      click: function (e) {
+                                                        e.stopPropagation();
+                                                        self.select_delete(
+                                                          props.item
+                                                        );
+                                                      },
+                                                    },
+                                                  },
+                                                  [
+                                                    h(
+                                                      "v-icon",
+                                                      {
+                                                        props: {
+                                                          color:
+                                                            "grey lighten-1",
+                                                        },
+                                                      },
+                                                      "delete"
+                                                    ),
+                                                  ]
+                                                ),
+                                              ]
+                                            ),
+                                          ]
+                                        );
+                                      },
+                                    },
+                                  }),
+                                ]
+                              ),
+                            ]
+                          ),
+                        ]
+                      ),
+                    ]
+                  ),
+                ]
+              ),
+            ]),
+          ]
+        );
+      },
+    });
 
     // Mount Vue to the created element
-    vm.$mount(mountElement)
+    vm.$mount(mountElement);
 
     // needed to ensure that Vue picks up changes to groups, but only store the
     // calendar groups/presets, not internal ones
-    CalendarManager.onGroupsChange = function(groups){
-      vm.allGroups = Object.assign({}, groups)
-    }
+    CalendarManager.onGroupsChange = function (groups) {
+      vm.allGroups = Object.assign({}, groups);
+    };
 
-    loadGroups()
-  }, 1000)
+    loadGroups();
+  }, 1000);
 }
 
-function makeHTML(str){
+function makeHTML(str) {
   var html = $.parseHTML(str);
-  $('*', $(html)).each(function () {
+  $("*", $(html)).each(function () {
     componentHandler.upgradeElement(this);
   });
   // filter out empty space/text nodes
-  html = html.filter( el => el.nodeName != '#text')
+  html = html.filter((el) => el.nodeName != "#text");
   return html;
-};
+}
 
-
-function message(msg){
+function message(msg) {
   snackbar.MaterialSnackbar.showSnackbar({
     message: msg,
     timeout: 5000,
     // actionHandler: handler,
     // actionText: 'Undo'
-  })
+  });
 }
 
-function storeGroups(){
+function storeGroups() {
   try {
-    let groups = CalendarManager.exportGroups(true)
+    let groups = CalendarManager.exportGroups(true);
 
     // truncate the number of autosaved states that should get saved
     // remove list of saved_{TS} entries, and remove their names from __last_saved array
-    const to_remove = Object.keys(groups).filter(preset_name => {
-      return preset_name && preset_name.indexOf('saved_') == 0
-    })
-          .sort()
-          .reverse()
-          .splice(3) // keep last 3
+    const to_remove = Object.keys(groups)
+      .filter((preset_name) => {
+        return preset_name && preset_name.indexOf("saved_") == 0;
+      })
+      .sort()
+      .reverse()
+      .splice(3); // keep last 3
 
     // console.log('removing: ', to_remove)
-    to_remove.forEach( preset_name => {
-      delete groups[preset_name]
-      groups.__last_saved.splice(groups.__last_saved.indexOf(preset_name), 1)
-    })
+    to_remove.forEach((preset_name) => {
+      delete groups[preset_name];
+      groups.__last_saved.splice(groups.__last_saved.indexOf(preset_name), 1);
+    });
 
     // migrate storage format, if necessary
-    if(typeof groups.__v == 'undefined'){
-      groups = migrateToV1(groups)
+    if (typeof groups.__v == "undefined") {
+      groups = migrateToV1(groups);
     }
 
     // for future proofing, include a version of the saved format
-    groups.__v = 1
+    groups.__v = 1;
 
-    chrome.storage.sync.set({
-      groups: groups
-    }, () => {
-      if(chrome.runtime.lastError){
-        // error handling
-        const msg = `Failed to save groups to sync storage: ${chrome.runtime.lastError.message}`
-        console.error(msg)
-        message(msg)
-      } else {
-        console.log('groups saved to storage', Object.keys(groups))
-        console.log(vm)
-        message('Presets saved to storage: ' + Object.keys(CalendarManager.exportGroups(false, groups)).join(', '))
+    chrome.storage.sync.set(
+      {
+        groups: groups,
+      },
+      () => {
+        if (chrome.runtime.lastError) {
+          // error handling
+          const msg = `Failed to save groups to sync storage: ${chrome.runtime.lastError.message}`;
+          console.error(msg);
+          message(msg);
+        } else {
+          console.log("groups saved to storage", Object.keys(groups));
+          console.log(vm);
+          message(
+            "Presets saved to storage: " +
+              Object.keys(CalendarManager.exportGroups(false, groups)).join(
+                ", "
+              )
+          );
+        }
       }
-    })
-  } catch(e) {
-    console.error('Failed to save groups to sync storage: ' + e.message, e)
-    message('Failed to save groups to sync storage: ' + e.message)
+    );
+  } catch (e) {
+    console.error("Failed to save groups to sync storage: " + e.message, e);
+    message("Failed to save groups to sync storage: " + e.message);
   }
 }
 
-function loadGroups(){
+function loadGroups() {
   try {
-    chrome.storage.sync.get('groups', (items) => {
-      var groups = items.groups
-      if(groups && Object.keys(groups).length > 0){
-        CalendarManager.setGroups(groups)
+    chrome.storage.sync.get("groups", (items) => {
+      var groups = items.groups;
+      if (groups && Object.keys(groups).length > 0) {
+        CalendarManager.setGroups(groups);
       }
-      console.log('groups loaded from storage', CalendarManager.groups)
+      console.log("groups loaded from storage", CalendarManager.groups);
       // message('Groups loaded: ' + Object.keys(CalendarManager.groups).join(', '))
-    })
-  } catch(e) {
-    console.error('Failed to load groups from sync storage: ' + e.message)
-    setTimeout(()=>{
+    });
+  } catch (e) {
+    console.error("Failed to load groups from sync storage: " + e.message);
+    setTimeout(() => {
       CalendarManager.setGroups({
-        "__last_saved":["saved_1523544210288","saved_1523544212408","dev group","qa team","conference rooms"],"conference rooms":["conf 1", "conf 2"],"dev group":["dev 1", "dev 2", "dev 3"],"qa team":["qa 1"],
-      })
-    }, 10)
+        __last_saved: [
+          "saved_1523544210288",
+          "saved_1523544212408",
+          "dev group",
+          "qa team",
+          "conference rooms",
+        ],
+        "conference rooms": ["conf 1", "conf 2"],
+        "dev group": ["dev 1", "dev 2", "dev 3"],
+        "qa team": ["qa 1"],
+      });
+    }, 10);
   }
 }
 
-function migrateToV1(groups){
+function migrateToV1(groups) {
   const name2id = (calName) => {
-    const cal = CalendarManager.calendars.byName[calName]
-    if(cal){
-      return cal.id
+    const cal = CalendarManager.calendars.byName[calName];
+    if (cal) {
+      return cal.id;
     } else {
       // if a calendar for given name is not found, keep original name
       // (assume it's either for a different account, or already an id)
-      return calName
+      return calName;
     }
+  };
+
+  const v1Groups = {};
+  for (let groupName of Object.keys(
+    CalendarManager.exportGroups(false, groups)
+  )) {
+    v1Groups[groupName] = groups[groupName].map(name2id);
   }
 
-  const v1Groups = {}
-  for(let groupName of Object.keys(CalendarManager.exportGroups(false, groups))){
-    v1Groups[groupName] = groups[groupName].map( name2id )
-  }
-
-  return v1Groups
+  return v1Groups;
 }
 
-function setupKeyboardShortcuts(){
-  function showShorcuts(){
-    vm.$set(vm, 'highlight_kb_shortcuts', true)
+function setupKeyboardShortcuts() {
+  function showShorcuts() {
+    vm.$set(vm, "highlight_kb_shortcuts", true);
   }
 
-  function hideShortcuts(){
-    vm.$set(vm, 'highlight_kb_shortcuts', false)
+  function hideShortcuts() {
+    vm.$set(vm, "highlight_kb_shortcuts", false);
   }
 
-  Mousetrap.bindGlobal(['ctrl+alt', 'alt+ctrl'], function(e, combo) {
-    showShorcuts()
-  }, 'keydown')
+  Mousetrap.bindGlobal(
+    ["ctrl+alt", "alt+ctrl"],
+    function (e, combo) {
+      showShorcuts();
+    },
+    "keydown"
+  );
 
-  Mousetrap.bindGlobal('ctrl', function(e, combo) {
-    hideShortcuts()
-  }, 'keyup')
+  Mousetrap.bindGlobal(
+    "ctrl",
+    function (e, combo) {
+      hideShortcuts();
+    },
+    "keyup"
+  );
 
   // wrapper for MouseTrap.bind to do our own bidding (ensure that shortcut display is off)
-  const bindKey = function(...args){
+  const bindKey = function (...args) {
     // find the callback and wrap it
-    for(let index in args){
-      if(typeof args[index] == 'function'){
+    for (let index in args) {
+      if (typeof args[index] == "function") {
         const callback = args[index];
 
-        args[index] = function(...args){
-          callback.call(this, ...args)
+        args[index] = function (...args) {
+          callback.call(this, ...args);
 
-          hideShortcuts()
-        }
+          hideShortcuts();
+        };
 
-        break
+        break;
       }
     }
 
-    return Mousetrap.bindGlobal(...args)
-  }
+    return Mousetrap.bindGlobal(...args);
+  };
 
   vm.keyboardActions.forEach((keyAction) => {
     // console.log('registering keyboard action: ', `${keyAction.modifier}+${keyAction.key}`, keyAction.action)
-    bindKey(`${keyAction.modifier}+${keyAction.key}`, function(e, combo) {
+    bindKey(`${keyAction.modifier}+${keyAction.key}`, function (e, combo) {
       // console.log('keyboard action: ', combo, e)
-      keyAction.action(e, combo)
-    })
-  })
+      keyAction.action(e, combo);
+    });
+  });
 }
 
 // autoload UI if running in an extension
-if(window.chrome && chrome.runtime){
-  insertUI()
+if (window.chrome && chrome.runtime) {
+  insertUI();
 }
 // do this in the future after all components are registered:
-setTimeout(setupKeyboardShortcuts, 2000)
-
+setTimeout(setupKeyboardShortcuts, 2000);
