@@ -30,7 +30,16 @@
     }
 
     // Convert to string for processing
-    let str = typeof data === 'string' ? data : JSON.stringify(data);
+    let str;
+    if (typeof data === 'string') {
+      str = data;
+    } else {
+      try {
+        str = JSON.stringify(data);
+      } catch (e) {
+        str = '[Unserializable object]';
+      }
+    }
     
     // Email pattern (likely calendar IDs)
     const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
@@ -149,6 +158,12 @@
    * Initializes the logger by wrapping console methods
    */
   function initLogger() {
+    // Check if we're in an extension environment
+    if (!chrome || !chrome.storage || !chrome.storage.local) {
+      console.log('Lens Logger: Not in extension environment, skipping console wrapping');
+      return;
+    }
+
     // Store original console methods
     const originalConsole = {
       log: console.log,
@@ -269,5 +284,8 @@
     config: LOGGER_CONFIG,
   };
 
-  console.log('Lens Logger initialized');
+  // Only log initialization message if we're in extension environment
+  if (chrome && chrome.storage && chrome.storage.local) {
+    console.log('Lens Logger initialized');
+  }
 })();
