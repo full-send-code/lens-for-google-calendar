@@ -10,6 +10,8 @@ import type {
   ClearCalendarsUseCase,
   EnableCalendarUseCase,
   ApplyPresetUseCase,
+  SavePresetUseCase,
+  DeletePresetUseCase,
   ImportPresetsUseCase,
   ExportPresetsUseCase
 } from '../usecases';
@@ -24,6 +26,8 @@ export interface CalendarExtensionAppProps {
   clearCalendarsUseCase: ClearCalendarsUseCase;
   enableCalendarUseCase: EnableCalendarUseCase;
   applyPresetUseCase: ApplyPresetUseCase;
+  savePresetUseCase: SavePresetUseCase;
+  deletePresetUseCase: DeletePresetUseCase;
   importPresetsUseCase: ImportPresetsUseCase;
   exportPresetsUseCase: ExportPresetsUseCase;
   
@@ -45,6 +49,8 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
   clearCalendarsUseCase,
   enableCalendarUseCase,
   applyPresetUseCase,
+  savePresetUseCase,
+  deletePresetUseCase,
   importPresetsUseCase,
   exportPresetsUseCase,
   presetRepository,
@@ -85,7 +91,7 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
   }, [presetRepository, calendarRepository]);
 
   /**
-   * Refresh presets after import operations
+   * Refresh presets after import/save/delete operations
    */
   const refreshPresets = async () => {
     try {
@@ -124,12 +130,15 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
         clearCalendarsUseCase={clearCalendarsUseCase}
         enableCalendarUseCase={enableCalendarUseCase}
         applyPresetUseCase={applyPresetUseCase}
+        savePresetUseCase={savePresetUseCase}
+        deletePresetUseCase={deletePresetUseCase}
         importPresetsUseCase={importPresetsUseCase}
         exportPresetsUseCase={exportPresetsUseCase}
         presets={presets}
         currentCalendars={currentCalendars}
         loading={loading}
         onPresetsChange={refreshPresets}
+        onCalendarsChange={refreshCalendars}
       />
     </ConfigProvider>
   );

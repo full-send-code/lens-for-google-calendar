@@ -39,6 +39,8 @@ function insertReactUI(): void {
         clearCalendarsUseCase={dependencies.clearCalendarsUseCase}
         enableCalendarUseCase={dependencies.enableCalendarUseCase}
         applyPresetUseCase={dependencies.applyPresetUseCase}
+        savePresetUseCase={dependencies.savePresetUseCase}
+        deletePresetUseCase={dependencies.deletePresetUseCase}
         importPresetsUseCase={dependencies.importPresetsUseCase}
         exportPresetsUseCase={dependencies.exportPresetsUseCase}
         presetRepository={dependencies.presetRepository}

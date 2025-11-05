@@ -10,14 +10,21 @@ import {
   notification,
   Dropdown,
   Menu,
-  Space
+  Space,
+  Select,
+  Input,
+  Button,
+  Divider,
+  Modal
 } from 'antd';
 import { 
   CalendarOutlined,
   ClearOutlined, 
   PlusOutlined, 
   ImportOutlined, 
-  ExportOutlined
+  ExportOutlined,
+  SaveOutlined,
+  DeleteOutlined
 } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import type { MenuProps } from 'antd';
@@ -26,6 +33,8 @@ import type {
   ClearCalendarsUseCase,
   EnableCalendarUseCase,
   ApplyPresetUseCase,
+  SavePresetUseCase,
+  DeletePresetUseCase,
   ImportPresetsUseCase,
   ExportPresetsUseCase
 } from '../../usecases';
@@ -101,6 +110,8 @@ export interface LensHeaderButtonProps {
   clearCalendarsUseCase: ClearCalendarsUseCase;
   enableCalendarUseCase: EnableCalendarUseCase;
   applyPresetUseCase: ApplyPresetUseCase;
+  savePresetUseCase: SavePresetUseCase;
+  deletePresetUseCase: DeletePresetUseCase;
   importPresetsUseCase: ImportPresetsUseCase;
   exportPresetsUseCase: ExportPresetsUseCase;
   
@@ -111,6 +122,7 @@ export interface LensHeaderButtonProps {
   
   // Callbacks
   onPresetsChange: () => void;
+  onCalendarsChange: () => void;
 }
 
 /**
@@ -118,7 +130,7 @@ export interface LensHeaderButtonProps {
  * 
  * Provides a floating action button with dropdown menu for calendar operations:
  * - Floating button positioned in bottom right
- * - Dropdown overlay with preset pills for quick access  
+ * - Dropdown with preset selection and management
  * - Calendar management actions (clear, enable)
  * - Import/Export functionality
  * - Current calendar state indicator
@@ -127,15 +139,20 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
   clearCalendarsUseCase,
   enableCalendarUseCase,
   applyPresetUseCase,
+  savePresetUseCase,
+  deletePresetUseCase,
   importPresetsUseCase,
   exportPresetsUseCase,
   presets,
   currentCalendars,
   loading,
-  onPresetsChange
+  onPresetsChange,
+  onCalendarsChange
 }) => {
   const [enableModalVisible, setEnableModalVisible] = useState(false);
-  const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<string | undefined>(undefined);
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [newPresetName, setNewPresetName] = useState('');
   const [isOperating, setIsOperating] = useState(false);
 
   // Calculate current state
@@ -143,13 +160,23 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
   const stateIndicator = `${visibleCalendars.length}/${currentCalendars.length}`;
 
   /**
-   * Handle preset application
+   * Handle preset selection and automatic application
    */
-  const handlePresetClick = async (presetName: string) => {
+  const handlePresetSelect = async (presetName: string) => {
+    if (!presetName) {
+      setSelectedPreset(undefined);
+      return;
+    }
+
     try {
       setIsOperating(true);
+      setSelectedPreset(presetName);
+      
+      // Automatically apply the preset when selected
       await applyPresetUseCase.execute(presetName);
-      setActivePreset(presetName);
+      
+      // Refresh calendar state after applying preset
+      await onCalendarsChange();
       
       notification.success({
         message: `Applied "${presetName}"`,
@@ -164,9 +191,163 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
         description: `Failed to apply preset "${presetName}". Please try again.`,
         placement: 'topRight'
       });
+      // Reset selection on error
+      setSelectedPreset(undefined);
     } finally {
       setIsOperating(false);
     }
+  };
+
+  /**
+   * Handle saving/updating current state as a preset
+   */
+  const handleSavePreset = async () => {
+    if (!newPresetName.trim()) {
+      notification.error({
+        message: 'Invalid Name',
+        description: 'Please enter a preset name.',
+        placement: 'topRight'
+      });
+      return;
+    }
+
+    try {
+      setIsOperating(true);
+      const existingPreset = presets.find(p => p.name === newPresetName.trim());
+      const overwrite = !!existingPreset;
+
+      if (existingPreset) {
+        // Show confirmation dialog for overwrite
+        Modal.confirm({
+          title: 'Preset Already Exists',
+          content: `A preset named "${newPresetName}" already exists. Do you want to update it with the current calendar state?`,
+          okText: 'Update',
+          cancelText: 'Cancel',
+          onOk: async () => {
+            await savePresetUseCase.execute({ name: newPresetName.trim(), overwrite: true });
+            await onPresetsChange();
+            setSaveModalVisible(false);
+            setNewPresetName('');
+            setSelectedPreset(newPresetName.trim());
+            
+            notification.success({
+              message: 'Preset Updated',
+              description: `Preset "${newPresetName}" has been updated successfully.`,
+              placement: 'topRight'
+            });
+          }
+        });
+      } else {
+        await savePresetUseCase.execute({ name: newPresetName.trim(), overwrite: false });
+        await onPresetsChange();
+        setSaveModalVisible(false);
+        setNewPresetName('');
+        setSelectedPreset(newPresetName.trim());
+        
+        notification.success({
+          message: 'Preset Saved',
+          description: `Preset "${newPresetName}" has been saved successfully.`,
+          placement: 'topRight'
+        });
+      }
+    } catch (error: any) {
+      console.error('Failed to save preset:', error);
+      notification.error({
+        message: 'Save Failed',
+        description: error.message || 'Failed to save preset. Please try again.',
+        placement: 'topRight'
+      });
+    } finally {
+      setIsOperating(false);
+    }
+  };
+
+  /**
+   * Handle updating the selected preset with current state
+   */
+  const handleUpdatePreset = async () => {
+    if (!selectedPreset) {
+      notification.error({
+        message: 'No Preset Selected',
+        description: 'Please select a preset to update.',
+        placement: 'topRight'
+      });
+      return;
+    }
+
+    Modal.confirm({
+      title: 'Update Preset',
+      content: `Do you want to update preset "${selectedPreset}" with the current calendar state?`,
+      okText: 'Update',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          setIsOperating(true);
+          await savePresetUseCase.execute({ name: selectedPreset, overwrite: true });
+          await onPresetsChange();
+          
+          notification.success({
+            message: 'Preset Updated',
+            description: `Preset "${selectedPreset}" has been updated successfully.`,
+            placement: 'topRight'
+          });
+        } catch (error: any) {
+          console.error('Failed to update preset:', error);
+          notification.error({
+            message: 'Update Failed',
+            description: error.message || 'Failed to update preset. Please try again.',
+            placement: 'topRight'
+          });
+        } finally {
+          setIsOperating(false);
+        }
+      }
+    });
+  };
+
+  /**
+   * Handle deleting the selected preset
+   */
+  const handleDeletePreset = async () => {
+    if (!selectedPreset) {
+      notification.error({
+        message: 'No Preset Selected',
+        description: 'Please select a preset to delete.',
+        placement: 'topRight'
+      });
+      return;
+    }
+
+    Modal.confirm({
+      title: 'Delete Preset',
+      content: `Are you sure you want to delete preset "${selectedPreset}"? This action cannot be undone.`,
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          setIsOperating(true);
+          await deletePresetUseCase.execute(selectedPreset);
+          await onPresetsChange();
+          setSelectedPreset(undefined);
+          
+          notification.success({
+            message: 'Preset Deleted',
+            description: `Preset "${selectedPreset}" has been deleted successfully.`,
+            placement: 'topRight'
+          });
+        } catch (error: any) {
+          console.error('Failed to delete preset:', error);
+          notification.error({
+            message: 'Delete Failed',
+            description: error.message || 'Failed to delete preset. Please try again.',
+            placement: 'topRight'
+          });
+        } finally {
+          setIsOperating(false);
+        }
+      }
+    });
   };
 
   /**
@@ -175,8 +356,10 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
   const handleClear = async () => {
     try {
       setIsOperating(true);
-      setActivePreset(null);
+      setSelectedPreset(undefined);
       await clearCalendarsUseCase.execute();
+      await onCalendarsChange();
+      
       notification.success({
         message: 'All Calendars Cleared',
         description: 'All calendars have been hidden successfully.',
@@ -251,7 +434,7 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
       });
       
       // Refresh presets list
-      onPresetsChange();
+      await onPresetsChange();
     } catch (error: any) {
       console.error('Failed to import presets:', error);
       notification.error({
@@ -267,97 +450,172 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
   };
 
   /**
-   * Get current state summary for display
+   * Create the dropdown overlay content with preset selection and management
    */
-  const getCurrentStateSummary = () => {
-    if (visibleCalendars.length === 0) {
-      return 'No calendars visible';
-    }
-    
-    if (visibleCalendars.length <= 2) {
-      return visibleCalendars.map(cal => cal.name).join(', ');
-    }
-    
-    return `${visibleCalendars.slice(0, 2).map(cal => cal.name).join(', ')} +${visibleCalendars.length - 2} more`;
-  };
+  const getDropdownOverlay = () => (
+    <div style={{ 
+      background: '#fff', 
+      borderRadius: '8px', 
+      boxShadow: '0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05)',
+      padding: '12px',
+      minWidth: '280px'
+    }}>
+      {/* Preset Selection Section */}
+      <div style={{ marginBottom: '12px' }}>
+        <div style={{ fontSize: '12px', color: '#666', marginBottom: '6px', fontWeight: 500 }}>
+          Select Preset {presets.length > 0 && `(${presets.length} available)`}
+        </div>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <Select
+            placeholder="Type to search presets..."
+            style={{ flex: 1 }}
+            value={selectedPreset}
+            onChange={handlePresetSelect}
+            disabled={isOperating || presets.length === 0}
+            dropdownMatchSelectWidth={false}
+            showSearch
+            allowClear
+            filterOption={(input, option) => {
+              // Filter by preset name
+              const presetName = option?.value as string || '';
+              return presetName.toLowerCase().includes(input.toLowerCase());
+            }}
+            optionFilterProp="value"
+            notFoundContent={presets.length === 0 ? "No presets available" : "No matching presets"}
+          >
+            {presets.map(preset => (
+              <Select.Option key={preset.name} value={preset.name}>
+                <Space>
+                  <Badge count={preset.calendarEmails.length} size="small" style={{ backgroundColor: '#722ed1' }}>
+                    <CalendarOutlined />
+                  </Badge>
+                  {preset.name}
+                </Space>
+              </Select.Option>
+            ))}
+          </Select>
+          
+          {/* Save/Update and Delete buttons to the right of dropdown */}
+          <Button
+            size="small"
+            icon={<SaveOutlined />}
+            disabled={!selectedPreset || isOperating || visibleCalendars.length === 0}
+            onClick={handleUpdatePreset}
+            title="Update preset with current calendar state"
+          />
+          <Button
+            size="small"
+            icon={<DeleteOutlined />}
+            danger
+            disabled={!selectedPreset || isOperating}
+            onClick={handleDeletePreset}
+            title="Delete selected preset"
+          />
+        </div>
+      </div>
 
-  /**
-   * Create menu items for dropdown
-   */
-  const getMenuItems = (): MenuProps['items'] => {
-    const items: MenuProps['items'] = [];
+      {/* Preset Action Buttons - Remove Apply button since selection auto-applies */}
+      <div style={{ marginBottom: '12px' }}>
+        <div style={{ fontSize: '11px', color: '#999', fontStyle: 'italic' }}>
+          💡 Selecting a preset automatically applies it
+        </div>
+      </div>
 
-    // Add preset items (limit to 4 for clean design)
-    presets.slice(0, 4).forEach(preset => {
-      items.push({
-        key: `preset-${preset.name}`,
-        icon: <Badge count={preset.calendarEmails.length} size="small" style={{ backgroundColor: '#722ed1' }}>
-          <CalendarOutlined />
-        </Badge>,
-        label: `Apply ${preset.name}`,
-        onClick: () => handlePresetClick(preset.name),
-        disabled: isOperating
-      });
-    });
+      <Divider style={{ margin: '8px 0' }} />
 
-    // Add separator if presets exist
-    if (presets.length > 0) {
-      items.push({ type: 'divider' });
-    }
+      {/* Calendar Actions */}
+      <div style={{ marginBottom: '12px' }}>
+        <div style={{ fontSize: '12px', color: '#666', marginBottom: '6px', fontWeight: 500 }}>
+          Calendar Actions
+        </div>
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Button
+            size="small"
+            icon={<ClearOutlined />}
+            onClick={handleClear}
+            disabled={isOperating}
+            style={{ width: '100%' }}
+          >
+            Clear All Calendars
+          </Button>
+          <Button
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={() => setEnableModalVisible(true)}
+            disabled={isOperating}
+            style={{ width: '100%' }}
+          >
+            Enable Calendar
+          </Button>
+          <Button
+            size="small"
+            icon={<SaveOutlined />}
+            onClick={() => setSaveModalVisible(true)}
+            disabled={isOperating || visibleCalendars.length === 0}
+            style={{ width: '100%' }}
+          >
+            Save Current State
+          </Button>
+        </Space>
+      </div>
 
-    // Add action items
-    items.push(
-      {
-        key: 'clear',
-        icon: <ClearOutlined />,
-        label: 'Clear All Calendars',
-        onClick: handleClear,
-        disabled: isOperating
-      },
-      {
-        key: 'enable',
-        icon: <PlusOutlined />,
-        label: 'Enable Calendar',
-        onClick: () => setEnableModalVisible(true),
-        disabled: isOperating
-      },
-      { type: 'divider' },
-      {
-        key: 'export',
-        icon: <ExportOutlined />,
-        label: 'Export Presets',
-        onClick: handleExport,
-        disabled: isOperating || presets.length === 0
-      },
-      {
-        key: 'import',
-        icon: <ImportOutlined />,
-        label: 'Import Presets',
-        onClick: () => {
-          // Create a hidden file input and trigger it
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.accept = '.json';
-          input.onchange = async (e) => {
-            const file = (e.target as HTMLInputElement).files?.[0];
-            if (file) {
-              await handleImport({ originFileObj: file } as UploadFile);
-            }
-          };
-          input.click();
-        },
-        disabled: isOperating
-      }
-    );
+      <Divider style={{ margin: '8px 0' }} />
 
-    return items;
-  };
+      {/* Import/Export */}
+      <div>
+        <div style={{ fontSize: '12px', color: '#666', marginBottom: '6px', fontWeight: 500 }}>
+          Import/Export
+        </div>
+        <Space style={{ width: '100%' }}>
+          <Button
+            size="small"
+            icon={<ImportOutlined />}
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.json';
+              input.onchange = async (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0];
+                if (file) {
+                  await handleImport({ originFileObj: file } as UploadFile);
+                }
+              };
+              input.click();
+            }}
+            disabled={isOperating}
+            style={{ flex: 1 }}
+          >
+            Import
+          </Button>
+          <Button
+            size="small"
+            icon={<ExportOutlined />}
+            onClick={handleExport}
+            disabled={isOperating || presets.length === 0}
+            style={{ flex: 1 }}
+          >
+            Export
+          </Button>
+        </Space>
+      </div>
+
+      {/* Current State Display */}
+      {visibleCalendars.length > 0 && (
+        <>
+          <Divider style={{ margin: '8px 0' }} />
+          <div style={{ fontSize: '11px', color: '#999' }}>
+            Current: {stateIndicator} calendars visible
+          </div>
+        </>
+      )}
+    </div>
+  );
 
   return (
     <>
-      {/* Floating Action Button with Dropdown Menu */}
+      {/* Floating Action Button with Custom Dropdown */}
       <Dropdown
-        menu={{ items: getMenuItems() }}
+        overlay={getDropdownOverlay()}
         trigger={['click']}
         placement="topRight"
         arrow={{ pointAtCenter: true }}
@@ -370,7 +628,7 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
             right: 60,
             width: 40,
             height: 40,
-            backgroundColor: '#595959', // Dark gray background to contrast with blue icon
+            backgroundColor: '#595959',
             borderColor: '#595959',
           }}
           tooltip="Lens Calendar Manager"
@@ -383,6 +641,38 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
         onClose={() => setEnableModalVisible(false)}
         enableCalendarUseCase={enableCalendarUseCase}
       />
+
+      {/* Save Preset Modal */}
+      <Modal
+        title="Save Current State as Preset"
+        open={saveModalVisible}
+        onOk={handleSavePreset}
+        onCancel={() => {
+          setSaveModalVisible(false);
+          setNewPresetName('');
+        }}
+        confirmLoading={isOperating}
+        okText="Save"
+      >
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: '8px', color: '#666' }}>
+            Current State: {stateIndicator} calendars visible
+          </div>
+          <div style={{ fontSize: '12px', color: '#999' }}>
+            {visibleCalendars.length <= 3 
+              ? visibleCalendars.map(cal => cal.name).join(', ')
+              : `${visibleCalendars.slice(0, 3).map(cal => cal.name).join(', ')} +${visibleCalendars.length - 3} more`
+            }
+          </div>
+        </div>
+        <Input
+          placeholder="Enter preset name..."
+          value={newPresetName}
+          onChange={(e) => setNewPresetName(e.target.value)}
+          onPressEnter={handleSavePreset}
+          maxLength={50}
+        />
+      </Modal>
     </>
   );
 };

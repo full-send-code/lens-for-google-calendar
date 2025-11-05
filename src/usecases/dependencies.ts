@@ -12,6 +12,8 @@ import {
   ClearCalendarsUseCase,
   EnableCalendarUseCase,
   ApplyPresetUseCase,
+  SavePresetUseCase,
+  DeletePresetUseCase,
   ImportPresetsUseCase,
   ExportPresetsUseCase
 } from './';
@@ -24,6 +26,8 @@ export interface UseCaseDependencies {
   clearCalendarsUseCase: ClearCalendarsUseCase;
   enableCalendarUseCase: EnableCalendarUseCase;
   applyPresetUseCase: ApplyPresetUseCase;
+  savePresetUseCase: SavePresetUseCase;
+  deletePresetUseCase: DeletePresetUseCase;
   importPresetsUseCase: ImportPresetsUseCase;
   exportPresetsUseCase: ExportPresetsUseCase;
 }
@@ -41,6 +45,8 @@ export function createUseCaseDependencies(
   const clearCalendarsUseCase = new ClearCalendarsUseCase(calendarRepository);
   const enableCalendarUseCase = new EnableCalendarUseCase(calendarRepository);
   const applyPresetUseCase = new ApplyPresetUseCase(calendarRepository, presetRepository);
+  const savePresetUseCase = new SavePresetUseCase(calendarRepository, presetRepository);
+  const deletePresetUseCase = new DeletePresetUseCase(presetRepository);
   const importPresetsUseCase = new ImportPresetsUseCase(presetRepository);
   const exportPresetsUseCase = new ExportPresetsUseCase(presetRepository);
 
@@ -48,6 +54,8 @@ export function createUseCaseDependencies(
     clearCalendarsUseCase,
     enableCalendarUseCase,
     applyPresetUseCase,
+    savePresetUseCase,
+    deletePresetUseCase,
     importPresetsUseCase,
     exportPresetsUseCase
   };
@@ -60,6 +68,8 @@ export const USECASE_TOKENS = {
   CLEAR_CALENDARS_USE_CASE: 'clearCalendarsUseCase',
   ENABLE_CALENDAR_USE_CASE: 'enableCalendarUseCase',
   APPLY_PRESET_USE_CASE: 'applyPresetUseCase',
+  SAVE_PRESET_USE_CASE: 'savePresetUseCase',
+  DELETE_PRESET_USE_CASE: 'deletePresetUseCase',
   IMPORT_PRESETS_USE_CASE: 'importPresetsUseCase',
   EXPORT_PRESETS_USE_CASE: 'exportPresetsUseCase'
 } as const;

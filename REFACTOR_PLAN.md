@@ -844,9 +844,10 @@ describe('Calendar Entity', () => {
 4. **Manual Testing Checklist**:
    - ⏳ **Extension Loading**: No console errors, clean initialization
    - ⏳ **UI Integration**: Floating action button appears in optimal position
+   - ⏳ **Preset Selection**: Select presets from dropdown and apply them
+   - ⏳ **Preset Management**: Save current state, update existing presets, delete presets
    - ⏳ **Clear Functionality**: Clear all calendars works correctly
    - ⏳ **Enable Functionality**: Enable specific calendar modal and functionality
-   - ⏳ **Preset Functionality**: Apply presets correctly changes calendar visibility
    - ⏳ **Import/Export**: Import and export preset functionality
    - ⏳ **Performance**: No significant slowdown in calendar manipulation
    - ⏳ **Error Handling**: Graceful error handling with user notifications
