@@ -8,6 +8,7 @@ Transform the existing Vue.js Chrome extension into a clean, testable architectu
 
 ### Current Stack → New Stack
 - **Vue 2.x + Vuetify** → **React 18 + Ant Design**
+- **jQuery DOM manipulation** → **Native DOM APIs + TypeScript utilities**
 - **Scattered architecture** → **Clean Architecture with SOLID principles**
 - **Mixed concerns** → **Separated layers with clear boundaries**
 - **Vue instance conflicts** → **Stable React ecosystem**
@@ -19,6 +20,14 @@ Transform the existing Vue.js Chrome extension into a clean, testable architectu
 4. ✅ **No framework conflicts** - Eliminates current Vue/Vuetify issues
 5. ✅ **Future-proof** - Active development and long-term support
 6. ✅ **Better testing ecosystem** - React Testing Library + Jest
+
+### Why Remove jQuery?
+1. ✅ **Bundle size reduction** - Eliminates 91KB overhead
+2. ✅ **Modern browser APIs** - Native DOM methods are well-supported
+3. ✅ **Better TypeScript integration** - Native APIs have better type safety
+4. ✅ **Performance** - No jQuery abstraction layer
+5. ✅ **Clean architecture** - Aligns with modern development practices
+6. ✅ **Maintainability** - Fewer dependencies to manage
 
 ## 🏗️ Clean Architecture Structure
 
@@ -40,8 +49,9 @@ src/
 │   ├── ImportPresets.ts          # Import presets use case
 │   └── ExportPresets.ts          # Export presets use case
 ├── infrastructure/                # External integrations
-│   ├── GoogleCalendarRepository.ts # Google Calendar DOM interaction
+│   ├── GoogleCalendarRepository.ts # Google Calendar DOM interaction (Native APIs)
 │   ├── ChromeStorageRepository.ts  # Chrome storage implementation
+│   ├── DOMUtils.ts                # Native DOM utility functions (replaces jQuery)
 │   └── JsonImportExport.ts        # JSON import/export implementation
 ├── presentation/                  # UI layer
 │   ├── components/               # React components
@@ -116,20 +126,21 @@ src/
 
 ### Phase 1: Dependencies & Setup ⭐ **CURRENT PHASE**
 ```bash
-# Install React ecosystem
-npm install react react-dom @types/react @types/react-dom
-
 # Install UI library and utilities  
 npm install antd @ant-design/icons
 
 # Update testing dependencies for React
 npm install --save-dev @testing-library/react @testing-library/jest-dom @testing-library/user-event
+
+# Remove jQuery (will be replaced with native DOM APIs)
+npm uninstall jquery @types/jquery
 ```
 
 **Manual Testing Checkpoint**:
 - ✅ All dependencies install correctly
 - ✅ Build system works with new dependencies
 - ✅ Extension still loads without errors
+- ✅ jQuery removal doesn't break basic functionality
 
 ### Phase 2: Core Domain Layer
 Create domain entities and repository interfaces:
@@ -246,26 +257,85 @@ Implement repository interfaces with Google Calendar DOM and Chrome storage:
 **Manual Testing Checkpoint**:
 - ✅ GoogleCalendarRepository can find and interact with calendar DOM elements
 - ✅ ChromeStorageRepository can read/write to Chrome storage
+- ✅ Native DOM utilities work correctly (no jQuery dependencies)
 - ✅ Virtual scrolling handling works correctly
 - ✅ **Test on real Google Calendar**: Verify calendar detection and manipulation
 
 ```typescript
+// infrastructure/DOMUtils.ts
+export class DOMUtils {
+  static query(selector: string): Element | null {
+    return document.querySelector(selector);
+  }
+  
+  static queryAll(selector: string): NodeListOf<Element> {
+    return document.querySelectorAll(selector);
+  }
+  
+  static addClass(element: Element, className: string): void {
+    element.classList.add(className);
+  }
+  
+  static scrollIntoView(element: Element): void {
+    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  
+  static waitForElement(selector: string, timeout = 5000): Promise<Element> {
+    return new Promise((resolve, reject) => {
+      const element = document.querySelector(selector);
+      if (element) {
+        resolve(element);
+        return;
+      }
+      
+      const observer = new MutationObserver(() => {
+        const element = document.querySelector(selector);
+        if (element) {
+          observer.disconnect();
+          resolve(element);
+        }
+      });
+      
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+      
+      setTimeout(() => {
+        observer.disconnect();
+        reject(new Error(`Element ${selector} not found within ${timeout}ms`));
+      }, timeout);
+    });
+  }
+}
+
 // infrastructure/GoogleCalendarRepository.ts
 export class GoogleCalendarRepository implements CalendarRepository {
   async getAllCalendars(): Promise<Calendar[]> {
-    // DOM scraping logic to find all calendars
+    // Use native DOM APIs instead of jQuery
+    const calendarElements = DOMUtils.queryAll('[data-id][aria-label*="Calendar"]');
     // Handle virtual scrolling
-    // Extract email IDs and names
+    // Extract email IDs and names using native APIs
   }
   
   async findCalendarById(id: string): Promise<Calendar | null> {
-    // Scroll through calendar list to find specific calendar
+    // Scroll through calendar list using native scrolling APIs
+    // Find specific calendar without jQuery
+    const encodedId = btoa(id); // Base64 encode like Google Calendar does
+    const element = DOMUtils.query(`[data-id="${encodedId}"]`);
     // Return calendar data or null
   }
   
   async updateCalendarStatus(id: string, enabled: boolean): Promise<void> {
-    // Find calendar checkbox and update status
-    // Handle scrolling to bring calendar into view
+    // Find calendar checkbox using native APIs
+    const calendar = await this.findCalendarById(id);
+    if (calendar) {
+      const checkbox = calendar.querySelector('input[type="checkbox"]') as HTMLInputElement;
+      if (checkbox) {
+        checkbox.checked = enabled;
+        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
   }
 }
 
@@ -411,6 +481,7 @@ describe('CalendarToolbar', () => {
 
 ### Before (Current Issues)
 - ❌ Vue instance conflicts causing runtime errors
+- ❌ jQuery dependency adding 91KB bundle overhead
 - ❌ Scattered business logic mixed with UI concerns  
 - ❌ Difficult to unit test due to tight coupling
 - ❌ Vuetify compatibility issues with Chrome extensions
@@ -418,6 +489,8 @@ describe('CalendarToolbar', () => {
 
 ### After (Clean Architecture)
 - ✅ **Separation of Concerns**: Clear boundaries between layers
+- ✅ **Modern Dependencies**: React + Native DOM APIs (no jQuery)
+- ✅ **Reduced Bundle Size**: Eliminated 91KB jQuery overhead
 - ✅ **Testability**: Each layer independently testable
 - ✅ **Maintainability**: Changes isolated to specific layers
 - ✅ **Extensibility**: Easy to add new features or change implementations
