@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { ConfigProvider, theme, notification } from 'antd';
 import { LensHeaderButton } from './components/CalendarToolbar.component';
+import logger from '../logger';
 import type { 
   ClearCalendarsUseCase,
   EnableCalendarUseCase,
@@ -68,6 +69,26 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
       try {
         setLoading(true);
         
+        // Debug: Check current URL and available DOM elements
+        logger.info('🔍 Current URL:', window.location.href);
+        logger.info('🔍 Checking calendar list selectors...');
+        
+        // Check for calendar list elements
+        const calendarListPrimary = document.querySelector('[data-testid="calendar-list"]');
+        const calendarListAlt = document.querySelector('[role="grid"][aria-label*="calendar" i]');
+        const allGrids = document.querySelectorAll('[role="grid"]');
+        const allAriaLabels = Array.from(document.querySelectorAll('[aria-label]')).map(el => el.getAttribute('aria-label'));
+        
+        logger.info('🔍 Primary selector [data-testid="calendar-list"]:', calendarListPrimary);
+        logger.info('🔍 Alt selector [role="grid"][aria-label*="calendar" i]:', calendarListAlt);
+        logger.info('🔍 All grids found:', allGrids.length, Array.from(allGrids).map(g => g.getAttribute('aria-label')));
+        logger.info('🔍 All aria-labels containing "calendar":', allAriaLabels.filter(label => label?.toLowerCase().includes('calendar')));
+        
+        // Check if we're on the right page
+        if (!window.location.href.includes('calendar.google.com')) {
+          throw new Error('Not on Google Calendar page');
+        }
+        
         // Load presets and current calendar state in parallel
         const [loadedPresets, calendars] = await Promise.all([
           presetRepository.getAllPresets(),
@@ -77,7 +98,7 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
         setPresets(loadedPresets);
         setCurrentCalendars(calendars);
       } catch (error) {
-        console.error('Failed to load data:', error);
+        logger.error('Failed to load data:', error);
         notification.error({
           message: 'Failed to load data',
           description: 'Unable to load calendar presets and current state.'
@@ -98,7 +119,7 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
       const updatedPresets = await presetRepository.getAllPresets();
       setPresets(updatedPresets);
     } catch (error) {
-      console.error('Failed to refresh presets:', error);
+      logger.error('Failed to refresh presets:', error);
     }
   };
 
@@ -110,7 +131,7 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
       const updatedCalendars = await calendarRepository.getCurrentCalendarStates();
       setCurrentCalendars(updatedCalendars);
     } catch (error) {
-      console.error('Failed to refresh calendars:', error);
+      logger.error('Failed to refresh calendars:', error);
     }
   };
 
