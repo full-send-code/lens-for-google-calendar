@@ -131,7 +131,7 @@ import logger from './logger';
       const scrollContainer = this.getScrollContainer();
       const scrollPosition = this.calendar.scrollPosition;
 
-      // console.log(this.calendar.name, 'jumping from', scrollContainer.scrollTop, 'to', scrollPosition)
+      logger.debug('jumping scroll position for', this.calendar.name, 'from', scrollContainer.scrollTop, 'to', scrollPosition)
       await scrollElementTo(scrollContainer, scrollPosition!);
 
       // give the virtual scroller some time to render
@@ -181,7 +181,7 @@ import logger from './logger';
 
     async saveScrollPosition(): Promise<void> {
       this.scrollPosition = await this.dom.calculateScrollPosition();
-      // console.log('saved scroll position:', this.name, this.scrollPosition)
+      logger.debug('saved scroll position:', this.name, this.scrollPosition)
     }
 
     isChecked(): boolean {
@@ -369,7 +369,7 @@ import logger from './logger';
       // rescroll, and refresh
       await this.discoverCalendarScrollPositions();
       await sleep(100);
-      // console.log('new cal scroll position:', calendar.scrollPosition)
+      logger.debug('new cal scroll position:', calendar.scrollPosition)
       await calendar.dom.scrollTo();
       this.refreshVisibleCalendarDOMs();
       if (calendar.dom.isAttached()) {
@@ -398,7 +398,7 @@ import logger from './logger';
         results[cal.id!] = enabled!;
       }
 
-      // console.log('post-toggle states:', results)
+      logger.debug('post-toggle states:', results)
 
       if (opts.restoreScroll && scrollContainer && savedScrollPosition !== undefined) {
         // scroll back to where we came from
@@ -422,7 +422,6 @@ import logger from './logger';
       cal.toggle();
 
       await sleep(200); // wait for the checkbox to change state
-      // console.log('refreshing DOMSs')
       this.refreshVisibleCalendarDOMs(cal); // refresh internal checked state from the DOM
 
       return cal.isChecked();
@@ -526,14 +525,10 @@ import logger from './logger';
       Overlay.getInstance().show();
 
       await scan(scrollContainer, opts, async function detect_calendars() {
-        // console.log('current scroll position:', scrollContainer.scrollTop)
-
         // wait for dom to render
         await sleep(100);
 
         const cals = CM.getVisibleCalendars();
-
-        // console.log('currently see:', cals.map(c=>c.id))
 
         for (const cal of cals) {
           await cal.saveScrollPosition();
@@ -543,7 +538,7 @@ import logger from './logger';
 
       Overlay.getInstance().hide();
 
-      // console.log('all calendars', calendars.map(cal => cal.id))
+      logger.debug('discovered calendars:', calendars.map(cal => cal.id))
       return calendars;
     }
 
@@ -648,7 +643,7 @@ import logger from './logger';
       const drawerShown = shown();
 
       if (visible !== drawerShown) {
-        // console.log('toggling drawer')
+        logger.debug('toggling drawer')
         try {
           const element = $("#gb svg");
           if (element && element.parentElement) {
@@ -754,8 +749,6 @@ import logger from './logger';
       const outerOperation = outer();
 
       // pre steps...
-      // console.log("OPERATION - PRE", name ? name : '', 'outer:', outerOperation)
-
       status.current.push(name || "");
 
       if (outerOperation) {
@@ -770,14 +763,10 @@ import logger from './logger';
 
         const outerOperation = outer();
 
-        // console.log('currentOperations:', status.current)
-
         if (outerOperation && !status.state.drawerShown) {
           await CM.setCalendarDrawerShown(status.state.drawerShown);
           // delete status.state.drawerShown
         }
-
-        // console.log("OPERATION - POST", name ? name : '', 'outer:', outerOperation)
       }
     },
 
@@ -883,7 +872,6 @@ async function scan(el: HTMLElement, opts: ScanOptions, scrollIncrementedCb: () 
   await scrollElementTo(el, 0);
 
   await scrollThroughElement(el, opts, scrollIncrementedCb);
-  // console.log('done scanning')
 
   // if true, revert to original scroll position after the scan
   if (opts.restoreOriginalScroll) {
@@ -915,7 +903,6 @@ async function scrollElementTo(el: HTMLElement, scrollTop: number, opts: ScrollE
       {
         duration: opts.animate ? opts.animateDuration : 0,
         complete: () => {
-          // console.log('scroll to', scrollTop, 'complete')
           resolve();
         },
       }

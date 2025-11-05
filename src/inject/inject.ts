@@ -174,7 +174,7 @@ function insertUI(insertLoc?: Element): void {
     props: ['text'],
     created: function(){
       // register this shortcut and action
-      // console.log('label-kb-shortcut created', this.shortcut)
+      logger.debug('label-kb-shortcut created', this.shortcut)
 
       if(this.shortcut.enabled){
         const keyboardAction = {
@@ -529,7 +529,6 @@ function insertUI(insertLoc?: Element): void {
     presets_open: async (vm) => {
       logger.debug('presets_open', vm)
       setTimeout(()=>{ // timeout to allow the menu to be rendered first
-        /* console.log(this.$refs.select)*/
         if(vm.$refs.presets_menu.isActive){
           vm.$refs.select.focusInput()
           vm.$refs.select.showMenu()
@@ -578,7 +577,6 @@ function insertUI(insertLoc?: Element): void {
         },
         select_input: async function(value) {
           logger.debug('input', value.text, value)
-          // console.log(this)
 
           this.presets_menu_open = false
 
@@ -838,7 +836,7 @@ function storeGroups(): void {
           .reverse()
           .splice(3) // keep last 3
 
-    // console.log('removing: ', to_remove)
+    logger.debug('removing autosaved states:', to_remove)
     to_remove.forEach( preset_name => {
       delete groups[preset_name]
       groups.__last_saved.splice(groups.__last_saved.indexOf(preset_name), 1)
@@ -953,9 +951,9 @@ function setupKeyboardShortcuts(): void {
   }
 
   vm.keyboardActions.forEach((keyAction) => {
-    // console.log('registering keyboard action: ', `${keyAction.modifier}+${keyAction.key}`, keyAction.action)
+    logger.debug('registering keyboard action:', `${keyAction.modifier}+${keyAction.key}`, keyAction.action)
     bindKey(`${keyAction.modifier}+${keyAction.key}`, function(e, combo) {
-      // console.log('keyboard action: ', combo, e)
+      logger.debug('keyboard action:', combo, e)
       keyAction.action(e, combo)
     })
   })
