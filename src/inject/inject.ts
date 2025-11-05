@@ -9,8 +9,11 @@ import 'material-design-lite/material.js';
 import 'vuetify/dist/vuetify.min.css';
 import './inject.css';
 
-// Check if Vue is already loaded to prevent multiple instances
-if (!(window as any).Vue) {
+// Prevent multiple Vue instances by checking if already initialized
+if (!(window as any).__LENS_VUE_INITIALIZED__) {
+  // Mark as initialized immediately to prevent race conditions
+  (window as any).__LENS_VUE_INITIALIZED__ = true;
+  
   // Make dependencies available globally for the extension
   (window as any).$ = $;
   (window as any).jQuery = $;
@@ -18,10 +21,19 @@ if (!(window as any).Vue) {
   (window as any).Vuetify = Vuetify;
   (window as any).Mousetrap = Mousetrap;
 
-  // Initialize Vuetify only once
+  // Initialize Vuetify properly with Vue 2.x pattern
   Vue.use(Vuetify);
+  
+  // Create a global Vuetify instance that all components can use
+  (window as any).__LENS_VUETIFY_INSTANCE__ = new Vuetify({
+    theme: {
+      dark: false, // We'll detect this dynamically later
+    },
+  });
+  
+  logger.info('Vue and Vuetify initialized for Lens extension');
 } else {
-  logger.warn('Vue already loaded, skipping initialization to prevent multiple instances');
+  logger.warn('Vue already initialized, skipping to prevent multiple instances');
 }
 
 // Declare global types - must be in a module context
@@ -576,6 +588,7 @@ function insertUI(insertLoc?: Element): void {
     }
 
     vm = new Vue({
+      vuetify: (window as any).__LENS_VUETIFY_INSTANCE__,
       data: {
         highlight_kb_shortcuts: false,
         presets_menu_open: false,
@@ -974,7 +987,7 @@ function setupKeyboardShortcuts(): void {
       }
     }
 
-    return Mousetrap.bindGlobal(...args)
+    return (Mousetrap as any).bindGlobal(...args)
   }
 
   vm.keyboardActions.forEach((keyAction) => {

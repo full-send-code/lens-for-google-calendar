@@ -11,9 +11,18 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000, // Increase limit to 1MB to suppress warning
     rollupOptions: {
       output: {
-        // Prevent Vue from being split into multiple chunks to avoid multiple instances
-        manualChunks: {
-          vue: ['vue', 'vuetify']
+        // Ensure Vue and Vuetify are in the same chunk to prevent initialization issues
+        manualChunks: (id) => {
+          // Put Vue ecosystem in one chunk to prevent multiple instances
+          if (id.includes('vue') || id.includes('vuetify')) {
+            return 'vue-ecosystem';
+          }
+          // Keep jQuery separate
+          if (id.includes('jquery')) {
+            return 'jquery';
+          }
+          // Keep everything else in default chunks
+          return undefined;
         }
       }
     }
