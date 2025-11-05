@@ -17,7 +17,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": [],
+      "resources": ["icons/*.png"],
       "matches": ["https://calendar.google.com/*"]
     }
   ],

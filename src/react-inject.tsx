@@ -1,13 +1,11 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import logger from './logger';
-import { MinimalExtension } from './presentation/components/MinimalExtension';
+import { CalendarExtensionApp } from './presentation/CalendarExtensionApp';
+import { initializeCalendarExtension } from './main';
 
 // Configuration object (simplified from original)
 const CALENDAR_SELECTOR_CONFIG = {
-  selectors: {
-    uiInsertionLocation: 'header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)'
-  },
   timing: {
     readyStateCheckInterval: 10,
     uiInsertionDelay: 1000
@@ -17,7 +15,6 @@ const CALENDAR_SELECTOR_CONFIG = {
 function createExtensionContainer(): HTMLElement {
   const container = document.createElement('div');
   container.id = 'lens-extension-root';
-  container.style.display = 'inline-block';
   return container;
 }
 
@@ -28,26 +25,31 @@ function insertReactUI(): void {
   }
 
   try {
-    // Find the Google Calendar header insertion point
-    const insertionPoint = document.querySelector(CALENDAR_SELECTOR_CONFIG.selectors.uiInsertionLocation);
+    // Initialize dependency injection
+    const dependencies = initializeCalendarExtension();
     
-    if (!insertionPoint) {
-      logger.error('Could not find Google Calendar insertion point');
-      return;
-    }
-
-    // Create container and insert into DOM
+    // Create container and append to body for floating position
     const container = createExtensionContainer();
-    insertionPoint.appendChild(container);
+    document.body.appendChild(container);
 
-    // Create React root and render minimal component
+    // Create React root and render main application with dependencies
     const root = createRoot(container);
-    root.render(<MinimalExtension />);
+    root.render(
+      <CalendarExtensionApp
+        clearCalendarsUseCase={dependencies.clearCalendarsUseCase}
+        enableCalendarUseCase={dependencies.enableCalendarUseCase}
+        applyPresetUseCase={dependencies.applyPresetUseCase}
+        importPresetsUseCase={dependencies.importPresetsUseCase}
+        exportPresetsUseCase={dependencies.exportPresetsUseCase}
+        presetRepository={dependencies.presetRepository}
+        calendarRepository={dependencies.calendarRepository}
+      />
+    );
     
-    logger.info('React extension UI successfully mounted');
+    logger.info('Calendar extension UI successfully mounted as floating action button');
     
   } catch (error) {
-    logger.error('Failed to mount React extension UI:', error);
+    logger.error('Failed to mount calendar extension UI:', error);
   }
 }
 

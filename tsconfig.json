@@ -23,8 +23,16 @@
     "checkJs": false,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "types": ["chrome", "jquery", "jest", "node", "vite/client"]
+    "types": ["chrome", "jest", "node", "vite/client"]
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "vite.config.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": [
+    "node_modules", 
+    "dist", 
+    "**/*.test.ts", 
+    "**/*.spec.ts", 
+    "vite.config.ts",
+    "src/calendar_manager.ts",
+    "src/inject/inject.ts"
+  ]
 }
