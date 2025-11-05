@@ -9,9 +9,22 @@ Transform the existing Vue.js Chrome extension into a clean, testable architectu
 ### Current Stack → New Stack
 - **Vue 2.x + Vuetify** → **React 18 + Ant Design**
 - **jQuery DOM manipulation** → **Native DOM APIs + TypeScript utilities**
+- **Material Design Lite** → **Ant Design Notification system**
 - **Scattered architecture** → **Clean Architecture with SOLID principles**
 - **Mixed concerns** → **Separated layers with clear boundaries**
 - **Vue instance conflicts** → **Stable React ecosystem**
+
+### Dependencies Strategy
+| Current Library | Status | Action | New Solution |
+|----------------|--------|--------|--------------|
+| **Vue 2.x (34KB)** | ❌ Replace | Remove | **React 18** |
+| **Vuetify (800KB)** | ❌ Replace | Remove | **Ant Design (~200KB)** |
+| **jQuery (91KB)** | ❌ Replace | Remove | **Native DOM APIs** |
+| **Material Design Lite (1KB)** | ❌ Deprecated | Remove | **Ant Design Notification** |
+| **loglevel (2KB)** | ✅ Keep | Keep | **loglevel** (perfect for extensions) |
+| **mousetrap (6KB)** | ✅ Keep | Keep | **mousetrap** (works great) |
+
+**Bundle Size Impact**: 926KB → 242KB = **74% reduction**
 
 ### Why React?
 1. ✅ **Better TypeScript integration** - First-class TS support
@@ -28,6 +41,18 @@ Transform the existing Vue.js Chrome extension into a clean, testable architectu
 4. ✅ **Performance** - No jQuery abstraction layer
 5. ✅ **Clean architecture** - Aligns with modern development practices
 6. ✅ **Maintainability** - Fewer dependencies to manage
+
+### Why Choose Ant Design?
+1. ✅ **Professional appearance** - Enterprise-grade design system
+2. ✅ **Complete component library** - 50+ React components
+3. ✅ **Excellent TypeScript support** - Built with TypeScript
+4. ✅ **Chrome extension friendly** - Used by many extensions
+5. ✅ **Good documentation** - Easy to learn and implement
+6. ✅ **Proven in production** - Used by Alibaba and thousands of companies
+
+### Library Retention Strategy
+**Keep loglevel**: Perfect for Chrome extensions, small (2KB), excellent TypeScript support
+**Keep mousetrap**: Well-maintained, small (6KB), works great for keyboard shortcuts
 
 ## 🏗️ Clean Architecture Structure
 
@@ -126,14 +151,18 @@ src/
 
 ### Phase 1: Dependencies & Setup ⭐ **CURRENT PHASE**
 ```bash
-# Install UI library and utilities  
+# Install Ant Design UI library
 npm install antd @ant-design/icons
 
 # Update testing dependencies for React
 npm install --save-dev @testing-library/react @testing-library/jest-dom @testing-library/user-event
 
-# Remove jQuery (will be replaced with native DOM APIs)
-npm uninstall jquery @types/jquery
+# Remove legacy dependencies
+npm uninstall jquery @types/jquery vue vuetify material-design-lite
+
+# Keep these dependencies (still valuable):
+# - loglevel (perfect for Chrome extensions)
+# - mousetrap (excellent keyboard shortcuts)
 ```
 
 **Manual Testing Checkpoint**:
@@ -141,6 +170,8 @@ npm uninstall jquery @types/jquery
 - ✅ Build system works with new dependencies
 - ✅ Extension still loads without errors
 - ✅ jQuery removal doesn't break basic functionality
+- ✅ Vue/Vuetify completely removed
+- ✅ Ant Design available for use
 
 ### Phase 2: Core Domain Layer
 Create domain entities and repository interfaces:
@@ -370,33 +401,57 @@ Create React components and coordinate with use cases:
 
 ```typescript
 // presentation/components/CalendarToolbar.tsx
+import React, { useState } from 'react';
+import { Button, Select, Input, Modal, notification } from 'antd';
+import { ClearOutlined, PlusOutlined, ImportOutlined, ExportOutlined } from '@ant-design/icons';
+
 export const CalendarToolbar: React.FC = () => {
   const [enableInputVisible, setEnableInputVisible] = useState(false);
   const [presets, setPresets] = useState<string[]>([]);
   
   const handleClear = async () => {
     await clearCalendarsUseCase.execute();
+    notification.success({ message: 'All calendars cleared' });
   };
   
   const handleEnable = async (calendarId: string) => {
     await enableCalendarUseCase.execute(calendarId);
+    notification.success({ message: `Calendar ${calendarId} enabled` });
   };
   
   const handlePresetSelect = async (presetName: string) => {
     await applyPresetUseCase.execute(presetName);
+    notification.success({ message: `Applied preset: ${presetName}` });
   };
   
   return (
-    <div className="lens-calendar-toolbar">
-      <Button onClick={handleClear}>Clear</Button>
-      <Button onClick={() => setEnableInputVisible(true)}>Enable</Button>
-      <Select placeholder="Select Preset" onChange={handlePresetSelect}>
+    <div className="lens-calendar-toolbar" style={{ padding: '8px', display: 'flex', gap: '8px' }}>
+      <Button icon={<ClearOutlined />} onClick={handleClear}>
+        Clear
+      </Button>
+      <Button icon={<PlusOutlined />} onClick={() => setEnableInputVisible(true)}>
+        Enable
+      </Button>
+      <Select 
+        placeholder="Select Preset" 
+        style={{ minWidth: 120 }}
+        onChange={handlePresetSelect}
+      >
         {presets.map(name => (
           <Select.Option key={name} value={name}>{name}</Select.Option>
         ))}
       </Select>
-      <Button>Import</Button>
-      <Button>Export</Button>
+      <Button icon={<ImportOutlined />}>Import</Button>
+      <Button icon={<ExportOutlined />}>Export</Button>
+      
+      <Modal
+        title="Enable Calendar"
+        open={enableInputVisible}
+        onCancel={() => setEnableInputVisible(false)}
+        onOk={() => {/* handle enable */}}
+      >
+        <Input placeholder="Enter calendar email address" />
+      </Modal>
     </div>
   );
 };
@@ -482,20 +537,23 @@ describe('CalendarToolbar', () => {
 ### Before (Current Issues)
 - ❌ Vue instance conflicts causing runtime errors
 - ❌ jQuery dependency adding 91KB bundle overhead
+- ❌ Material Design Lite deprecated and unmaintained
+- ❌ Vuetify adding 800KB+ bundle size
 - ❌ Scattered business logic mixed with UI concerns  
 - ❌ Difficult to unit test due to tight coupling
-- ❌ Vuetify compatibility issues with Chrome extensions
 - ❌ Hard to extend or modify functionality
 
 ### After (Clean Architecture)
 - ✅ **Separation of Concerns**: Clear boundaries between layers
-- ✅ **Modern Dependencies**: React + Native DOM APIs (no jQuery)
-- ✅ **Reduced Bundle Size**: Eliminated 91KB jQuery overhead
+- ✅ **Modern Dependencies**: React + Ant Design + Native DOM APIs
+- ✅ **Massive Bundle Reduction**: 926KB → 242KB (74% smaller)
+- ✅ **Professional UI**: Enterprise-grade Ant Design components
 - ✅ **Testability**: Each layer independently testable
 - ✅ **Maintainability**: Changes isolated to specific layers
 - ✅ **Extensibility**: Easy to add new features or change implementations
 - ✅ **Reliability**: No framework conflicts, stable React ecosystem
 - ✅ **Type Safety**: Full TypeScript support across all layers
+- ✅ **Future-Proof**: All dependencies actively maintained
 
 ## 🎯 Success Criteria
 
