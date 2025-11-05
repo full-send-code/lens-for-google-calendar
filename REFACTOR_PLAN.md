@@ -96,7 +96,25 @@ src/
 
 ## 🔧 Implementation Phases
 
-### Phase 1: Dependencies & Setup
+### Phase 0: Minimal Working Extension ✅ **COMPLETED**
+**Goal**: Replace Vue with minimal React that just renders "Hello World" in the same location, with zero console errors.
+
+**Manual Testing Checkpoint**: 
+- ✅ Extension loads without console errors
+- ✅ React renders in correct Google Calendar location
+- ✅ No Vue/Vuetify conflicts
+- ✅ Chrome extension APIs working
+- ✅ **VERIFIED**: Logs show successful React mounting
+
+**Tasks**:
+1. ✅ Install React dependencies
+2. ✅ Create minimal React component that renders "Lens Extension Loaded"
+3. ✅ Replace Vue initialization with React rendering
+4. ✅ Remove Vue/Vuetify dependencies and imports
+5. ✅ Test in Chrome: Load unpacked extension, verify no errors in console
+6. ✅ **MANUAL VERIFICATION PASSED** - Ready for Phase 1
+
+### Phase 1: Dependencies & Setup ⭐ **CURRENT PHASE**
 ```bash
 # Install React ecosystem
 npm install react react-dom @types/react @types/react-dom
@@ -108,8 +126,19 @@ npm install antd @ant-design/icons
 npm install --save-dev @testing-library/react @testing-library/jest-dom @testing-library/user-event
 ```
 
+**Manual Testing Checkpoint**:
+- ✅ All dependencies install correctly
+- ✅ Build system works with new dependencies
+- ✅ Extension still loads without errors
+
 ### Phase 2: Core Domain Layer
 Create domain entities and repository interfaces:
+
+**Manual Testing Checkpoint**:
+- ✅ Core entities compile without errors
+- ✅ Repository interfaces are properly typed
+- ✅ No external dependencies in core layer
+- ✅ Unit tests pass for domain entities
 
 **Calendar Entity:**
 ```typescript
@@ -155,6 +184,12 @@ export interface PresetRepository {
 
 ### Phase 3: Use Cases Layer
 Implement business logic without external dependencies:
+
+**Manual Testing Checkpoint**:
+- ✅ Use cases compile and type-check correctly
+- ✅ All use case unit tests pass
+- ✅ Mock repositories work properly in tests
+- ✅ Business logic is isolated from external concerns
 
 ```typescript
 // usecases/ClearCalendars.ts
@@ -208,6 +243,12 @@ export class ApplyPreset {
 ### Phase 4: Infrastructure Layer
 Implement repository interfaces with Google Calendar DOM and Chrome storage:
 
+**Manual Testing Checkpoint**:
+- ✅ GoogleCalendarRepository can find and interact with calendar DOM elements
+- ✅ ChromeStorageRepository can read/write to Chrome storage
+- ✅ Virtual scrolling handling works correctly
+- ✅ **Test on real Google Calendar**: Verify calendar detection and manipulation
+
 ```typescript
 // infrastructure/GoogleCalendarRepository.ts
 export class GoogleCalendarRepository implements CalendarRepository {
@@ -250,6 +291,13 @@ export class ChromeStorageRepository implements PresetRepository {
 ### Phase 5: Presentation Layer
 Create React components and coordinate with use cases:
 
+**Manual Testing Checkpoint**:
+- ✅ React components render without errors
+- ✅ Button clicks trigger correct use cases
+- ✅ UI appears in correct Google Calendar location
+- ✅ **Full functionality test**: Clear, Enable, Preset selection all work
+- ✅ Import/Export functionality works
+
 ```typescript
 // presentation/components/CalendarToolbar.tsx
 export const CalendarToolbar: React.FC = () => {
@@ -286,6 +334,14 @@ export const CalendarToolbar: React.FC = () => {
 
 ### Phase 6: Dependency Injection & Main Entry
 Wire everything together:
+
+**Manual Testing Checkpoint**:
+- ✅ All dependency injection works correctly
+- ✅ Extension loads and initializes properly
+- ✅ **Full regression test**: All original features work exactly as before
+- ✅ **Performance test**: No significant slowdown in calendar operations
+- ✅ **Error handling**: Graceful handling of edge cases
+- ✅ **Final acceptance**: Extension ready for production use
 
 ```typescript
 // main.ts
@@ -379,15 +435,31 @@ describe('CalendarToolbar', () => {
 
 ## 🚀 Next Steps
 
-1. **Install React dependencies** and update build configuration
-2. **Create core domain layer** with entities and repository interfaces
-3. **Implement use cases** with full unit test coverage
-4. **Build infrastructure layer** with Google Calendar DOM integration
-5. **Create React presentation layer** with Ant Design components
-6. **Wire everything together** with dependency injection
-7. **Comprehensive testing** at all layers
-8. **Deploy and validate** functionality matches existing behavior
+### **IMMEDIATE NEXT STEP: Phase 0 Implementation**
+
+1. **Install React dependencies** - `npm install react react-dom @types/react @types/react-dom`
+2. **Create minimal React component** - Simple "Lens Extension Loaded" message
+3. **Replace Vue initialization** - Remove Vue/Vuetify, add React rendering
+4. **Update Vite config** - Remove Vue chunking, add React support
+5. **Manual Chrome test** - Load extension, verify no console errors
+6. **🛑 CHECKPOINT**: Must pass manual testing before proceeding to Phase 1
+
+### **SUBSEQUENT PHASES**:
+1. **Phase 1**: Dependencies & Setup with manual verification
+2. **Phase 2**: Core domain layer with unit tests
+3. **Phase 3**: Use cases with mock testing
+4. **Phase 4**: Infrastructure with Google Calendar integration testing  
+5. **Phase 5**: React presentation layer with UI testing
+6. **Phase 6**: Final integration with full regression testing
+
+### **MANUAL TESTING PROTOCOL**:
+- After each phase: `npm run build`
+- Load unpacked extension in Chrome
+- Navigate to https://calendar.google.com
+- Check console for errors
+- Verify expected behavior
+- ✅ **Phase complete only after manual verification**
 
 ---
 
-*This refactor represents a complete modernization of the extension architecture while preserving all user-facing functionality.*
+*Each phase must pass manual testing in Chrome before proceeding to ensure we maintain a working extension throughout the refactor.*

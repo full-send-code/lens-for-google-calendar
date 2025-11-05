@@ -27,8 +27,7 @@
         "https://calendar.google.com/*"
       ],
       "js": [
-        "src/calendar_manager.ts",
-        "src/inject/inject.ts"
+        "src/react-inject.tsx"
       ]
     }
   ]
