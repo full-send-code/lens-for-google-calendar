@@ -1,4 +1,6 @@
 // Jest setup file for test environment configuration
+import '@testing-library/jest-dom';
+
 // Mock Chrome extension APIs
 (global as any).chrome = {
   runtime: {
@@ -21,6 +23,6 @@
   },
 };
 
-// Mock jQuery globally
+// Mock jQuery globally (for legacy code if needed)
 (global as any).jQuery = jest.fn();
 (global as any).$ = (global as any).jQuery;
