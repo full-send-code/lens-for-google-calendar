@@ -1,3 +1,5 @@
+import logger from './logger';
+
 ;(async function () {
   const $ = function (selector: string, startNode?: Document | Element): Element | null {
     return (startNode || document).querySelector(selector);
@@ -413,7 +415,7 @@
       const valid = await this.ensureValidDOM(cal, opts);
 
       if (!valid) {
-        console.error("Could not find valid DOM node for calendar entry", cal.id, cal);
+        logger.error("Could not find valid DOM node for calendar entry", cal.id, cal);
         return;
       }
 
@@ -441,9 +443,9 @@
       const failed = (this.filter(filterFn) as CalendarList).disabled();
 
       if (failed.length) {
-        console.error("failed to enable calendars:", failed);
+        logger.error("failed to enable calendars:", failed);
 
-        console.log("retrying...");
+        logger.info("retrying...");
         await this.enable(filterFn);
       }
     }
@@ -463,9 +465,9 @@
       const failed = (this.filter(filterFn) as CalendarList).enabled();
 
       if (failed.length) {
-        console.error("failed to disable calendars:", failed);
+        logger.error("failed to disable calendars:", failed);
 
-        console.log("retrying...");
+        logger.info("retrying...");
         await this.disable(filterFn);
       }
     }
@@ -507,7 +509,7 @@
         }
         return element.parentElement as HTMLElement; // there's also a .parentNode
       } catch (e) {
-        console.error("Could not find calendar list scroll container via 'div#drawerMiniMonthNavigator'");
+        logger.error("Could not find calendar list scroll container via 'div#drawerMiniMonthNavigator'");
         throw e;
       }
     }
@@ -691,7 +693,7 @@
     getCalendarsForGroupFilter: function (group_name: string): (c: Calendar) => boolean {
       const ids = CM.groups[group_name.toLowerCase()];
       if (!ids) {
-        console.error("group not found:", group_name);
+        logger.error("group not found:", group_name);
         return () => false;
       }
 
@@ -701,7 +703,7 @@
     getCalendarsNotInGroupFilter: function (group_name: string): (c: Calendar) => boolean {
       const ids = CM.groups[group_name.toLowerCase()];
       if (!ids) {
-        console.error("group not found:", group_name);
+        logger.error("group not found:", group_name);
         return () => false;
       }
 
@@ -724,7 +726,7 @@
       const groups = (CM.groups = CM.groups || {});
       groups.__last_saved = groups.__last_saved || [];
 
-      console.log("deleting calendar group:", group_name, "=>", groups[group_name]);
+      logger.info("deleting calendar group:", group_name, "=>", groups[group_name]);
 
       groups.__last_saved = groups.__last_saved.filter((name) => name !== group_name);
       delete groups[group_name];
@@ -831,7 +833,7 @@
         groups.__last_saved = groups.__last_saved || [];
         groups.__last_saved.push(group_name);
 
-        console.log("saved calendars:", group_name, "=>", groups[group_name]);
+        logger.info("saved calendars:", group_name, "=>", groups[group_name]);
         CM._updated();
         return groups[group_name];
       }, "saveCalendarSelections");
@@ -840,7 +842,7 @@
     restoreCalendarSelections: function (): Promise<void> {
       return CM.performOperation(async () => {
         if (!CM.groups.__last_saved) {
-          console.error("no saved groups");
+          logger.error("no saved groups");
           return;
         }
 
@@ -849,7 +851,7 @@
         if (group_name) {
           await CM.showGroup(group_name);
         } else {
-          console.error("nothing to restore");
+          logger.error("nothing to restore");
         }
       }, "restoreCalendarSelections");
     },
@@ -868,7 +870,7 @@
   const calendars = await CalendarManager.CalendarList.getInstance();
   CalendarManager.calendars = calendars;
 
-  console.log("CalendarManager loaded");
+  logger.info("CalendarManager loaded");
 })();
 
 interface ScanOptions {
@@ -989,7 +991,7 @@ function cm_debug(...args: any[]): void {
     args[0] = `[${args[0]}]`;
   }
   if (cm_debug_enabled) {
-    console.log(...args);
+    logger.debug(args.join(' '));
   }
 }
 

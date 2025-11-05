@@ -1,3 +1,5 @@
+import logger from '../logger';
+
 // Declare global types - must be in a module context
 declare const CalendarManager: any;
 declare const componentHandler: any;
@@ -116,7 +118,7 @@ const CALENDAR_SELECTOR_CONFIG = {
   }
 };
 
-console.log((window as any).CalendarManager && (window as any).CalendarManager.groups);
+logger.debug("CalendarManager groups:", (window as any).CalendarManager && (window as any).CalendarManager.groups);
 
 interface ShortcutText {
   enabled: boolean;
@@ -143,7 +145,7 @@ let vm: any;
 let ui: any;
 function insertUI(insertLoc?: Element): void {
   if (vm) {
-    console.warn('calendar selector menu UI already loaded')
+    logger.warn('calendar selector menu UI already loaded')
   }
 
   $('head').append(
@@ -490,11 +492,11 @@ function insertUI(insertLoc?: Element): void {
   })
 
 
-  console.log('groups in live', CalendarManager.groups)
+  logger.debug('groups in live', CalendarManager.groups)
 
   ui = {
     enable_calendar: async ()=>{
-      console.log('clicked on enable calendar button')
+      logger.debug('clicked on enable calendar button')
       var calendar_name = prompt('Enable calendar by name (case insensitive regex)')
       if(!calendar_name)
         return
@@ -515,7 +517,7 @@ function insertUI(insertLoc?: Element): void {
       storeGroups()
     },
     restore: async ()=>{
-      console.log('clicked on restore button')
+      logger.debug('clicked on restore button')
       await CalendarManager.restoreCalendarSelections()
     },
     clear: async ()=>{
@@ -525,7 +527,7 @@ function insertUI(insertLoc?: Element): void {
       }, 'clear')
     },
     presets_open: async (vm) => {
-      console.log('presets_open', vm)
+      logger.debug('presets_open', vm)
       setTimeout(()=>{ // timeout to allow the menu to be rendered first
         /* console.log(this.$refs.select)*/
         if(vm.$refs.presets_menu.isActive){
@@ -575,7 +577,7 @@ function insertUI(insertLoc?: Element): void {
           ui.presets_open(this)
         },
         select_input: async function(value) {
-          console.log('input', value.text, value)
+          logger.debug('input', value.text, value)
           // console.log(this)
 
           this.presets_menu_open = false
@@ -590,12 +592,12 @@ function insertUI(insertLoc?: Element): void {
           }, 'select_input')
         },
         select_delete: function(item){
-          console.log('DELETE', item.text, item)
+          logger.debug('DELETE', item.text, item)
           const del = confirm('Are you sure you want to delete this preset?')
           if(del){
             setTimeout(() => {
               const group_name = item.text
-              console.log('deleting group', group_name)
+              logger.info('deleting group', group_name)
               CalendarManager.deleteGroup(group_name)
               storeGroups()
             }, 800)
@@ -616,7 +618,7 @@ function insertUI(insertLoc?: Element): void {
       },
       computed: {
         dropdown: function() {
-          console.log('this.groups', this.groups)
+          logger.debug('this.groups', this.groups)
           return Object.keys(this.groups)
             .map(group_name => {
               return {
@@ -856,16 +858,16 @@ function storeGroups(): void {
       if(chrome.runtime.lastError){
         // error handling
         const msg = `Failed to save groups to sync storage: ${chrome.runtime.lastError.message}`
-        console.error(msg)
+        logger.error(msg)
         message(msg)
       } else {
-        console.log('groups saved to storage', Object.keys(groups))
-        console.log(vm)
+        logger.info('groups saved to storage', Object.keys(groups))
+        logger.debug('vm state:', vm)
         message('Presets saved to storage: ' + Object.keys(CalendarManager.exportGroups(false, groups)).join(', '))
       }
     })
   } catch(e) {
-    console.error('Failed to save groups to sync storage: ' + e.message, e)
+    logger.error('Failed to save groups to sync storage: ' + e.message, e)
     message('Failed to save groups to sync storage: ' + e.message)
   }
 }
@@ -877,11 +879,11 @@ function loadGroups(): void {
       if (groups && Object.keys(groups).length > 0) {
         (window as any).CalendarManager.setGroups(groups);
       }
-      console.log("groups loaded from storage", (window as any).CalendarManager.groups);
+      logger.info("groups loaded from storage", (window as any).CalendarManager.groups);
       // message('Groups loaded: ' + Object.keys(CalendarManager.groups).join(', '))
     });
   } catch (e: any) {
-    console.error("Failed to load groups from sync storage: " + e.message);
+    logger.error("Failed to load groups from sync storage: " + e.message);
     setTimeout(() => {
       (window as any).CalendarManager.setGroups({
         __last_saved: ["saved_1523544210288", "saved_1523544212408", "dev group", "qa team", "conference rooms"],
