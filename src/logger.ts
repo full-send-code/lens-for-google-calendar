@@ -1,16 +1,20 @@
-// Logger system for Lens for Google Calendar using loglevel
-import log from 'loglevel';
+import * as log from 'loglevel';
 
-// Configure the logger
-log.setDefaultLevel('info');
+// Configure loglevel for Lens for Google Calendar
+const logger = log.getLogger('LENS');
+logger.setLevel('info'); // Default level
 
-// Create a prefixed logger for this extension
-const logger = {
-    error: (message: string, ...args: any[]) => log.error(`[LENS] ${message}`, ...args),
-    warn: (message: string, ...args: any[]) => log.warn(`[LENS] ${message}`, ...args),
-    info: (message: string, ...args: any[]) => log.info(`[LENS] ${message}`, ...args),
-    debug: (message: string, ...args: any[]) => log.debug(`[LENS] ${message}`, ...args),
-    setLevel: (level: 'error' | 'warn' | 'info' | 'debug') => log.setLevel(level)
+// Add prefix to all log messages
+const originalFactory = logger.methodFactory;
+logger.methodFactory = function (methodName, logLevel, loggerName) {
+  const rawMethod = originalFactory(methodName, logLevel, loggerName);
+  
+  return function (message, ...args) {
+    rawMethod(`[${String(loggerName)}] ${message}`, ...args);
+  };
 };
+
+// Apply the custom method factory
+logger.setLevel(logger.getLevel());
 
 export default logger;

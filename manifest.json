@@ -13,7 +13,7 @@
     "128": "icons/icon128.png"
   },
   "background": {
-    "service_worker": "dist/background.js"
+    "service_worker": "src/background.ts"
   },
   "web_accessible_resources": [
     {
@@ -33,12 +33,12 @@
       "js": [
         "lib/jquery/jquery.min.js",
         "lib/mdl/material.js",
-        "dist/calendar_manager.js",
+        "src/calendar_manager.ts",
         "lib/vue/vue.js",
         "lib/vue/vuetify.js",
         "lib/mousetrap/mousetrap.min.js",
         "lib/mousetrap/mousetrap-global-bind.min.js",
-        "dist/inject/inject.js"
+        "src/inject/inject.ts"
       ]
     }
   ]
