@@ -8,7 +8,15 @@ export default defineConfig({
   ],
   build: {
     sourcemap: true,
-    chunkSizeWarningLimit: 1000 // Increase limit to 1MB to suppress warning
+    chunkSizeWarningLimit: 1000, // Increase limit to 1MB to suppress warning
+    rollupOptions: {
+      output: {
+        // Prevent Vue from being split into multiple chunks to avoid multiple instances
+        manualChunks: {
+          vue: ['vue', 'vuetify']
+        }
+      }
+    }
   },
   define: {
     global: 'globalThis',

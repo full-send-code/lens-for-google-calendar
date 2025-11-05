@@ -5,22 +5,27 @@ import Vuetify from 'vuetify';
 import Mousetrap from 'mousetrap';
 import 'mousetrap/plugins/global-bind/mousetrap-global-bind';
 import 'material-design-lite/material.css';
+import 'material-design-lite/material.js';
 import 'vuetify/dist/vuetify.min.css';
 import './inject.css';
 
-// Make dependencies available globally for the extension
-(window as any).$ = $;
-(window as any).jQuery = $;
-(window as any).Vue = Vue;
-(window as any).Vuetify = Vuetify;
-(window as any).Mousetrap = Mousetrap;
+// Check if Vue is already loaded to prevent multiple instances
+if (!(window as any).Vue) {
+  // Make dependencies available globally for the extension
+  (window as any).$ = $;
+  (window as any).jQuery = $;
+  (window as any).Vue = Vue;
+  (window as any).Vuetify = Vuetify;
+  (window as any).Mousetrap = Mousetrap;
 
-// Initialize Vuetify
-Vue.use(Vuetify);
+  // Initialize Vuetify only once
+  Vue.use(Vuetify);
+} else {
+  logger.warn('Vue already loaded, skipping initialization to prevent multiple instances');
+}
 
 // Declare global types - must be in a module context
 declare const CalendarManager: any;
-declare const componentHandler: any;
 
 if (chrome && chrome.runtime) {
   chrome.runtime.sendMessage({}, function (_response: any) {
@@ -119,9 +124,6 @@ const CALENDAR_SELECTOR_CONFIG = {
   resources: {
     fonts: {
       roboto: 'https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Material+Icons',
-    },
-    vuetify: {
-      css: 'lib/vue/vuetify_scoped.css',
     }
   },
   
@@ -181,7 +183,14 @@ function insertUI(insertLoc?: Element): void {
       <div class="mdl-snackbar__text"></div>
     <button class="mdl-snackbar__action" type="button"></button>
   `)[1]
-  componentHandler.upgradeElements(snackbar)
+  
+  // Safely upgrade MDL elements if componentHandler is available
+  if (typeof (window as any).componentHandler !== 'undefined') {
+    (window as any).componentHandler.upgradeElements(snackbar)
+  } else {
+    logger.warn('componentHandler not available, skipping MDL upgrade')
+  }
+  
   $('body').append(snackbar)
 
 
@@ -822,7 +831,10 @@ function insertUI(insertLoc?: Element): void {
 function makeHTML(str: string): any[] {
   const html = $.parseHTML(str);
   $("*", $(html)).each(function () {
-    (window as any).componentHandler.upgradeElement(this);
+    // Safely upgrade MDL elements if componentHandler is available
+    if (typeof (window as any).componentHandler !== 'undefined') {
+      (window as any).componentHandler.upgradeElement(this);
+    }
   });
   // filter out empty space/text nodes
   const filtered = html.filter((el: any) => el.nodeName != "#text");
