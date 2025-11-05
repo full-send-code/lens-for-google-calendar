@@ -17,7 +17,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["lib/vue/vuetify_scoped.css"],
+      "resources": [],
       "matches": ["https://calendar.google.com/*"]
     }
   ],
@@ -27,13 +27,7 @@
         "https://calendar.google.com/*"
       ],
       "js": [
-        "lib/jquery/jquery.min.js",
-        "lib/mdl/material.js",
         "src/calendar_manager.ts",
-        "lib/vue/vue.js",
-        "lib/vue/vuetify.js",
-        "lib/mousetrap/mousetrap.min.js",
-        "lib/mousetrap/mousetrap-global-bind.min.js",
         "src/inject/inject.ts"
       ]
     }

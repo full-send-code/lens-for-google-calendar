@@ -1,13 +1,26 @@
 import logger from '../logger';
-import '../../lib/mdl/material.css';
+import $ from 'jquery';
+import Vue from 'vue';
+import Vuetify from 'vuetify';
+import Mousetrap from 'mousetrap';
+import 'mousetrap/plugins/global-bind/mousetrap-global-bind';
+import 'material-design-lite/material.css';
+import 'vuetify/dist/vuetify.min.css';
 import './inject.css';
+
+// Make dependencies available globally for the extension
+(window as any).$ = $;
+(window as any).jQuery = $;
+(window as any).Vue = Vue;
+(window as any).Vuetify = Vuetify;
+(window as any).Mousetrap = Mousetrap;
+
+// Initialize Vuetify
+Vue.use(Vuetify);
 
 // Declare global types - must be in a module context
 declare const CalendarManager: any;
 declare const componentHandler: any;
-declare const Vue: any;
-declare const Vuetify: any;
-declare const Mousetrap: any;
 
 if (chrome && chrome.runtime) {
   chrome.runtime.sendMessage({}, function (_response: any) {

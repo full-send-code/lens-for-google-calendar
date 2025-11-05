@@ -1,6 +1,12 @@
 import logger from './logger';
+import $ from 'jquery';
+
+// Make jQuery available globally for the extension
+(window as any).$ = $;
+(window as any).jQuery = $;
 
 ;(async function () {
+  // Custom DOM helpers that return native DOM elements (different from jQuery)
   const $ = function (selector: string, startNode?: Document | Element): Element | null {
     return (startNode || document).querySelector(selector);
   };
