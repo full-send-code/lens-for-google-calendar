@@ -1,4 +1,6 @@
 import logger from '../logger';
+import '../../lib/mdl/material.css';
+import './inject.css';
 
 // Declare global types - must be in a module context
 declare const CalendarManager: any;

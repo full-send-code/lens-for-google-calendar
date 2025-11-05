@@ -26,10 +26,6 @@
       "matches": [
         "https://calendar.google.com/*"
       ],
-      "css": [
-        "lib/mdl/material.css",
-        "src/inject/inject.css"
-      ],
       "js": [
         "lib/jquery/jquery.min.js",
         "lib/mdl/material.js",
