@@ -10,3 +10,6 @@ export { ImportPresetsUseCase } from './ImportPresets.usecase';
 export type { PresetImportData } from './ImportPresets.usecase';
 export { ExportPresetsUseCase } from './ExportPresets.usecase';
 export type { PresetExportData } from './ExportPresets.usecase';
+
+// Dependency Registration
+export { createUseCaseDependencies, type UseCaseDependencies, USECASE_TOKENS } from './dependencies';
