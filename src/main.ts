@@ -9,6 +9,7 @@
 import { createInfrastructureDependencies, type InfrastructureDependencies } from './infrastructure/dependencies';
 import { createUseCaseDependencies, type UseCaseDependencies } from './usecases/dependencies';
 import { createPresentationDependencies, type PresentationDependencies } from './presentation/dependencies';
+import logger from './logger';
 
 /**
  * Complete application dependencies
@@ -62,7 +63,7 @@ export function initializeCalendarExtension(): AppDependencies {
   const dependencies = createAppDependencies();
   
   // Log successful initialization
-  console.log('📅 Lens Calendar Extension initialized with dependencies:', {
+  logger.info('📅 Lens Calendar Extension initialized with dependencies:', {
     repositories: {
       calendar: dependencies.calendarRepository.constructor.name,
       preset: dependencies.presetRepository.constructor.name

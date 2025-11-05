@@ -4,6 +4,7 @@
  */
 
 import { PresetRepository, CalendarPreset, PresetState } from '../core';
+import logger from '../logger';
 
 /**
  * Chrome storage configuration
@@ -86,7 +87,7 @@ export class ChromeStorageRepository implements PresetRepository {
             this.validatePresetData(data, this.getPresetNameFromKey(key));
             presets.push(new CalendarPreset(data.name, data.calendarEmails));
           } catch (error) {
-            console.warn(`Skipping invalid preset data for key ${key}:`, error);
+            logger.warn(`Skipping invalid preset data for key ${key}:`, error);
           }
         }
       }
