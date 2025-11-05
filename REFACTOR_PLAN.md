@@ -80,6 +80,11 @@ src/
 │   │   ├── ErrorOccurred.event.ts             # Error handling event
 │   │   ├── DomainEventPublisher.interface.ts  # Event publisher interface
 │   │   └── DomainEventFactory.factory.ts      # Event creation factory
+│   ├── errors/
+│   │   ├── CalendarNotFound.error.ts          # Calendar not found domain error
+│   │   ├── PresetNotFound.error.ts            # Preset not found domain error
+│   │   ├── InvalidPresetData.error.ts         # Invalid preset data domain error
+│   │   └── index.ts                           # Domain errors exports
 │   └── index.ts                   # Core domain exports
 ├── usecases/                      # Application logic
 │   ├── ClearCalendars.usecase.ts        # Clear all calendars use case
