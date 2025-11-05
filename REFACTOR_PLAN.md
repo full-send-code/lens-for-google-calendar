@@ -60,28 +60,45 @@ Transform the existing Vue.js Chrome extension into a clean, testable architectu
 src/
 ├── core/                          # Domain layer (no external deps)
 │   ├── entities/
-│   │   ├── Calendar.ts           # Calendar domain entity
-│   │   └── Preset.ts             # Preset domain entity
+│   │   ├── Calendar.entity.ts           # Calendar domain entity
+│   │   ├── CalendarState.interface.ts   # Calendar data structure
+│   │   ├── CalendarPreset.entity.ts     # Calendar preset entity
+│   │   └── PresetState.interface.ts     # Preset data structure
 │   ├── repositories/
-│   │   ├── CalendarRepository.ts # Calendar data access interface
-│   │   └── PresetRepository.ts   # Preset storage interface
-│   └── errors/
-│       └── DomainErrors.ts       # Custom error types
+│   │   ├── Calendar.repository.ts       # Calendar repository interface
+│   │   └── Preset.repository.ts         # Preset repository interface
+│   ├── events/
+│   │   ├── DomainEvent.interface.ts           # Base domain event interface
+│   │   ├── CalendarDiscovered.event.ts        # Calendar discovery event
+│   │   ├── CalendarVisibilityChanged.event.ts # Visibility change event
+│   │   ├── CalendarsApplied.event.ts          # Bulk calendar changes
+│   │   ├── PresetSaved.event.ts               # Preset save event
+│   │   ├── PresetLoaded.event.ts              # Preset load event
+│   │   ├── PresetDeleted.event.ts             # Preset deletion event
+│   │   ├── PresetApplied.event.ts             # Preset application event
+│   │   ├── ExtensionInitialized.event.ts      # Extension startup event
+│   │   ├── ErrorOccurred.event.ts             # Error handling event
+│   │   ├── DomainEventPublisher.interface.ts  # Event publisher interface
+│   │   └── DomainEventFactory.factory.ts      # Event creation factory
+│   └── index.ts                   # Core domain exports
 ├── usecases/                      # Application logic
-│   ├── ClearCalendars.ts         # Clear all calendars use case
-│   ├── EnableCalendar.ts         # Enable specific calendar use case
-│   ├── ApplyPreset.ts            # Apply preset use case
-│   ├── ImportPresets.ts          # Import presets use case
-│   └── ExportPresets.ts          # Export presets use case
+│   ├── ClearCalendars.usecase.ts        # Clear all calendars use case
+│   ├── EnableCalendar.usecase.ts        # Enable specific calendar use case
+│   ├── ApplyPreset.usecase.ts           # Apply preset use case
+│   ├── ImportPresets.usecase.ts         # Import presets use case
+│   └── ExportPresets.usecase.ts         # Export presets use case
 ├── infrastructure/                # External integrations
-│   ├── GoogleCalendarRepository.ts # Google Calendar DOM interaction (Native APIs)
-│   ├── ChromeStorageRepository.ts  # Chrome storage implementation
-│   ├── DOMUtils.ts                # Native DOM utility functions (replaces jQuery)
-│   └── JsonImportExport.ts        # JSON import/export implementation
+│   ├── GoogleCalendarRepository.repository.ts # Google Calendar DOM interaction
+│   ├── ChromeStorageRepository.repository.ts  # Chrome storage implementation
+│   ├── DOMUtils.util.ts                       # Native DOM utility functions
+│   └── JsonImportExport.service.ts            # JSON import/export service
 ├── presentation/                  # UI layer
 │   ├── components/               # React components
-│   └── CalendarExtensionApp.ts   # Main presentation coordinator
-└── main.ts                       # Entry point that wires everything together
+│   │   ├── CalendarToolbar.component.tsx
+│   │   ├── PresetSelector.component.tsx
+│   │   └── EnableCalendarModal.component.tsx
+│   └── CalendarExtensionApp.tsx   # Main React app
+└── main.ts                       # Entry point and dependency injection
 ```
 
 ## 📋 Functional Requirements
@@ -175,127 +192,188 @@ npm uninstall jquery @types/jquery vue vuetify material-design-lite
 - ✅ **VERIFIED**: Professional Ant Design component renders correctly
 - ✅ **MANUAL VERIFICATION PASSED** - Ready for Phase 2
 
-### Phase 2: Core Domain Layer ⭐ **CURRENT PHASE**
-Create domain entities and repository interfaces:
+### Phase 2: Core Domain Layer ✅ **COMPLETED**
 
-**Manual Testing Checkpoint**:
+**Files Created:**
+- `src/core/entities/Calendar.entity.ts` - Simple calendar representation
+- `src/core/entities/CalendarState.interface.ts` - Calendar data structure
+- `src/core/entities/CalendarPreset.entity.ts` - Calendar preset entity
+- `src/core/entities/PresetState.interface.ts` - Preset data structure
+- `src/core/repositories/Calendar.repository.ts` - Calendar repository interface
+- `src/core/repositories/Preset.repository.ts` - Preset repository interface
+
+**Domain Events (Individual Files):**
+- `src/core/events/DomainEvent.interface.ts` - Base event interface
+- `src/core/events/CalendarDiscovered.event.ts` - Calendar discovery event
+- `src/core/events/CalendarVisibilityChanged.event.ts` - Visibility change event
+- `src/core/events/CalendarsApplied.event.ts` - Bulk calendar changes event
+- `src/core/events/PresetSaved.event.ts` - Preset save event
+- `src/core/events/PresetLoaded.event.ts` - Preset load event
+- `src/core/events/PresetDeleted.event.ts` - Preset deletion event
+- `src/core/events/PresetApplied.event.ts` - Preset application event
+- `src/core/events/ExtensionInitialized.event.ts` - Extension startup event
+- `src/core/events/ErrorOccurred.event.ts` - Error handling event
+- `src/core/events/DomainEventPublisher.interface.ts` - Event publisher interface
+- `src/core/events/DomainEventFactory.factory.ts` - Event creation factory
+
+**Core Domain Tests (100% Coverage):**
+- `src/core/entities/Calendar.entity.test.ts` - Comprehensive Calendar entity tests
+- `src/core/entities/CalendarPreset.entity.test.ts` - Comprehensive CalendarPreset entity tests  
+- `src/core/events/DomainEventFactory.factory.test.ts` - Complete event factory tests
+
+**🛑 MANDATORY TESTING CHECKPOINT**:
+- ✅ `npm run build` - Build succeeds without errors
+- ✅ `npm test` - All tests pass (100% coverage on core domain)
 - ✅ Core entities compile without errors
 - ✅ Repository interfaces are properly typed
 - ✅ No external dependencies in core layer
-- ✅ Unit tests pass for domain entities
+- ✅ Individual file naming convention followed: `{Entity}.{type}.ts`
+- ✅ Domain events split into individual files: `{EventType}.event.ts`
+- ✅ Clean separation of concerns
+- ✅ Immutable entities with simple state management
+- ✅ **MANUAL CHROME TEST**: Extension still loads without errors
+- ✅ **MANUAL CHROME TEST**: React component still renders correctly
 
-**Calendar Entity:**
-```typescript
-// core/entities/Calendar.ts
-export interface Calendar {
-  id: string;           // Email/address identifier
-  name: string;         // Display name
-  isEnabled: boolean;   // Current checked status
-}
-```
+### Phase 3: Use Cases Layer ⭐ **CURRENT PHASE**
+Implement business logic without external dependencies using the established naming convention:
 
-**Preset Entity:**
-```typescript
-// core/entities/Preset.ts
-export interface Preset {
-  name: string;
-  calendarIds: string[];
-}
+**Files to Create:**
+- `src/usecases/ClearCalendars.usecase.ts` - Clear all calendars business logic
+- `src/usecases/EnableCalendar.usecase.ts` - Enable specific calendar business logic  
+- `src/usecases/ApplyPreset.usecase.ts` - Apply preset business logic
+- `src/usecases/ImportPresets.usecase.ts` - Import presets business logic
+- `src/usecases/ExportPresets.usecase.ts` - Export presets business logic
 
-export interface PresetCollection {
-  [presetName: string]: string[];
-}
-```
-
-**Repository Interfaces:**
-```typescript
-// core/repositories/CalendarRepository.ts
-export interface CalendarRepository {
-  getAllCalendars(): Promise<Calendar[]>;
-  findCalendarById(id: string): Promise<Calendar | null>;
-  updateCalendarStatus(id: string, enabled: boolean): Promise<void>;
-  clearAllCalendars(): Promise<void>;
-}
-
-// core/repositories/PresetRepository.ts  
-export interface PresetRepository {
-  getAllPresets(): Promise<PresetCollection>;
-  savePresets(presets: PresetCollection): Promise<void>;
-  exportPresets(): Promise<string>; // JSON string
-  importPresets(json: string): Promise<void>;
-}
-```
-
-### Phase 3: Use Cases Layer
-Implement business logic without external dependencies:
-
-**Manual Testing Checkpoint**:
+**🛑 MANDATORY TESTING CHECKPOINT**:
+- ✅ `npm run build` - Build succeeds without errors
+- ✅ `npm test` - All tests pass (100% coverage on use cases)
 - ✅ Use cases compile and type-check correctly
-- ✅ All use case unit tests pass
+- ✅ All use case unit tests pass with mocked repositories
 - ✅ Mock repositories work properly in tests
 - ✅ Business logic is isolated from external concerns
+- ✅ Follows naming convention: `{UseCase}.usecase.ts`
+- ✅ Co-located tests: `{UseCase}.usecase.test.ts`
+- ✅ **MANUAL CHROME TEST**: Extension still loads without errors
+- ✅ **MANUAL CHROME TEST**: No regression in existing functionality
+
+**Domain Model (Simplified):**
+```typescript
+// core/entities/CalendarState.interface.ts
+interface CalendarState {
+  email: string;        // Primary identifier (calendar email)
+  name: string;         // Display name
+  isVisible: boolean;   // Current visibility state
+}
+
+// core/entities/PresetState.interface.ts
+interface PresetState {
+  name: string;           // Preset name
+  calendarEmails: string[]; // Array of calendar emails in preset
+  createdAt: Date;       // Creation timestamp
+  lastUsedAt?: Date;     // Last usage timestamp
+}
+```
+
+**Repository Interfaces (Updated Paths):**
+```typescript
+// core/repositories/Calendar.repository.ts
+export interface CalendarRepository {
+  discoverCalendars(): Promise<Calendar[]>;
+  applyCalendarVisibility(calendars: Calendar[]): Promise<void>;
+  getCurrentCalendarStates(): Promise<Calendar[]>;
+}
+
+// core/repositories/Preset.repository.ts  
+export interface PresetRepository {
+  savePreset(preset: CalendarPreset): Promise<void>;
+  loadPreset(name: string): Promise<CalendarPreset | undefined>;
+  getAllPresets(): Promise<CalendarPreset[]>;
+  deletePreset(name: string): Promise<void>;
+  presetExists(name: string): Promise<boolean>;
+}
+```
 
 ```typescript
-// usecases/ClearCalendars.ts
-export class ClearCalendars {
+// usecases/ClearCalendars.usecase.ts
+export class ClearCalendarsUseCase {
   constructor(private calendarRepo: CalendarRepository) {}
   
   async execute(): Promise<void> {
-    await this.calendarRepo.clearAllCalendars();
+    const calendars = await this.calendarRepo.getCurrentCalendarStates();
+    const hiddenCalendars = calendars.map(cal => cal.hide());
+    await this.calendarRepo.applyCalendarVisibility(hiddenCalendars);
   }
 }
 
-// usecases/EnableCalendar.ts
-export class EnableCalendar {
+// usecases/EnableCalendar.usecase.ts
+export class EnableCalendarUseCase {
   constructor(private calendarRepo: CalendarRepository) {}
   
-  async execute(calendarId: string): Promise<void> {
-    const calendar = await this.calendarRepo.findCalendarById(calendarId);
-    if (!calendar) {
-      throw new CalendarNotFoundError(calendarId);
+  async execute(calendarEmail: string): Promise<void> {
+    const calendars = await this.calendarRepo.getCurrentCalendarStates();
+    const targetCalendar = calendars.find(cal => cal.email === calendarEmail);
+    
+    if (!targetCalendar) {
+      throw new CalendarNotFoundError(calendarEmail);
     }
-    await this.calendarRepo.updateCalendarStatus(calendarId, true);
+    
+    const enabledCalendar = targetCalendar.show();
+    await this.calendarRepo.applyCalendarVisibility([enabledCalendar]);
   }
 }
 
-// usecases/ApplyPreset.ts
-export class ApplyPreset {
+// usecases/ApplyPreset.usecase.ts
+export class ApplyPresetUseCase {
   constructor(
     private calendarRepo: CalendarRepository,
     private presetRepo: PresetRepository
   ) {}
   
   async execute(presetName: string): Promise<void> {
-    const presets = await this.presetRepo.getAllPresets();
-    const calendarIds = presets[presetName];
-    
-    if (!calendarIds) {
+    const preset = await this.presetRepo.loadPreset(presetName);
+    if (!preset) {
       throw new PresetNotFoundError(presetName);
     }
     
-    // Clear all calendars first
-    await this.calendarRepo.clearAllCalendars();
+    const availableCalendars = await this.calendarRepo.getCurrentCalendarStates();
+    const updatedCalendars = availableCalendars.map(calendar => {
+      return preset.containsCalendar(calendar.email) 
+        ? calendar.show() 
+        : calendar.hide();
+    });
     
-    // Enable calendars in preset
-    for (const id of calendarIds) {
-      await this.calendarRepo.updateCalendarStatus(id, true);
-    }
+    await this.calendarRepo.applyCalendarVisibility(updatedCalendars);
+    
+    // Mark preset as used
+    const usedPreset = preset.markAsUsed();
+    await this.presetRepo.savePreset(usedPreset);
   }
 }
 ```
 
 ### Phase 4: Infrastructure Layer
-Implement repository interfaces with Google Calendar DOM and Chrome storage:
+Implement repository interfaces with Google Calendar DOM and Chrome storage, following naming convention:
 
-**Manual Testing Checkpoint**:
-- ✅ GoogleCalendarRepository can find and interact with calendar DOM elements
+**Files to Create:**
+- `src/infrastructure/GoogleCalendarRepository.repository.ts` - Google Calendar DOM integration
+- `src/infrastructure/ChromeStorageRepository.repository.ts` - Chrome storage implementation  
+- `src/infrastructure/DOMUtils.util.ts` - Native DOM utility functions
+- `src/infrastructure/JsonImportExport.service.ts` - JSON import/export service
+
+**🛑 MANDATORY TESTING CHECKPOINT**:
+- ✅ `npm run build` - Build succeeds without errors
+- ✅ `npm test` - All tests pass (infrastructure layer tests)
+- ✅ GoogleCalendarRepository can discover and interact with calendar DOM elements
 - ✅ ChromeStorageRepository can read/write to Chrome storage
 - ✅ Native DOM utilities work correctly (no jQuery dependencies)
 - ✅ Virtual scrolling handling works correctly
-- ✅ **Test on real Google Calendar**: Verify calendar detection and manipulation
+- ✅ Follows naming convention: `{Name}.{type}.ts`
+- ✅ Co-located tests: `{Name}.{type}.test.ts`
+- ✅ **MANUAL CHROME TEST ON REAL GOOGLE CALENDAR**: Verify calendar detection and manipulation
+- ✅ **MANUAL CHROME TEST**: Extension functionality works end-to-end
 
 ```typescript
-// infrastructure/DOMUtils.ts
+// infrastructure/DOMUtils.util.ts
 export class DOMUtils {
   static query(selector: string): Element | null {
     return document.querySelector(selector);
@@ -303,14 +381,6 @@ export class DOMUtils {
   
   static queryAll(selector: string): NodeListOf<Element> {
     return document.querySelectorAll(selector);
-  }
-  
-  static addClass(element: Element, className: string): void {
-    element.classList.add(className);
-  }
-  
-  static scrollIntoView(element: Element): void {
-    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
   
   static waitForElement(selector: string, timeout = 5000): Promise<Element> {
@@ -342,88 +412,117 @@ export class DOMUtils {
   }
 }
 
-// infrastructure/GoogleCalendarRepository.ts
+// infrastructure/GoogleCalendarRepository.repository.ts
 export class GoogleCalendarRepository implements CalendarRepository {
-  async getAllCalendars(): Promise<Calendar[]> {
+  async discoverCalendars(): Promise<Calendar[]> {
     // Use native DOM APIs instead of jQuery
     const calendarElements = DOMUtils.queryAll('[data-id][aria-label*="Calendar"]');
-    // Handle virtual scrolling
-    // Extract email IDs and names using native APIs
+    return Array.from(calendarElements).map(element => {
+      // Extract calendar data using native APIs
+      const email = this.extractEmailFromElement(element);
+      const name = this.extractNameFromElement(element);
+      const isVisible = this.extractVisibilityFromElement(element);
+      
+      return new Calendar({ email, name, isVisible });
+    });
   }
   
-  async findCalendarById(id: string): Promise<Calendar | null> {
-    // Scroll through calendar list using native scrolling APIs
-    // Find specific calendar without jQuery
-    const encodedId = btoa(id); // Base64 encode like Google Calendar does
-    const element = DOMUtils.query(`[data-id="${encodedId}"]`);
-    // Return calendar data or null
-  }
-  
-  async updateCalendarStatus(id: string, enabled: boolean): Promise<void> {
-    // Find calendar checkbox using native APIs
-    const calendar = await this.findCalendarById(id);
-    if (calendar) {
-      const checkbox = calendar.querySelector('input[type="checkbox"]') as HTMLInputElement;
-      if (checkbox) {
-        checkbox.checked = enabled;
-        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+  async applyCalendarVisibility(calendars: Calendar[]): Promise<void> {
+    for (const calendar of calendars) {
+      const element = await this.findCalendarElement(calendar.email);
+      if (element) {
+        const checkbox = element.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        if (checkbox && checkbox.checked !== calendar.isVisible) {
+          checkbox.checked = calendar.isVisible;
+          checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        }
       }
     }
   }
 }
 
-// infrastructure/ChromeStorageRepository.ts  
+// infrastructure/ChromeStorageRepository.repository.ts  
 export class ChromeStorageRepository implements PresetRepository {
-  async getAllPresets(): Promise<PresetCollection> {
+  async savePreset(preset: CalendarPreset): Promise<void> {
+    const key = `preset_${preset.name}`;
+    const data = preset.toJSON();
+    
     return new Promise((resolve) => {
-      chrome.storage.sync.get(null, (data) => {
-        // Filter out internal keys and return presets
-        resolve(data);
-      });
+      chrome.storage.sync.set({ [key]: data }, resolve);
     });
   }
   
-  async savePresets(presets: PresetCollection): Promise<void> {
+  async getAllPresets(): Promise<CalendarPreset[]> {
     return new Promise((resolve) => {
-      chrome.storage.sync.set(presets, resolve);
+      chrome.storage.sync.get(null, (data) => {
+        const presets = Object.entries(data)
+          .filter(([key]) => key.startsWith('preset_'))
+          .map(([_, value]) => CalendarPreset.fromJSON(value as PresetState));
+        resolve(presets);
+      });
     });
   }
 }
 ```
 
 ### Phase 5: Presentation Layer
-Create React components and coordinate with use cases:
+Create React components and coordinate with use cases, following naming convention:
 
-**Manual Testing Checkpoint**:
+**Files to Create:**
+- `src/presentation/components/CalendarToolbar.component.tsx` - Main toolbar component
+- `src/presentation/components/PresetSelector.component.tsx` - Preset selection dropdown
+- `src/presentation/components/EnableCalendarModal.component.tsx` - Enable calendar dialog
+- `src/presentation/CalendarExtensionApp.tsx` - Main React application
+
+**🛑 MANDATORY TESTING CHECKPOINT**:
+- ✅ `npm run build` - Build succeeds without errors
+- ✅ `npm test` - All tests pass (React component tests)
 - ✅ React components render without errors
 - ✅ Button clicks trigger correct use cases
 - ✅ UI appears in correct Google Calendar location
-- ✅ **Full functionality test**: Clear, Enable, Preset selection all work
-- ✅ Import/Export functionality works
+- ✅ Follows naming convention: `{Component}.component.tsx`
+- ✅ Co-located tests: `{Component}.component.test.tsx`
+- ✅ **MANUAL CHROME TEST**: Clear, Enable, Preset selection all work
+- ✅ **MANUAL CHROME TEST**: Import/Export functionality works
+- ✅ **MANUAL CHROME TEST**: Professional UI appearance confirmed
 
 ```typescript
-// presentation/components/CalendarToolbar.tsx
+// presentation/components/CalendarToolbar.component.tsx
 import React, { useState } from 'react';
-import { Button, Select, Input, Modal, notification } from 'antd';
+import { Button, Select, notification } from 'antd';
 import { ClearOutlined, PlusOutlined, ImportOutlined, ExportOutlined } from '@ant-design/icons';
 
-export const CalendarToolbar: React.FC = () => {
+interface CalendarToolbarProps {
+  clearCalendarsUseCase: ClearCalendarsUseCase;
+  enableCalendarUseCase: EnableCalendarUseCase;
+  applyPresetUseCase: ApplyPresetUseCase;
+  presets: CalendarPreset[];
+}
+
+export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
+  clearCalendarsUseCase,
+  enableCalendarUseCase, 
+  applyPresetUseCase,
+  presets
+}) => {
   const [enableInputVisible, setEnableInputVisible] = useState(false);
-  const [presets, setPresets] = useState<string[]>([]);
   
   const handleClear = async () => {
-    await clearCalendarsUseCase.execute();
-    notification.success({ message: 'All calendars cleared' });
-  };
-  
-  const handleEnable = async (calendarId: string) => {
-    await enableCalendarUseCase.execute(calendarId);
-    notification.success({ message: `Calendar ${calendarId} enabled` });
+    try {
+      await clearCalendarsUseCase.execute();
+      notification.success({ message: 'All calendars cleared' });
+    } catch (error) {
+      notification.error({ message: 'Failed to clear calendars' });
+    }
   };
   
   const handlePresetSelect = async (presetName: string) => {
-    await applyPresetUseCase.execute(presetName);
-    notification.success({ message: `Applied preset: ${presetName}` });
+    try {
+      await applyPresetUseCase.execute(presetName);
+      notification.success({ message: `Applied preset: ${presetName}` });
+    } catch (error) {
+      notification.error({ message: `Failed to apply preset: ${presetName}` });
+    }
   };
   
   return (
@@ -439,52 +538,91 @@ export const CalendarToolbar: React.FC = () => {
         style={{ minWidth: 120 }}
         onChange={handlePresetSelect}
       >
-        {presets.map(name => (
-          <Select.Option key={name} value={name}>{name}</Select.Option>
+        {presets.map(preset => (
+          <Select.Option key={preset.name} value={preset.name}>
+            {preset.name}
+          </Select.Option>
         ))}
       </Select>
       <Button icon={<ImportOutlined />}>Import</Button>
       <Button icon={<ExportOutlined />}>Export</Button>
       
-      <Modal
-        title="Enable Calendar"
-        open={enableInputVisible}
+      <EnableCalendarModal
+        visible={enableInputVisible}
         onCancel={() => setEnableInputVisible(false)}
-        onOk={() => {/* handle enable */}}
-      >
-        <Input placeholder="Enter calendar email address" />
-      </Modal>
+        enableCalendarUseCase={enableCalendarUseCase}
+      />
     </div>
   );
 };
 ```
 
 ### Phase 6: Dependency Injection & Main Entry
-Wire everything together:
+Wire everything together with proper dependency injection:
 
-**Manual Testing Checkpoint**:
+**Files to Update/Create:**
+- `src/main.ts` - Entry point with dependency injection container
+- `src/react-inject.tsx` - React injection logic (update to use DI)
+
+**🛑 MANDATORY TESTING CHECKPOINT**:
+- ✅ `npm run build` - Build succeeds without errors
+- ✅ `npm test` - All tests pass (100% test coverage across all layers)
 - ✅ All dependency injection works correctly
 - ✅ Extension loads and initializes properly
-- ✅ **Full regression test**: All original features work exactly as before
-- ✅ **Performance test**: No significant slowdown in calendar operations
-- ✅ **Error handling**: Graceful handling of edge cases
-- ✅ **Final acceptance**: Extension ready for production use
+- ✅ **MANUAL CHROME TEST**: Full regression test - All original features work exactly as before
+- ✅ **MANUAL CHROME TEST**: Performance test - No significant slowdown in calendar operations
+- ✅ **MANUAL CHROME TEST**: Error handling - Graceful handling of edge cases
+- ✅ **MANUAL CHROME TEST**: Final acceptance - Extension ready for production use
+- ✅ **FINAL BUILD**: Create production-ready extension package
 
 ```typescript
-// main.ts
+// main.ts - Dependency Injection Container
+import { CalendarRepository, PresetRepository } from './core';
+import { GoogleCalendarRepository } from './infrastructure/GoogleCalendarRepository.repository';
+import { ChromeStorageRepository } from './infrastructure/ChromeStorageRepository.repository';
+import { ClearCalendarsUseCase } from './usecases/ClearCalendars.usecase';
+import { EnableCalendarUseCase } from './usecases/EnableCalendar.usecase';
+import { ApplyPresetUseCase } from './usecases/ApplyPreset.usecase';
+import { CalendarExtensionApp } from './presentation/CalendarExtensionApp';
+import { createRoot } from 'react-dom/client';
+
 // Initialize repositories
-const calendarRepo = new GoogleCalendarRepository();
-const presetRepo = new ChromeStorageRepository();
+const calendarRepo: CalendarRepository = new GoogleCalendarRepository();
+const presetRepo: PresetRepository = new ChromeStorageRepository();
 
 // Initialize use cases
-const clearCalendarsUseCase = new ClearCalendars(calendarRepo);
-const enableCalendarUseCase = new EnableCalendar(calendarRepo);
-const applyPresetUseCase = new ApplyPreset(calendarRepo, presetRepo);
+const clearCalendarsUseCase = new ClearCalendarsUseCase(calendarRepo);
+const enableCalendarUseCase = new EnableCalendarUseCase(calendarRepo);
+const applyPresetUseCase = new ApplyPresetUseCase(calendarRepo, presetRepo);
 
-// Initialize React app
-const container = createExtensionContainer();
-const root = createRoot(container);
-root.render(<CalendarExtensionApp />);
+// Initialize React app with dependencies
+export function initializeExtension() {
+  const container = createExtensionContainer();
+  const root = createRoot(container);
+  
+  root.render(
+    <CalendarExtensionApp
+      clearCalendarsUseCase={clearCalendarsUseCase}
+      enableCalendarUseCase={enableCalendarUseCase}
+      applyPresetUseCase={applyPresetUseCase}
+      presetRepository={presetRepo}
+    />
+  );
+}
+
+function createExtensionContainer(): HTMLElement {
+  // Find Google Calendar header and inject our container
+  const header = document.querySelector('header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)');
+  if (!header) {
+    throw new Error('Google Calendar header not found');
+  }
+  
+  const container = document.createElement('div');
+  container.id = 'lens-calendar-extension';
+  header.appendChild(container);
+  
+  return container;
+}
 ```
 
 ## 🧪 Testing Strategy
@@ -496,40 +634,124 @@ root.render(<CalendarExtensionApp />);
 - **Components**: Test with React Testing Library
 
 ### Test Structure
+### Test Structure (Co-located with Source Files)
 ```
-tests/
-├── unit/
-│   ├── core/
-│   ├── usecases/
-│   ├── infrastructure/
-│   └── presentation/
-└── integration/
-    └── extension-workflow.test.ts
+src/
+├── core/
+│   ├── entities/
+│   │   ├── Calendar.entity.ts
+│   │   ├── Calendar.entity.test.ts              # 100% coverage tests
+│   │   ├── CalendarState.interface.ts
+│   │   ├── CalendarPreset.entity.ts
+│   │   ├── CalendarPreset.entity.test.ts        # 100% coverage tests
+│   │   └── PresetState.interface.ts
+│   ├── repositories/
+│   │   ├── Calendar.repository.ts
+│   │   └── Preset.repository.ts
+│   ├── events/
+│   │   ├── DomainEvent.interface.ts
+│   │   ├── CalendarDiscovered.event.ts
+│   │   ├── CalendarVisibilityChanged.event.ts
+│   │   ├── CalendarsApplied.event.ts
+│   │   ├── PresetSaved.event.ts
+│   │   ├── PresetLoaded.event.ts
+│   │   ├── PresetDeleted.event.ts
+│   │   ├── PresetApplied.event.ts
+│   │   ├── ExtensionInitialized.event.ts
+│   │   ├── ErrorOccurred.event.ts
+│   │   ├── DomainEventPublisher.interface.ts
+│   │   ├── DomainEventFactory.factory.ts
+│   │   └── DomainEventFactory.factory.test.ts   # 100% coverage tests
+│   └── index.ts
+├── usecases/
+│   ├── ClearCalendars.usecase.ts
+│   ├── ClearCalendars.usecase.test.ts           # Co-located tests
+│   ├── EnableCalendar.usecase.ts
+│   ├── EnableCalendar.usecase.test.ts           # Co-located tests
+│   ├── ApplyPreset.usecase.ts
+│   ├── ApplyPreset.usecase.test.ts              # Co-located tests
+│   ├── ImportPresets.usecase.ts
+│   ├── ImportPresets.usecase.test.ts            # Co-located tests
+│   └── ExportPresets.usecase.ts
+│   └── ExportPresets.usecase.test.ts            # Co-located tests
+├── infrastructure/
+│   ├── GoogleCalendarRepository.repository.ts
+│   ├── GoogleCalendarRepository.repository.test.ts  # Co-located tests
+│   ├── ChromeStorageRepository.repository.ts
+│   ├── ChromeStorageRepository.repository.test.ts   # Co-located tests
+│   ├── DOMUtils.util.ts
+│   ├── DOMUtils.util.test.ts                    # Co-located tests
+│   └── JsonImportExport.service.ts
+│   └── JsonImportExport.service.test.ts         # Co-located tests
+├── presentation/
+│   ├── components/
+│   │   ├── CalendarToolbar.component.tsx
+│   │   ├── CalendarToolbar.component.test.tsx   # Co-located tests
+│   │   ├── PresetSelector.component.tsx
+│   │   ├── PresetSelector.component.test.tsx    # Co-located tests
+│   │   ├── EnableCalendarModal.component.tsx
+│   │   └── EnableCalendarModal.component.test.tsx # Co-located tests
+│   └── CalendarExtensionApp.tsx
+│   └── CalendarExtensionApp.test.tsx            # Co-located tests
+└── main.ts
+└── main.test.ts                                 # Co-located tests
 ```
 
 ### Example Tests
 ```typescript
-// tests/unit/usecases/ClearCalendars.test.ts
-describe('ClearCalendars', () => {
+// tests/unit/usecases/ClearCalendars.usecase.test.ts
+describe('ClearCalendarsUseCase', () => {
   it('should clear all calendars through repository', async () => {
     const mockRepo = createMockCalendarRepository();
-    const useCase = new ClearCalendars(mockRepo);
+    const mockCalendars = [
+      new Calendar({ email: 'test@example.com', name: 'Test', isVisible: true })
+    ];
+    mockRepo.getCurrentCalendarStates.mockResolvedValue(mockCalendars);
     
+    const useCase = new ClearCalendarsUseCase(mockRepo);
     await useCase.execute();
     
-    expect(mockRepo.clearAllCalendars).toHaveBeenCalledOnce();
+    expect(mockRepo.applyCalendarVisibility).toHaveBeenCalledWith([
+      expect.objectContaining({ isVisible: false })
+    ]);
   });
 });
 
-// tests/unit/presentation/CalendarToolbar.test.tsx
+// tests/unit/presentation/components/CalendarToolbar.component.test.tsx
 describe('CalendarToolbar', () => {
   it('should call clear use case when Clear button clicked', async () => {
-    const mockClearUseCase = jest.fn();
-    render(<CalendarToolbar clearUseCase={mockClearUseCase} />);
+    const mockClearUseCase = { execute: jest.fn() };
+    const mockEnableUseCase = { execute: jest.fn() };
+    const mockApplyUseCase = { execute: jest.fn() };
+    
+    render(
+      <CalendarToolbar 
+        clearCalendarsUseCase={mockClearUseCase}
+        enableCalendarUseCase={mockEnableUseCase}
+        applyPresetUseCase={mockApplyUseCase}
+        presets={[]}
+      />
+    );
     
     fireEvent.click(screen.getByText('Clear'));
     
     expect(mockClearUseCase.execute).toHaveBeenCalled();
+  });
+});
+
+// tests/unit/core/entities/Calendar.entity.test.ts
+describe('Calendar Entity', () => {
+  it('should toggle visibility correctly', () => {
+    const calendar = new Calendar({ 
+      email: 'test@example.com', 
+      name: 'Test', 
+      isVisible: true 
+    });
+    
+    const toggled = calendar.toggle();
+    
+    expect(toggled.isVisible).toBe(false);
+    expect(calendar.isVisible).toBe(true); // Original unchanged
   });
 });
 ```
