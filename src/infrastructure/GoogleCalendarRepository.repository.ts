@@ -151,6 +151,9 @@ export class GoogleCalendarRepository implements CalendarRepository {
       
       logger.info('Virtual scroll complete, now searching for calendar containers...');
       
+      // Try to expand collapsed sections before searching
+      await this.expandCollapsedSections();
+      
       // Search for container elements with various selectors
       const containerSelectors = [
         '[aria-label*="My calendars" i]',
@@ -173,6 +176,12 @@ export class GoogleCalendarRepository implements CalendarRepository {
               !containers.includes(element)) {
             containers.push(element);
             logger.info(`Found container: ${element.getAttribute('aria-label')}`);
+            
+            // If this is the "Other calendars" container, try to scroll it specifically
+            if (label.includes('other')) {
+              logger.info('Found "Other calendars" container, performing specific scroll...');
+              await this.scrollToDiscoverAllCalendars(element);
+            }
           }
         }
       }
@@ -315,6 +324,47 @@ export class GoogleCalendarRepository implements CalendarRepository {
       if (elements.length > 0) {
         logger.info(`Found ${elements.length} calendar elements in container using selector: ${selector}`);
         return elements;
+      }
+    }
+
+    // Special handling for "Other calendars" - look in the entire document tree after this container
+    if (containerLabel.toLowerCase().includes('other')) {
+      logger.debug('Special handling for "Other calendars" - searching globally after expansion');
+      
+      // Wait a moment for any expansion to complete
+      setTimeout(() => {}, 100);
+      
+      // Look for all calendar elements globally and try to identify which ones belong to "Other calendars"
+      const allCalendarElements = this.getCalendarElements();
+      logger.debug(`Found ${allCalendarElements.length} total calendar elements globally`);
+      
+      // Filter out elements that we know belong to "My calendars" (emails ending in gmail.com, birthdays, tasks)
+      const otherCalendarElements = allCalendarElements.filter(element => {
+        const email = this.extractCalendarEmail(element);
+        if (!email) return false;
+        
+        // These patterns typically belong to "My calendars"
+        const myCalendarPatterns = [
+          /@gmail\.com$/,
+          /^birthdays@/,
+          /^tasks@/,
+          /@group\.calendar\.google\.com$/ // This might be in either section, but let's check context
+        ];
+        
+        // If it matches "My calendars" patterns, it's probably not in "Other calendars"
+        const isMyCalendar = myCalendarPatterns.some(pattern => pattern.test(email));
+        
+        if (!isMyCalendar) {
+          logger.debug(`Potential "Other calendar" found: ${email}`);
+          return true;
+        }
+        
+        return false;
+      });
+      
+      if (otherCalendarElements.length > 0) {
+        logger.info(`Found ${otherCalendarElements.length} potential "Other calendars" elements`);
+        return otherCalendarElements;
       }
     }
 
@@ -591,6 +641,59 @@ export class GoogleCalendarRepository implements CalendarRepository {
     }
 
     return null;
+  }
+
+  /**
+   * Try to expand collapsed calendar sections (like "Other calendars")
+   */
+  private async expandCollapsedSections(): Promise<void> {
+    try {
+      logger.info('Looking for collapsed calendar sections to expand...');
+      
+      // Look for expand/collapse buttons or clickable headers
+      const expandSelectors = [
+        '[aria-label*="Other calendars" i][role="button"]',
+        '[aria-label*="Other calendars" i] button',
+        '[aria-expanded="false"]',
+        'button[aria-expanded="false"]',
+        '[role="button"][aria-expanded="false"]'
+      ];
+      
+      for (const selector of expandSelectors) {
+        const elements = Array.from(document.querySelectorAll(selector));
+        for (const element of elements) {
+          const ariaLabel = element.getAttribute('aria-label')?.toLowerCase() || '';
+          const textContent = element.textContent?.toLowerCase() || '';
+          
+          // Check if this looks like a calendar section that might be collapsed
+          if ((ariaLabel.includes('calendar') || textContent.includes('calendar')) &&
+              (ariaLabel.includes('other') || textContent.includes('other'))) {
+            
+            logger.info(`Attempting to expand collapsed section: ${ariaLabel || textContent}`);
+            
+            // Try clicking to expand
+            if (element instanceof HTMLElement) {
+              element.click();
+              await this.delay(500); // Wait for expansion animation
+            }
+          }
+        }
+      }
+      
+      // Also look for chevron/arrow icons that might indicate collapsed sections
+      const chevronElements = Array.from(document.querySelectorAll('[aria-label*="Other calendars" i] svg, [aria-label*="Other calendars" i] [role="img"]'));
+      for (const chevron of chevronElements) {
+        const parentButton = chevron.closest('button') || chevron.closest('[role="button"]');
+        if (parentButton && parentButton instanceof HTMLElement) {
+          logger.info('Found potential expand button with chevron, clicking...');
+          parentButton.click();
+          await this.delay(500);
+        }
+      }
+      
+    } catch (error) {
+      logger.warn('Error expanding collapsed sections:', error);
+    }
   }
 
   /**
