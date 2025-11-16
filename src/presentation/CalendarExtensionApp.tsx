@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { ConfigProvider, theme, notification } from 'antd';
 import { LensHeaderButton } from './components/CalendarToolbar.component';
-import logger from '../logger';
+import logger from '../infrastructure/logger';
 import type { 
   ClearCalendarsUseCase,
   EnableCalendarUseCase,

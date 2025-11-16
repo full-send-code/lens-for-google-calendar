@@ -53,30 +53,56 @@ export class GoogleCalendarRepository implements CalendarRepository {
     try {
       logger.info('Starting calendar discovery...');
       
-      // Wait for calendar list to be available
-      const calendarList = await this.waitForCalendarList();
-      logger.info('Calendar list found:', calendarList);
-      
-      // Scroll through virtual list to discover all calendars
-      await this.scrollToDiscoverAllCalendars(calendarList);
-      
-      // Extract calendar data from DOM
-      const calendarElements = this.getCalendarElements();
-      logger.info(`Found ${calendarElements.length} calendar elements to process`);
+      // Find all calendar containers (This already handles virtual scrolling)
+      const calendarContainers = await this.findAllCalendarContainers();
+      logger.info(`Found ${calendarContainers.length} calendar containers`);
       
       const calendars: Calendar[] = [];
 
-      for (const element of calendarElements) {
-        try {
-          const calendarData = this.extractCalendarData(element);
-          if (calendarData) {
-            calendars.push(new Calendar(calendarData));
-            logger.info(`Successfully extracted calendar: ${calendarData.name} (${calendarData.email})`);
-          } else {
-            logger.info('Failed to extract calendar data from element:', element);
+      // Process each calendar container
+      for (const container of calendarContainers) {
+        const containerLabel = container.getAttribute('aria-label') || 'Unknown';
+        logger.info(`Processing container: ${containerLabel}`);
+        
+        // Note: Virtual scrolling is already done in findAllCalendarContainers()
+        // Extract calendar data from this container
+        const calendarElements = this.getCalendarElementsInContainer(container);
+        logger.info(`Found ${calendarElements.length} calendar elements in container: ${containerLabel}`);
+        
+        for (const element of calendarElements) {
+          try {
+            const calendarData = this.extractCalendarData(element);
+            if (calendarData) {
+              calendars.push(new Calendar(calendarData));
+              logger.info(`Successfully extracted calendar: ${calendarData.name} (${calendarData.email})`);
+            } else {
+              logger.info('Failed to extract calendar data from element:', element);
+            }
+          } catch (error) {
+            logger.warn('Failed to extract calendar data from element:', element, error);
           }
-        } catch (error) {
-          logger.warn('Failed to extract calendar data from element:', element, error);
+        }
+      }
+
+      // If no calendars found in containers, fall back to global search
+      // (Virtual scrolling has already been performed, so all calendars should be rendered)
+      if (calendars.length === 0) {
+        logger.info('No calendars found in containers, falling back to global search after virtual scroll');
+        const globalElements = this.getCalendarElements();
+        logger.info(`Found ${globalElements.length} calendar elements globally`);
+        
+        for (const element of globalElements) {
+          try {
+            const calendarData = this.extractCalendarData(element);
+            if (calendarData) {
+              calendars.push(new Calendar(calendarData));
+              logger.info(`Successfully extracted calendar: ${calendarData.name} (${calendarData.email})`);
+            } else {
+              logger.info('Failed to extract calendar data from element:', element);
+            }
+          } catch (error) {
+            logger.warn('Failed to extract calendar data from element:', element, error);
+          }
         }
       }
 
@@ -106,6 +132,66 @@ export class GoogleCalendarRepository implements CalendarRepository {
    */
   async getCurrentCalendarStates(): Promise<Calendar[]> {
     return this.discoverCalendars();
+  }
+
+  /**
+   * Find all calendar containers (My calendars, Other calendars, etc.)
+   * Also handles virtual scrolling to ensure all calendars are rendered
+   */
+  private async findAllCalendarContainers(): Promise<Element[]> {
+    try {
+      logger.info('Finding calendar containers...');
+      
+      // First, wait for the main calendar list to be available
+      const calendarList = await this.waitForCalendarList();
+      logger.info('Found main calendar list, performing virtual scroll to load all calendars...');
+      
+      // Perform virtual scrolling on the main calendar list to ensure all calendars are rendered
+      await this.scrollToDiscoverAllCalendars(calendarList);
+      
+      logger.info('Virtual scroll complete, now searching for calendar containers...');
+      
+      // Search for container elements with various selectors
+      const containerSelectors = [
+        '[aria-label*="My calendars" i]',
+        '[aria-label*="Other calendars" i]', 
+        '[aria-label*="calendars" i]',
+        '[role="group"][aria-label]',
+        '[role="region"][aria-label]'
+      ];
+      
+      const containers: Element[] = [];
+      
+      for (const selector of containerSelectors) {
+        const elements = Array.from(document.querySelectorAll(selector));
+        for (const element of elements) {
+          const label = element.getAttribute('aria-label')?.toLowerCase() || '';
+          // Filter out non-calendar containers
+          if (label.includes('calendar') && 
+              !label.includes('add') && 
+              !label.includes('create') &&
+              !containers.includes(element)) {
+            containers.push(element);
+            logger.info(`Found container: ${element.getAttribute('aria-label')}`);
+          }
+        }
+      }
+      
+      if (containers.length === 0) {
+        logger.info('No specific containers found, using main calendar list as fallback');
+        containers.push(calendarList);
+      }
+      
+      logger.info(`Found ${containers.length} calendar containers`);
+      return containers;
+      
+    } catch (error) {
+      logger.warn('Error finding calendar containers:', error);
+      // Fallback to a dummy container that will trigger global search
+      const dummyContainer = document.createElement('div');
+      dummyContainer.setAttribute('aria-label', 'Global Search Fallback');
+      return [dummyContainer];
+    }
   }
 
   /**
@@ -203,7 +289,96 @@ export class GoogleCalendarRepository implements CalendarRepository {
   }
 
   /**
-   * Get all calendar elements from DOM
+   * Get calendar elements within a specific container
+   */
+  private getCalendarElementsInContainer(container: Element): Element[] {
+    const containerLabel = container.getAttribute('aria-label') || 'Unknown';
+    logger.debug(`Searching for calendar elements in container: ${containerLabel}`);
+    
+    // Skip "Add other calendars" container as it's just a button, not a calendar list
+    if (containerLabel.toLowerCase().includes('add other calendars')) {
+      logger.debug('Skipping "Add other calendars" container - it\'s not a calendar list');
+      return [];
+    }
+    
+    const selectors = [
+      GoogleCalendarRepository.SELECTORS.CALENDAR_ITEM,
+      GoogleCalendarRepository.SELECTORS.CALENDAR_ITEM_ALT,
+      GoogleCalendarRepository.SELECTORS.CALENDAR_ITEM_CHECKBOX,
+      GoogleCalendarRepository.SELECTORS.CALENDAR_ITEM_GENERIC
+    ];
+
+    // First, try to find calendar elements within this specific container
+    for (const selector of selectors) {
+      const elements = Array.from(container.querySelectorAll(selector));
+      logger.debug(`Selector ${selector} found ${elements.length} elements in container`);
+      if (elements.length > 0) {
+        logger.info(`Found ${elements.length} calendar elements in container using selector: ${selector}`);
+        return elements;
+      }
+    }
+
+    // If no direct children found, the calendar elements might be in a sibling or nearby container
+    // Look for calendar elements near this container (within the same parent)
+    const parentContainer = container.parentElement;
+    if (parentContainer) {
+      logger.debug('Searching in parent container for calendar elements near this section');
+      
+      for (const selector of selectors) {
+        const nearbyElements = Array.from(parentContainer.querySelectorAll(selector));
+        if (nearbyElements.length > 0) {
+          // Filter to elements that are logically associated with this container
+          const relevantElements = nearbyElements.filter(element => {
+            // Check if element is after this container in DOM order
+            const containerPosition = Array.from(parentContainer.children).indexOf(container);
+            const elementPosition = this.findElementPositionInParent(element, parentContainer);
+            return elementPosition > containerPosition;
+          });
+          
+          if (relevantElements.length > 0) {
+            logger.info(`Found ${relevantElements.length} calendar elements near container using selector: ${selector}`);
+            return relevantElements;
+          }
+        }
+      }
+    }
+
+    // If no elements found with specific selectors, try to find any checkboxes within this container
+    const checkboxes = Array.from(container.querySelectorAll('input[type="checkbox"]'));
+    logger.debug(`Found ${checkboxes.length} total checkboxes in container as fallback`);
+    
+    // Filter to likely calendar checkboxes (ones with nearby text containing calendar info)
+    const calendarCheckboxes = checkboxes.filter(checkbox => {
+      const parent = checkbox.closest('div');
+      if (!parent) return false;
+      
+      const text = parent.textContent?.toLowerCase() || '';
+      // Look for common calendar patterns
+      return text.includes('@') || text.includes('calendar') || text.includes('gmail');
+    });
+
+    logger.debug(`Found ${calendarCheckboxes.length} likely calendar checkboxes in container`);
+    const result = calendarCheckboxes.map(cb => cb.closest('div')).filter(Boolean) as Element[];
+    
+    return result;
+  }
+
+  /**
+   * Find the position of an element within a parent container
+   */
+  private findElementPositionInParent(element: Element, parentContainer: Element): number {
+    let currentElement: Element | null = element;
+    while (currentElement && currentElement.parentElement !== parentContainer) {
+      currentElement = currentElement.parentElement;
+    }
+    if (currentElement) {
+      return Array.from(parentContainer.children).indexOf(currentElement);
+    }
+    return -1;
+  }
+
+  /**
+   * Get all calendar elements from DOM (legacy method - kept for backward compatibility)
    */
   private getCalendarElements(): Element[] {
     const selectors = [
