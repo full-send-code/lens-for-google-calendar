@@ -515,8 +515,8 @@ export class GoogleCalendarRepository implements CalendarRepository {
       // Try to decode as Base64
       try {
         const decoded = atob(dataId);
+        logger.debug('Decoded Base64 data-id:', dataId, '->', decoded);
         if (emailRegex.test(decoded)) {
-          logger.debug('Decoded Base64 data-id:', dataId, '->', decoded);
           return decoded;
         }
       } catch (error) {
@@ -524,8 +524,13 @@ export class GoogleCalendarRepository implements CalendarRepository {
         logger.debug('Failed to decode data-id as Base64:', dataId);
       }
       
-      // If data-id exists but doesn't decode to a valid email, 
-      // continue to other methods instead of returning null
+      // If data-id exists but doesn't decode to a valid email format,
+      // it might still be a valid calendar identifier (like for Holidays)
+      // Use the data-id as the email identifier even if it doesn't look like an email
+      if (dataId.length > 0) {
+        logger.debug('Using data-id as calendar identifier:', dataId);
+        return dataId;
+      }
     }
 
     // Try to find email in aria-label or title
@@ -536,6 +541,19 @@ export class GoogleCalendarRepository implements CalendarRepository {
       
       const emailMatch = (ariaLabel + ' ' + title).match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
       if (emailMatch) return emailMatch[1];
+    }
+
+    // If no email found but we have a checkbox element, try to generate an ID from the aria-label
+    const checkbox = DOMUtils.query<HTMLInputElement>('input[type="checkbox"]', element);
+    if (checkbox) {
+      const ariaLabel = checkbox.getAttribute('aria-label') || '';
+      if (ariaLabel) {
+        // Generate a pseudo-email from the aria-label for calendars like "Holidays in United States"
+        const cleanLabel = ariaLabel.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '.');
+        const pseudoEmail = `${cleanLabel}@google.calendar`;
+        logger.debug('Generated pseudo-email from aria-label:', ariaLabel, '->', pseudoEmail);
+        return pseudoEmail;
+      }
     }
 
     return null;
