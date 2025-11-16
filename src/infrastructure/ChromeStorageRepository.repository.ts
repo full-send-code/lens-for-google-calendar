@@ -4,7 +4,7 @@
  */
 
 import { PresetRepository, CalendarPreset, PresetState } from '../core';
-import logger from '../logger';
+import logger from './logger';
 
 /**
  * Chrome storage configuration

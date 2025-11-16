@@ -5,7 +5,7 @@
 
 import { CalendarRepository, Calendar, CalendarState } from '../core';
 import { DOMUtils } from './DOMUtils.util';
-import logger from '../logger';
+import logger from './logger';
 
 /**
  * Implementation of CalendarRepository for Google Calendar DOM interaction

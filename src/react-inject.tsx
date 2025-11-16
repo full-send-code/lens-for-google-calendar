@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import logger from './logger';
+import logger from './infrastructure/logger';
 import { CalendarExtensionApp } from './presentation/CalendarExtensionApp';
 import { initializeCalendarExtension } from './main';
 

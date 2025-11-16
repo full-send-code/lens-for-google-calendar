@@ -1,5 +1,14 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
+// Mock Chrome APIs
+(global as any).chrome = {
+  runtime: {
+    onMessage: {
+      addListener: jest.fn()
+    }
+  }
+};
+
 describe('background.ts', () => {
   let messageListener: (
     message: any,
@@ -17,7 +26,7 @@ describe('background.ts', () => {
     });
 
     // Import the background script (this will execute it and register the listener)
-    require('../src/background');
+    require('./background');
   });
 
   it('should register a message listener', () => {

@@ -9,7 +9,7 @@
 import { createInfrastructureDependencies, type InfrastructureDependencies } from './infrastructure/dependencies';
 import { createUseCaseDependencies, type UseCaseDependencies } from './usecases/dependencies';
 import { createPresentationDependencies, type PresentationDependencies } from './presentation/dependencies';
-import logger from './logger';
+import logger from './infrastructure/logger';
 
 /**
  * Complete application dependencies
