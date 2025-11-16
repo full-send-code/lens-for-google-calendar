@@ -551,26 +551,34 @@ describe('GoogleCalendarRepository', () => {
       checkbox2.type = 'checkbox';
       checkbox2.checked = true; // Currently different from desired state
       element2.appendChild(checkbox2);
+
+      // Clear any cached data before test
+      (repository as any).clearCache();
       
-      // Mock discovery for setCalendarVisibility -> findCalendarElementByEmail -> discoverCalendars
+      // Mock discovery for the initial calendar discovery (cached)
       mockDOMUtils.waitForElementMutation.mockResolvedValue(document.createElement('div'));
       mockDOMUtils.queryAll.mockReturnValue([element1, element2]);
       document.querySelectorAll = jest.fn().mockReturnValue([]);
       
-      // Mock DOMUtils.query calls in sequence
+      // Mock DOMUtils.query calls for discovery and element finding
       mockDOMUtils.query
         .mockReturnValueOnce(document.createElement('div')) // getScrollContainer for discovery
         .mockReturnValueOnce(null) // extractCalendarName for element1 during discovery
         .mockReturnValueOnce(checkbox1) // extractCalendarVisibility for element1 during discovery
         .mockReturnValueOnce(null) // extractCalendarName for element2 during discovery
         .mockReturnValueOnce(checkbox2) // extractCalendarVisibility for element2 during discovery
-        .mockReturnValueOnce(checkbox1) // setCalendarVisibility for calendar1
-        .mockReturnValueOnce(document.createElement('div')) // getScrollContainer for second discovery
-        .mockReturnValueOnce(null) // extractCalendarName for element1 during second discovery
-        .mockReturnValueOnce(checkbox1) // extractCalendarVisibility for element1 during second discovery
-        .mockReturnValueOnce(null) // extractCalendarName for element2 during second discovery
-        .mockReturnValueOnce(checkbox2) // extractCalendarVisibility for element2 during second discovery
-        .mockReturnValueOnce(checkbox2); // setCalendarVisibility for calendar2
+        .mockReturnValue(checkbox1) // Default return for subsequent checkbox queries
+        .mockReturnValue(checkbox2); // Default return for subsequent checkbox queries
+
+      // Override the query method to return the correct checkbox for each element
+      mockDOMUtils.query.mockImplementation((selector: string, parentElement?: Element) => {
+        if (selector === 'input[type="checkbox"]') {
+          if (parentElement === element1) return checkbox1;
+          if (parentElement === element2) return checkbox2;
+        }
+        if (selector.includes('scroll')) return document.createElement('div');
+        return null;
+      });
 
       // Mock DOMUtils methods for checkbox interaction
       mockDOMUtils.scrollIntoViewIfNeeded = jest.fn();

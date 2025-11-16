@@ -12,6 +12,10 @@ import logger from './logger';
  * Handles virtual scrolling, calendar discovery, and visibility management
  */
 export class GoogleCalendarRepository implements CalendarRepository {
+  // Cache for discovered calendars to avoid redundant DOM operations
+  private calendarCache: { calendars: Calendar[], timestamp: number, elements: Map<string, Element> } | null = null;
+  private static readonly CACHE_DURATION = 5000; // 5 seconds
+
   // Google Calendar DOM selectors
   private static readonly SELECTORS = {
     // Calendar list container (try multiple approaches)
@@ -48,16 +52,25 @@ export class GoogleCalendarRepository implements CalendarRepository {
   /**
    * Discover all calendars in Google Calendar
    * Handles virtual scrolling to ensure all calendars are found
+   * Uses caching to avoid redundant expensive operations
    */
-  async discoverCalendars(): Promise<Calendar[]> {
+  async discoverCalendars(forceRefresh: boolean = false): Promise<Calendar[]> {
     try {
-      logger.info('Starting calendar discovery...');
+      // Check cache first (unless forcing refresh)
+      if (!forceRefresh && this.calendarCache && 
+          (Date.now() - this.calendarCache.timestamp) < GoogleCalendarRepository.CACHE_DURATION) {
+        logger.info(`Using cached calendar discovery (${this.calendarCache.calendars.length} calendars)`);
+        return this.calendarCache.calendars;
+      }
+
+      logger.info('Starting fresh calendar discovery...');
       
       // Find all calendar containers (This already handles virtual scrolling)
       const calendarContainers = await this.findAllCalendarContainers();
       logger.info(`Found ${calendarContainers.length} calendar containers`);
       
       const calendars: Calendar[] = [];
+      const elementMap = new Map<string, Element>();
 
       // Process each calendar container
       for (const container of calendarContainers) {
@@ -74,6 +87,7 @@ export class GoogleCalendarRepository implements CalendarRepository {
             const calendarData = this.extractCalendarData(element);
             if (calendarData) {
               calendars.push(new Calendar(calendarData));
+              elementMap.set(calendarData.email, element); // Cache element for later use
               logger.info(`Successfully extracted calendar: ${calendarData.name} (${calendarData.email})`);
             } else {
               logger.info('Failed to extract calendar data from element:', element);
@@ -96,6 +110,7 @@ export class GoogleCalendarRepository implements CalendarRepository {
             const calendarData = this.extractCalendarData(element);
             if (calendarData) {
               calendars.push(new Calendar(calendarData));
+              elementMap.set(calendarData.email, element); // Cache element for later use
               logger.info(`Successfully extracted calendar: ${calendarData.name} (${calendarData.email})`);
             } else {
               logger.info('Failed to extract calendar data from element:', element);
@@ -106,7 +121,14 @@ export class GoogleCalendarRepository implements CalendarRepository {
         }
       }
 
-      logger.info(`Discovery complete. Found ${calendars.length} calendars.`);
+      // Cache the results
+      this.calendarCache = {
+        calendars: [...calendars], // Create a copy
+        timestamp: Date.now(),
+        elements: elementMap
+      };
+
+      logger.info(`Discovery complete. Found ${calendars.length} calendars. Cached for ${GoogleCalendarRepository.CACHE_DURATION}ms.`);
       return calendars;
     } catch (error) {
       logger.error('Calendar discovery failed:', error);
@@ -116,12 +138,35 @@ export class GoogleCalendarRepository implements CalendarRepository {
 
   /**
    * Apply calendar visibility changes to Google Calendar
+   * Optimized to batch operations and avoid redundant discovery calls
    */
   async applyCalendarVisibility(calendars: Calendar[]): Promise<void> {
     try {
-      for (const calendar of calendars) {
-        await this.setCalendarVisibility(calendar.email, calendar.isVisible);
+      logger.info(`Applying visibility changes to ${calendars.length} calendars...`);
+      
+      // Ensure we have current calendar discovery (but use cache if available)
+      await this.discoverCalendars(false);
+      
+      // Batch process calendar visibility changes without individual delays
+      const promises = calendars.map(async (calendar) => {
+        return this.setCalendarVisibilityOptimized(calendar.email, calendar.isVisible);
+      });
+      
+      // Execute all visibility changes in parallel
+      const results = await Promise.allSettled(promises);
+      
+      // Check for failures
+      const failures = results.filter(result => result.status === 'rejected');
+      if (failures.length > 0) {
+        logger.warn(`${failures.length} calendar visibility updates failed`);
+        failures.forEach((failure, index) => {
+          if (failure.status === 'rejected') {
+            logger.warn(`Calendar ${calendars[index].email} failed:`, failure.reason);
+          }
+        });
       }
+      
+      logger.info(`Applied visibility changes to ${results.length - failures.length}/${calendars.length} calendars`);
     } catch (error) {
       throw new Error(`Failed to apply calendar visibility: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -129,9 +174,10 @@ export class GoogleCalendarRepository implements CalendarRepository {
 
   /**
    * Get current state of all calendars
+   * Forces a fresh discovery to get the most current state
    */
   async getCurrentCalendarStates(): Promise<Calendar[]> {
-    return this.discoverCalendars();
+    return this.discoverCalendars(true); // Force refresh to get current state
   }
 
   /**
@@ -607,7 +653,7 @@ export class GoogleCalendarRepository implements CalendarRepository {
   }
 
   /**
-   * Set calendar visibility by email
+   * Set calendar visibility by email (legacy method with delays)
    */
   private async setCalendarVisibility(email: string, isVisible: boolean): Promise<void> {
     const calendarElement = await this.findCalendarElementByEmail(email);
@@ -643,12 +689,80 @@ export class GoogleCalendarRepository implements CalendarRepository {
   }
 
   /**
-   * Find calendar element by email
+   * Optimized set calendar visibility - no delays, minimal DOM operations
+   */
+  private async setCalendarVisibilityOptimized(email: string, isVisible: boolean): Promise<void> {
+    const calendarElement = await this.findCalendarElementByEmail(email);
+    if (!calendarElement) {
+      logger.warn(`Calendar element not found for email: ${email}`);
+      return; // Don't throw, just warn and continue
+    }
+
+    const checkbox = DOMUtils.query<HTMLInputElement>(
+      GoogleCalendarRepository.SELECTORS.CALENDAR_CHECKBOX,
+      calendarElement
+    );
+
+    if (!checkbox) {
+      logger.warn(`Calendar checkbox not found for email: ${email}`);
+      return; // Don't throw, just warn and continue
+    }
+
+    if (checkbox.checked !== isVisible) {
+      // Set checkbox state directly (no scrolling delays)
+      checkbox.checked = isVisible;
+      
+      // Trigger events to notify Google Calendar
+      DOMUtils.triggerEvent(checkbox, 'change', null, { bubbles: true });
+      DOMUtils.triggerEvent(checkbox, 'click', null, { bubbles: true });
+    }
+  }
+
+  /**
+   * Clear the calendar cache to force fresh discovery
+   */
+  public clearCache(): void {
+    logger.info('Clearing calendar cache');
+    this.calendarCache = null;
+  }
+
+  /**
+   * Log performance metrics for debugging
+   */
+  public logPerformanceMetrics(): void {
+    const cacheStatus = this.calendarCache 
+      ? `Cache: ${this.calendarCache.calendars.length} calendars, age: ${Date.now() - this.calendarCache.timestamp}ms`
+      : 'Cache: empty';
+    
+    logger.info(`📊 GoogleCalendarRepository Performance - ${cacheStatus}`);
+  }
+
+  /**
+   * Find calendar element by email using cached elements when possible
    */
   private async findCalendarElementByEmail(email: string): Promise<Element | null> {
-    // First, ensure all calendars are discovered
-    await this.discoverCalendars();
+    // First check cache
+    if (this.calendarCache && 
+        (Date.now() - this.calendarCache.timestamp) < GoogleCalendarRepository.CACHE_DURATION) {
+      const cachedElement = this.calendarCache.elements.get(email);
+      if (cachedElement) {
+        logger.debug(`Using cached element for calendar: ${email}`);
+        return cachedElement;
+      }
+    }
     
+    // Fallback to discovery if not in cache
+    await this.discoverCalendars(false); // Use cache if available
+    
+    // Try cache again after discovery
+    if (this.calendarCache) {
+      const cachedElement = this.calendarCache.elements.get(email);
+      if (cachedElement) {
+        return cachedElement;
+      }
+    }
+    
+    // Final fallback: search DOM directly
     const calendarElements = this.getCalendarElements();
     
     for (const element of calendarElements) {
@@ -659,6 +773,16 @@ export class GoogleCalendarRepository implements CalendarRepository {
     }
 
     return null;
+  }
+
+  /**
+   * Invalidate cache when DOM structure might have changed
+   */
+  private invalidateCache(): void {
+    if (this.calendarCache) {
+      logger.debug('Invalidating calendar cache due to DOM changes');
+      this.calendarCache = null;
+    }
   }
 
   /**
@@ -683,15 +807,27 @@ export class GoogleCalendarRepository implements CalendarRepository {
           const ariaLabel = element.getAttribute('aria-label')?.toLowerCase() || '';
           const textContent = element.textContent?.toLowerCase() || '';
           
-          // Check if this looks like a calendar section that might be collapsed
+          // IMPORTANT: Skip "Add other calendars" buttons - we only want expand/collapse buttons
+          if (ariaLabel.includes('add') || textContent.includes('add') || 
+              ariaLabel.includes('create') || textContent.includes('create') ||
+              ariaLabel.includes('subscribe') || textContent.includes('subscribe')) {
+            logger.debug(`Skipping add/create button: ${ariaLabel || textContent}`);
+            continue;
+          }
+          
+          // Check if this looks like a calendar section header that might be collapsed
           if ((ariaLabel.includes('calendar') || textContent.includes('calendar')) &&
-              (ariaLabel.includes('other') || textContent.includes('other'))) {
+              (ariaLabel.includes('other') || textContent.includes('other')) &&
+              // Additional check: look for collapsed indicators
+              (element.getAttribute('aria-expanded') === 'false' || 
+               ariaLabel.includes('expand') || textContent.includes('expand'))) {
             
             logger.info(`Attempting to expand collapsed section: ${ariaLabel || textContent}`);
             
             // Try clicking to expand
             if (element instanceof HTMLElement) {
               element.click();
+              this.invalidateCache(); // Cache might be stale after expanding
               await this.delay(500); // Wait for expansion animation
             }
           }
@@ -705,6 +841,7 @@ export class GoogleCalendarRepository implements CalendarRepository {
         if (parentButton && parentButton instanceof HTMLElement) {
           logger.info('Found potential expand button with chevron, clicking...');
           parentButton.click();
+          this.invalidateCache(); // Cache might be stale after expanding
           await this.delay(500);
         }
       }

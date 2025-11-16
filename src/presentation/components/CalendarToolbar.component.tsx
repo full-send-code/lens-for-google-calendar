@@ -154,13 +154,17 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
   const [saveModalVisible, setSaveModalVisible] = useState(false);
   const [newPresetName, setNewPresetName] = useState('');
   const [isOperating, setIsOperating] = useState(false);
+  const [lastOperationTime, setLastOperationTime] = useState(0);
+  
+  // Debouncing to prevent rapid operations
+  const OPERATION_DEBOUNCE_MS = 500;
 
   // Calculate current state
   const visibleCalendars = currentCalendars.filter(cal => cal.isVisible);
   const stateIndicator = `${visibleCalendars.length}/${currentCalendars.length}`;
 
   /**
-   * Handle preset selection and automatic application
+   * Handle preset selection and automatic application (with debouncing)
    */
   const handlePresetSelect = async (presetName: string) => {
     if (!presetName) {
@@ -168,19 +172,36 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
       return;
     }
 
+    // Debounce rapid selections
+    const now = Date.now();
+    if (now - lastOperationTime < OPERATION_DEBOUNCE_MS) {
+      console.log('🚫 Debouncing rapid preset selection');
+      return;
+    }
+    setLastOperationTime(now);
+
     try {
       setIsOperating(true);
       setSelectedPreset(presetName);
       
+      console.log(`🎯 Applying preset: ${presetName}`);
+      const startTime = performance.now();
+      
       // Automatically apply the preset when selected
       await applyPresetUseCase.execute(presetName);
       
-      // Refresh calendar state after applying preset
+      const applyTime = performance.now() - startTime;
+      console.log(`⚡ Preset applied in ${applyTime.toFixed(2)}ms`);
+      
+      // Refresh calendar state after applying preset (this may be cached)
+      const refreshStartTime = performance.now();
       await onCalendarsChange();
+      const refreshTime = performance.now() - refreshStartTime;
+      console.log(`🔄 Calendar refresh took ${refreshTime.toFixed(2)}ms`);
       
       notification.success({
         message: `Applied "${presetName}"`,
-        description: `Calendar preset applied successfully`,
+        description: `Calendar preset applied successfully (${applyTime.toFixed(0)}ms)`,
         placement: 'topRight',
         duration: 3
       });
@@ -351,18 +372,38 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
   };
 
   /**
-   * Handle clear all calendars operation
+   * Handle clear all calendars operation (with debouncing and performance logging)
    */
   const handleClear = async () => {
+    // Debounce rapid clear operations
+    const now = Date.now();
+    if (now - lastOperationTime < OPERATION_DEBOUNCE_MS) {
+      console.log('🚫 Debouncing rapid clear operation');
+      return;
+    }
+    setLastOperationTime(now);
+
     try {
       setIsOperating(true);
       setSelectedPreset(undefined);
+      
+      console.log('🧹 Clearing all calendars...');
+      const startTime = performance.now();
+      
       await clearCalendarsUseCase.execute();
+      
+      const clearTime = performance.now() - startTime;
+      console.log(`⚡ Calendars cleared in ${clearTime.toFixed(2)}ms`);
+      
+      // Refresh calendar state
+      const refreshStartTime = performance.now();
       await onCalendarsChange();
+      const refreshTime = performance.now() - refreshStartTime;
+      console.log(`🔄 Calendar refresh took ${refreshTime.toFixed(2)}ms`);
       
       notification.success({
         message: 'All Calendars Cleared',
-        description: 'All calendars have been hidden successfully.',
+        description: `All calendars have been hidden successfully (${clearTime.toFixed(0)}ms)`,
         placement: 'topRight'
       });
     } catch (error: any) {

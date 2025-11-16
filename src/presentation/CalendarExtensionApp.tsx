@@ -124,16 +124,25 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
   };
 
   /**
-   * Refresh calendar state after operations
+   * Refresh calendar state after operations (with debouncing to avoid excessive calls)
    */
-  const refreshCalendars = async () => {
+  const refreshCalendars = React.useCallback(async () => {
     try {
+      logger.info('🔄 Refreshing calendar state...');
+      
+      // Log performance metrics if available
+      if ('logPerformanceMetrics' in calendarRepository) {
+        (calendarRepository as any).logPerformanceMetrics();
+      }
+      
       const updatedCalendars = await calendarRepository.getCurrentCalendarStates();
       setCurrentCalendars(updatedCalendars);
+      
+      logger.info(`✅ Calendar state refreshed: ${updatedCalendars.length} calendars found`);
     } catch (error) {
       logger.error('Failed to refresh calendars:', error);
     }
-  };
+  }, [calendarRepository]);
 
   return (
     <ConfigProvider
