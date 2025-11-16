@@ -292,8 +292,13 @@ export class GoogleCalendarRepository implements CalendarRepository {
    */
   private async scrollToDiscoverAllCalendars(calendarList: Element): Promise<void> {
     const scrollContainer = this.getScrollContainer(calendarList);
-    if (!scrollContainer) return;
+    if (!scrollContainer) {
+      logger.warn('🔄 Virtual Scroll: No scroll container found, skipping virtual scroll');
+      return;
+    }
 
+    logger.info(`🔄 Virtual Scroll: Starting virtual scroll discovery on container with scrollHeight: ${scrollContainer.scrollHeight}px`);
+    
     let previousCalendarCount = 0;
     let currentCalendarCount = 0;
     let scrollAttempts = 0;
@@ -303,13 +308,17 @@ export class GoogleCalendarRepository implements CalendarRepository {
       previousCalendarCount = currentCalendarCount;
       
       // Scroll to bottom to trigger virtual scroll loading
+      const previousScrollTop = scrollContainer.scrollTop;
       scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      logger.debug(`🔄 Virtual Scroll: Attempt ${scrollAttempts + 1} - Scrolled from ${previousScrollTop}px to ${scrollContainer.scrollTop}px (height: ${scrollContainer.scrollHeight}px)`);
       
       // Wait for virtual scroll to settle
       await this.delay(GoogleCalendarRepository.TIMEOUTS.SCROLL_SETTLE);
       
       // Count current calendars
       currentCalendarCount = this.getCalendarElements().length;
+      const calendarsFound = currentCalendarCount - previousCalendarCount;
+      logger.info(`🔄 Virtual Scroll: Attempt ${scrollAttempts + 1} found ${calendarsFound} new calendars (total: ${currentCalendarCount})`);
       scrollAttempts++;
       
     } while (
@@ -317,30 +326,53 @@ export class GoogleCalendarRepository implements CalendarRepository {
       scrollAttempts < maxScrollAttempts
     );
 
+    if (scrollAttempts >= maxScrollAttempts) {
+      logger.warn(`🔄 Virtual Scroll: Reached maximum scroll attempts (${maxScrollAttempts}), stopping`);
+    } else {
+      logger.info(`🔄 Virtual Scroll: Discovery complete after ${scrollAttempts} scroll attempts`);
+    }
+
     // Scroll back to top to ensure all calendars are accessible
+    logger.debug('🔄 Virtual Scroll: Scrolling back to top to make all calendars accessible');
     scrollContainer.scrollTop = 0;
     await this.delay(GoogleCalendarRepository.TIMEOUTS.SCROLL_SETTLE);
+    logger.info(`🔄 Virtual Scroll: Virtual scroll complete. Final calendar count: ${currentCalendarCount}`);
   }
 
   /**
    * Get the scroll container for the calendar list
    */
   private getScrollContainer(calendarList: Element): Element | null {
+    logger.debug('🔄 Scroll Container: Searching for scroll container within calendar list');
+    
     // Try to find scroll container within calendar list
     let scrollContainer = DOMUtils.query(
       GoogleCalendarRepository.SELECTORS.SCROLL_CONTAINER, 
       calendarList
     );
 
-    if (!scrollContainer) {
+    if (scrollContainer) {
+      logger.info(`🔄 Scroll Container: Found using primary selector: ${GoogleCalendarRepository.SELECTORS.SCROLL_CONTAINER}`);
+    } else {
+      logger.debug(`🔄 Scroll Container: Primary selector failed, trying alternative: ${GoogleCalendarRepository.SELECTORS.SCROLL_CONTAINER_ALT}`);
       scrollContainer = DOMUtils.query(
         GoogleCalendarRepository.SELECTORS.SCROLL_CONTAINER_ALT, 
         calendarList
       );
+      
+      if (scrollContainer) {
+        logger.info(`🔄 Scroll Container: Found using alternative selector: ${GoogleCalendarRepository.SELECTORS.SCROLL_CONTAINER_ALT}`);
+      }
     }
 
     // Fallback to calendar list itself
-    return scrollContainer || calendarList;
+    const result = scrollContainer || calendarList;
+    if (result === calendarList) {
+      logger.info('🔄 Scroll Container: Using calendar list itself as fallback scroll container');
+    }
+    
+    logger.debug(`🔄 Scroll Container: Selected container has scrollHeight: ${result.scrollHeight}px, scrollTop: ${result.scrollTop}px`);
+    return result;
   }
 
   /**
@@ -658,6 +690,7 @@ export class GoogleCalendarRepository implements CalendarRepository {
   private async setCalendarVisibility(email: string, isVisible: boolean): Promise<void> {
     const calendarElement = await this.findCalendarElementByEmail(email);
     if (!calendarElement) {
+      logger.error(`🔘 Checkbox Click (Legacy): Calendar element not found for email: ${email}`);
       throw new Error(`Calendar element not found for email: ${email}`);
     }
 
@@ -667,24 +700,39 @@ export class GoogleCalendarRepository implements CalendarRepository {
     );
 
     if (!checkbox) {
+      logger.error(`🔘 Checkbox Click (Legacy): Calendar checkbox not found for email: ${email}`);
       throw new Error(`Calendar checkbox not found for email: ${email}`);
     }
 
+    const currentState = checkbox.checked;
+    logger.debug(`🔘 Checkbox Click (Legacy): Calendar "${email}" current state: ${currentState}, target state: ${isVisible}`);
+
     if (checkbox.checked !== isVisible) {
+      logger.info(`🔘 Checkbox Click (Legacy): Toggling calendar visibility for "${email}" from ${currentState} to ${isVisible}`);
+      
       // Scroll element into view if needed
+      logger.debug(`🔘 Checkbox Click (Legacy): Scrolling calendar element into view for: ${email}`);
       DOMUtils.scrollIntoViewIfNeeded(calendarElement);
       
       // Wait a moment for scroll to complete
+      logger.debug('🔘 Checkbox Click (Legacy): Waiting 100ms for scroll to complete...');
       await this.delay(100);
       
       // Click the checkbox to toggle visibility
+      logger.debug(`🔘 Checkbox Click (Legacy): Setting checkbox state for: ${email}`);
       checkbox.checked = isVisible;
       
       // Trigger change event to notify Google Calendar
+      logger.debug(`🔘 Checkbox Click (Legacy): Triggering 'change' event for: ${email}`);
       DOMUtils.triggerEvent(checkbox, 'change', null, { bubbles: true });
       
       // Also trigger click event as some implementations may listen for it
+      logger.debug(`🔘 Checkbox Click (Legacy): Triggering 'click' event for: ${email}`);
       DOMUtils.triggerEvent(checkbox, 'click', null, { bubbles: true });
+      
+      logger.info(`🔘 Checkbox Click (Legacy): Successfully updated visibility for calendar: ${email}`);
+    } else {
+      logger.debug(`🔘 Checkbox Click (Legacy): No change needed for calendar "${email}" - already in desired state: ${isVisible}`);
     }
   }
 
@@ -694,7 +742,7 @@ export class GoogleCalendarRepository implements CalendarRepository {
   private async setCalendarVisibilityOptimized(email: string, isVisible: boolean): Promise<void> {
     const calendarElement = await this.findCalendarElementByEmail(email);
     if (!calendarElement) {
-      logger.warn(`Calendar element not found for email: ${email}`);
+      logger.warn(`🔘 Checkbox Click: Calendar element not found for email: ${email}`);
       return; // Don't throw, just warn and continue
     }
 
@@ -704,17 +752,30 @@ export class GoogleCalendarRepository implements CalendarRepository {
     );
 
     if (!checkbox) {
-      logger.warn(`Calendar checkbox not found for email: ${email}`);
+      logger.warn(`🔘 Checkbox Click: Calendar checkbox not found for email: ${email}`);
       return; // Don't throw, just warn and continue
     }
 
+    const currentState = checkbox.checked;
+    logger.debug(`🔘 Checkbox Click: Calendar "${email}" current state: ${currentState}, target state: ${isVisible}`);
+
     if (checkbox.checked !== isVisible) {
+      logger.info(`🔘 Checkbox Click: Toggling calendar visibility for "${email}" from ${currentState} to ${isVisible}`);
+      
       // Set checkbox state directly (no scrolling delays)
       checkbox.checked = isVisible;
+      logger.debug(`🔘 Checkbox Click: Checkbox state updated to: ${checkbox.checked}`);
       
       // Trigger events to notify Google Calendar
+      logger.debug(`🔘 Checkbox Click: Triggering 'change' event for calendar: ${email}`);
       DOMUtils.triggerEvent(checkbox, 'change', null, { bubbles: true });
+      
+      logger.debug(`🔘 Checkbox Click: Triggering 'click' event for calendar: ${email}`);
       DOMUtils.triggerEvent(checkbox, 'click', null, { bubbles: true });
+      
+      logger.info(`🔘 Checkbox Click: Successfully updated visibility for calendar: ${email}`);
+    } else {
+      logger.debug(`🔘 Checkbox Click: No change needed for calendar "${email}" - already in desired state: ${isVisible}`);
     }
   }
 
@@ -790,7 +851,7 @@ export class GoogleCalendarRepository implements CalendarRepository {
    */
   private async expandCollapsedSections(): Promise<void> {
     try {
-      logger.info('Looking for collapsed calendar sections to expand...');
+      logger.info('🔘 Button Selection: Looking for collapsed calendar sections to expand...');
       
       // Look for expand/collapse buttons or clickable headers
       const expandSelectors = [
@@ -801,17 +862,28 @@ export class GoogleCalendarRepository implements CalendarRepository {
         '[role="button"][aria-expanded="false"]'
       ];
       
+      let totalButtonsFound = 0;
+      let buttonsClicked = 0;
+      let buttonsSkipped = 0;
+      
       for (const selector of expandSelectors) {
         const elements = Array.from(document.querySelectorAll(selector));
+        logger.debug(`🔘 Button Selection: Selector "${selector}" found ${elements.length} elements`);
+        totalButtonsFound += elements.length;
+        
         for (const element of elements) {
           const ariaLabel = element.getAttribute('aria-label')?.toLowerCase() || '';
           const textContent = element.textContent?.toLowerCase() || '';
+          const ariaExpanded = element.getAttribute('aria-expanded');
+          
+          logger.debug(`🔘 Button Selection: Examining element - Label: "${ariaLabel}", Text: "${textContent}", Expanded: ${ariaExpanded}`);
           
           // IMPORTANT: Skip "Add other calendars" buttons - we only want expand/collapse buttons
           if (ariaLabel.includes('add') || textContent.includes('add') || 
               ariaLabel.includes('create') || textContent.includes('create') ||
               ariaLabel.includes('subscribe') || textContent.includes('subscribe')) {
-            logger.debug(`Skipping add/create button: ${ariaLabel || textContent}`);
+            logger.debug(`🔘 Button Selection: Skipping add/create button: ${ariaLabel || textContent}`);
+            buttonsSkipped++;
             continue;
           }
           
@@ -822,32 +894,53 @@ export class GoogleCalendarRepository implements CalendarRepository {
               (element.getAttribute('aria-expanded') === 'false' || 
                ariaLabel.includes('expand') || textContent.includes('expand'))) {
             
-            logger.info(`Attempting to expand collapsed section: ${ariaLabel || textContent}`);
+            logger.info(`🔘 Button Selection: Found expandable section button - Label: "${ariaLabel || textContent}", Selector: "${selector}"`);
             
             // Try clicking to expand
             if (element instanceof HTMLElement) {
+              logger.info(`🔘 Button Click: Clicking to expand collapsed section: ${ariaLabel || textContent}`);
               element.click();
+              buttonsClicked++;
               this.invalidateCache(); // Cache might be stale after expanding
+              logger.debug('🔘 Button Click: Waiting 500ms for expansion animation to complete...');
               await this.delay(500); // Wait for expansion animation
+              logger.debug('🔘 Button Click: Expansion animation wait complete');
+            } else {
+              logger.warn(`🔘 Button Selection: Element is not an HTMLElement, cannot click: ${element.constructor.name}`);
             }
+          } else {
+            logger.debug(`🔘 Button Selection: Element does not match expansion criteria - skipping`);
+            buttonsSkipped++;
           }
         }
       }
       
       // Also look for chevron/arrow icons that might indicate collapsed sections
+      logger.debug('🔘 Button Selection: Searching for chevron/arrow icons in "Other calendars" sections...');
       const chevronElements = Array.from(document.querySelectorAll('[aria-label*="Other calendars" i] svg, [aria-label*="Other calendars" i] [role="img"]'));
+      logger.debug(`🔘 Button Selection: Found ${chevronElements.length} potential chevron elements`);
+      
       for (const chevron of chevronElements) {
         const parentButton = chevron.closest('button') || chevron.closest('[role="button"]');
         if (parentButton && parentButton instanceof HTMLElement) {
-          logger.info('Found potential expand button with chevron, clicking...');
+          const parentLabel = parentButton.getAttribute('aria-label') || parentButton.textContent || 'Unknown';
+          logger.info(`🔘 Button Selection: Found chevron with parent button: "${parentLabel}"`);
+          logger.info(`🔘 Button Click: Clicking chevron expand button: ${parentLabel}`);
           parentButton.click();
+          buttonsClicked++;
           this.invalidateCache(); // Cache might be stale after expanding
+          logger.debug('🔘 Button Click: Waiting 500ms for chevron expansion animation...');
           await this.delay(500);
+          logger.debug('🔘 Button Click: Chevron expansion wait complete');
+        } else {
+          logger.debug('🔘 Button Selection: Chevron element has no clickable parent button');
         }
       }
       
+      logger.info(`🔘 Button Selection: Expansion complete - Total buttons found: ${totalButtonsFound}, Clicked: ${buttonsClicked}, Skipped: ${buttonsSkipped}`);
+      
     } catch (error) {
-      logger.warn('Error expanding collapsed sections:', error);
+      logger.warn('🔘 Button Selection: Error expanding collapsed sections:', error);
     }
   }
 
