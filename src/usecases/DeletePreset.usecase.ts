@@ -6,6 +6,7 @@
 
 import type { PresetRepository } from '../core/repositories';
 import { PresetNotFoundError } from '../core/errors';
+import logger from '../infrastructure/logger';
 
 /**
  * Use case for deleting calendar presets
@@ -28,18 +29,31 @@ export class DeletePresetUseCase {
    * @throws PresetNotFoundError if preset doesn't exist
    */
   async execute(presetName: string): Promise<void> {
+    logger.info(`🗑️ Delete Preset: Starting delete operation for preset: "${presetName}"`);
+    
     // Validate preset name
     if (!presetName.trim()) {
+      logger.error('🗑️ Delete Preset: Validation failed - preset name is empty');
       throw new Error('Preset name cannot be empty');
     }
+    
+    logger.debug(`🗑️ Delete Preset: Preset name validation passed: "${presetName}"`);
 
     // Check if preset exists
+    logger.debug(`🗑️ Delete Preset: Checking if preset "${presetName}" exists...`);
     const exists = await this.presetRepository.presetExists(presetName);
+    
     if (!exists) {
+      logger.error(`🗑️ Delete Preset: Preset "${presetName}" not found`);
       throw new PresetNotFoundError(presetName);
     }
+    
+    logger.info(`🗑️ Delete Preset: Preset "${presetName}" found, proceeding with deletion`);
 
     // Delete the preset
+    logger.debug(`🗑️ Delete Preset: Calling repository to delete preset: "${presetName}"`);
     await this.presetRepository.deletePreset(presetName);
+    
+    logger.info(`🗑️ Delete Preset: Successfully deleted preset: "${presetName}"`);
   }
 }

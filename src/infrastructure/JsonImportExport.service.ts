@@ -4,6 +4,7 @@
  */
 
 import { PresetImportData, PresetExportData } from '../usecases';
+import logger from './logger';
 
 /**
  * Service for handling JSON import/export operations
@@ -15,30 +16,46 @@ export class JsonImportExportService {
    * Export data as JSON file download
    */
   static exportToFile(data: PresetExportData, filename: string = 'calendar-presets.json'): void {
+    const presetCount = Object.keys(data).length;
+    logger.info(`📁 File Export: Starting file export for ${presetCount} presets to "${filename}"`);
+    
     try {
       // Format JSON with proper indentation
+      logger.debug('📁 File Export: Formatting JSON data with indentation...');
       const jsonString = JSON.stringify(data, null, 2);
+      logger.debug(`📁 File Export: JSON string created, length: ${jsonString.length} characters`);
       
       // Create blob with JSON data
       const blob = new Blob([jsonString], { 
         type: 'application/json;charset=utf-8' 
       });
+      logger.debug(`📁 File Export: Blob created, size: ${this.formatFileSize(blob.size)}`);
       
       // Create download link
       const url = URL.createObjectURL(blob);
+      const sanitizedFilename = this.sanitizeFilename(filename);
+      logger.debug(`📁 File Export: Sanitized filename: "${sanitizedFilename}"`);
+      
       const link = document.createElement('a');
       link.href = url;
-      link.download = this.sanitizeFilename(filename);
+      link.download = sanitizedFilename;
       
       // Trigger download
+      logger.debug('📁 File Export: Triggering file download...');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
       // Clean up object URL
-      setTimeout(() => URL.revokeObjectURL(url), 100);
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        logger.debug('📁 File Export: Object URL cleaned up');
+      }, 100);
+      
+      logger.info(`📁 File Export: Successfully initiated download for "${sanitizedFilename}" (${this.formatFileSize(blob.size)})`);
       
     } catch (error) {
+      logger.error('📁 File Export: Export to file failed:', error);
       throw new Error(`Failed to export data to file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -47,9 +64,12 @@ export class JsonImportExportService {
    * Import data from JSON file
    */
   static importFromFile(): Promise<PresetImportData> {
+    logger.info('📁 File Import: Starting file import operation');
+    
     return new Promise((resolve, reject) => {
       try {
         // Create file input element
+        logger.debug('📁 File Import: Creating file input element...');
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.json,application/json';
@@ -60,49 +80,67 @@ export class JsonImportExportService {
           try {
             const file = (event.target as HTMLInputElement).files?.[0];
             if (!file) {
+              logger.warn('📁 File Import: No file selected by user');
               reject(new Error('No file selected'));
               return;
             }
 
+            logger.info(`📁 File Import: File selected - Name: "${file.name}", Size: ${this.formatFileSize(file.size)}, Type: "${file.type}"`);
+
             // Validate file type
             if (!this.isValidJsonFile(file)) {
+              logger.error(`📁 File Import: Invalid file type - Name: "${file.name}", Type: "${file.type}"`);
               reject(new Error('Invalid file type. Please select a JSON file.'));
               return;
             }
+            logger.debug('📁 File Import: File type validation passed');
 
             // Validate file size (max 1MB)
             if (file.size > 1024 * 1024) {
+              logger.error(`📁 File Import: File too large - Size: ${this.formatFileSize(file.size)} (max: 1MB)`);
               reject(new Error('File size too large. Maximum size is 1MB.'));
               return;
             }
+            logger.debug(`📁 File Import: File size validation passed - ${this.formatFileSize(file.size)}`);
 
             // Read file content
+            logger.debug('📁 File Import: Reading file content as text...');
             const content = await this.readFileAsText(file);
+            logger.debug(`📁 File Import: File content read successfully - ${content.length} characters`);
             
             // Parse and validate JSON
+            logger.debug('📁 File Import: Parsing and validating JSON content...');
             const data = this.parseAndValidateJson(content);
+            
+            const presetCount = Object.keys(data).length;
+            logger.info(`📁 File Import: Successfully imported ${presetCount} presets from "${file.name}"`);
             
             resolve(data);
             
           } catch (error) {
+            logger.error('📁 File Import: File processing failed:', error);
             reject(error);
           } finally {
             // Clean up
+            logger.debug('📁 File Import: Cleaning up file input element');
             document.body.removeChild(input);
           }
         });
 
         // Handle cancellation
         input.addEventListener('cancel', () => {
+          logger.info('📁 File Import: File selection cancelled by user');
           document.body.removeChild(input);
           reject(new Error('File selection cancelled'));
         });
 
         // Add to DOM and trigger file picker
+        logger.debug('📁 File Import: Opening file picker dialog...');
         document.body.appendChild(input);
         input.click();
         
       } catch (error) {
+        logger.error('📁 File Import: Failed to initialize file import:', error);
         reject(new Error(`Failed to import data from file: ${error instanceof Error ? error.message : 'Unknown error'}`));
       }
     });
@@ -136,18 +174,27 @@ export class JsonImportExportService {
    * Export data to clipboard
    */
   static async exportToClipboard(data: PresetExportData): Promise<void> {
+    const presetCount = Object.keys(data).length;
+    logger.info(`📋 Clipboard Export: Starting clipboard export for ${presetCount} presets`);
+    
     try {
       const jsonString = this.exportToString(data, true);
+      logger.debug(`📋 Clipboard Export: JSON string created, length: ${jsonString.length} characters`);
       
       if (navigator.clipboard && window.isSecureContext) {
         // Use modern clipboard API
+        logger.debug('📋 Clipboard Export: Using modern clipboard API...');
         await navigator.clipboard.writeText(jsonString);
+        logger.info('📋 Clipboard Export: Successfully copied to clipboard using modern API');
       } else {
         // Fallback for older browsers
+        logger.debug('📋 Clipboard Export: Using fallback clipboard method...');
         this.fallbackCopyToClipboard(jsonString);
+        logger.info('📋 Clipboard Export: Successfully copied to clipboard using fallback method');
       }
       
     } catch (error) {
+      logger.error('📋 Clipboard Export: Failed to export to clipboard:', error);
       throw new Error(`Failed to export to clipboard: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -156,23 +203,37 @@ export class JsonImportExportService {
    * Import data from clipboard
    */
   static async importFromClipboard(): Promise<PresetImportData> {
+    logger.info('📋 Clipboard Import: Starting clipboard import operation');
+    
     try {
       let clipboardText: string;
       
       if (navigator.clipboard && window.isSecureContext) {
         // Use modern clipboard API
+        logger.debug('📋 Clipboard Import: Using modern clipboard API to read text...');
         clipboardText = await navigator.clipboard.readText();
       } else {
+        logger.error('📋 Clipboard Import: Clipboard access not available in this context');
         throw new Error('Clipboard access not available. Please use file import or paste manually.');
       }
       
+      logger.debug(`📋 Clipboard Import: Read ${clipboardText.length} characters from clipboard`);
+      
       if (!clipboardText.trim()) {
+        logger.warn('📋 Clipboard Import: Clipboard is empty');
         throw new Error('Clipboard is empty');
       }
       
-      return this.importFromString(clipboardText);
+      logger.debug('📋 Clipboard Import: Parsing clipboard content as JSON...');
+      const data = this.importFromString(clipboardText);
+      
+      const presetCount = Object.keys(data).length;
+      logger.info(`📋 Clipboard Import: Successfully imported ${presetCount} presets from clipboard`);
+      
+      return data;
       
     } catch (error) {
+      logger.error('📋 Clipboard Import: Failed to import from clipboard:', error);
       throw new Error(`Failed to import from clipboard: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
