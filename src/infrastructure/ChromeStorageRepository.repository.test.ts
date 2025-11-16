@@ -329,6 +329,59 @@ describe('ChromeStorageRepository', () => {
         (repository as any).validatePresetData(invalidData, 'test');
       }).toThrow("Invalid calendarEmails field for preset 'test'");
     });
+
+    it('should handle invalid date fields gracefully', () => {
+      // Test missing createdAt
+      const missingCreatedAt = {
+        name: 'test',
+        calendarEmails: ['email@test.com']
+      };
+      
+      expect(() => (repository as any).validatePresetData(missingCreatedAt, 'test')).not.toThrow();
+      expect(missingCreatedAt.createdAt).toBeInstanceOf(Date);
+
+      // Test invalid date string
+      const invalidDateString = {
+        name: 'test',
+        calendarEmails: ['email@test.com'],
+        createdAt: 'invalid-date-string'
+      };
+      
+      expect(() => (repository as any).validatePresetData(invalidDateString, 'test')).not.toThrow();
+      expect(invalidDateString.createdAt).toBeInstanceOf(Date);
+
+      // Test timestamp number
+      const timestampDate = {
+        name: 'test',
+        calendarEmails: ['email@test.com'],
+        createdAt: 1640995200000
+      };
+      
+      expect(() => (repository as any).validatePresetData(timestampDate, 'test')).not.toThrow();
+      expect(timestampDate.createdAt).toBeInstanceOf(Date);
+      expect(timestampDate.createdAt.getTime()).toBe(1640995200000);
+
+      // Test valid date string
+      const validDateString = {
+        name: 'test',
+        calendarEmails: ['email@test.com'],
+        createdAt: '2022-01-01T00:00:00.000Z'
+      };
+      
+      expect(() => (repository as any).validatePresetData(validDateString, 'test')).not.toThrow();
+      expect(validDateString.createdAt).toBeInstanceOf(Date);
+
+      // Test invalid lastUsedAt
+      const invalidLastUsedAt = {
+        name: 'test',
+        calendarEmails: ['email@test.com'],
+        createdAt: new Date(),
+        lastUsedAt: 'invalid-date'
+      };
+      
+      expect(() => (repository as any).validatePresetData(invalidLastUsedAt, 'test')).not.toThrow();
+      expect(invalidLastUsedAt.lastUsedAt).toBeUndefined();
+    });
   });
 
   describe('configuration', () => {

@@ -230,21 +230,45 @@ export class ChromeStorageRepository implements PresetRepository {
       throw new Error(`Invalid calendarEmails field for preset '${presetName}'`);
     }
 
-    if (!data.createdAt || !(data.createdAt instanceof Date || typeof data.createdAt === 'string')) {
-      throw new Error(`Invalid createdAt field for preset '${presetName}'`);
-    }
-
-    // Convert date strings to Date objects if needed
-    if (typeof data.createdAt === 'string') {
+    // Handle createdAt field - be more resilient with existing data
+    if (!data.createdAt) {
+      // If missing, set to current date for backward compatibility
+      logger.debug(`Missing createdAt for preset '${presetName}', setting to current date`);
+      data.createdAt = new Date();
+    } else if (typeof data.createdAt === 'string') {
+      // Convert string to Date
+      const parsedDate = new Date(data.createdAt);
+      if (isNaN(parsedDate.getTime())) {
+        logger.debug(`Invalid date string for createdAt in preset '${presetName}', setting to current date`);
+        data.createdAt = new Date();
+      } else {
+        data.createdAt = parsedDate;
+      }
+    } else if (typeof data.createdAt === 'number') {
+      // Handle timestamp
       data.createdAt = new Date(data.createdAt);
+    } else if (!(data.createdAt instanceof Date)) {
+      // Invalid type, set to current date
+      logger.debug(`Invalid createdAt type for preset '${presetName}', setting to current date`);
+      data.createdAt = new Date();
     }
 
-    if (data.lastUsedAt && !(data.lastUsedAt instanceof Date || typeof data.lastUsedAt === 'string')) {
-      throw new Error(`Invalid lastUsedAt field for preset '${presetName}'`);
-    }
-
-    if (data.lastUsedAt && typeof data.lastUsedAt === 'string') {
-      data.lastUsedAt = new Date(data.lastUsedAt);
+    // Handle lastUsedAt field - be more resilient
+    if (data.lastUsedAt) {
+      if (typeof data.lastUsedAt === 'string') {
+        const parsedDate = new Date(data.lastUsedAt);
+        if (isNaN(parsedDate.getTime())) {
+          logger.debug(`Invalid date string for lastUsedAt in preset '${presetName}', removing field`);
+          delete data.lastUsedAt;
+        } else {
+          data.lastUsedAt = parsedDate;
+        }
+      } else if (typeof data.lastUsedAt === 'number') {
+        data.lastUsedAt = new Date(data.lastUsedAt);
+      } else if (!(data.lastUsedAt instanceof Date)) {
+        logger.debug(`Invalid lastUsedAt type for preset '${presetName}', removing field`);
+        delete data.lastUsedAt;
+      }
     }
   }
 
