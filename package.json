@@ -21,6 +21,10 @@
   ],
   "author": "full-send-code",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=8.0.0"
+  },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.2.1",
     "@jest/globals": "^29.7.0",
