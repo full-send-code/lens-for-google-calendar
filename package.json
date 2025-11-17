@@ -1,6 +1,6 @@
 {
   "name": "lens-for-google-calendar",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "Save and restore groups of calendars in Google Calendar",
   "main": "dist/background.js",
   "scripts": {

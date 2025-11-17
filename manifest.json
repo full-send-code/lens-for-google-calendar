@@ -1,6 +1,6 @@
 {
   "name": "Lens for Google Calendar",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "manifest_version": 3,
   "description": "Save and restore groups of calendars selected",
   "permissions": [
