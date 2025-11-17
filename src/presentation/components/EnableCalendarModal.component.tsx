@@ -4,10 +4,11 @@
  */
 
 import React, { useState } from 'react';
-import { Modal, Input, Form, notification, Typography, Alert } from 'antd';
+import { Modal, Input, Form, Typography, Alert } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import type { EnableCalendarUseCase } from '../../usecases';
 import logger from '../../infrastructure/logger';
+import { showCustomNotification } from '../utils/customNotification';
 
 const { Text } = Typography;
 
@@ -56,11 +57,7 @@ export const EnableCalendarModal: React.FC<EnableCalendarModalProps> = ({
       await enableCalendarUseCase.execute(calendarEmail.trim());
       logger.info(`✅ UI Modal: enableCalendarUseCase completed successfully for: "${calendarEmail}"`);
       
-      notification.success({
-        message: 'Calendar Enabled',
-        description: `Calendar "${calendarEmail}" has been enabled successfully.`,
-        placement: 'topRight'
-      });
+      showCustomNotification('Calendar Enabled', `Calendar "${calendarEmail}" has been enabled successfully.`, 'success');
       logger.info(`✅ UI Modal: Success notification shown for: "${calendarEmail}"`);
       
       form.resetFields();
@@ -75,11 +72,7 @@ export const EnableCalendarModal: React.FC<EnableCalendarModalProps> = ({
         logger.info(`✅ UI Modal: Calendar not found error for: "${error.message}"`);
       }
       
-      notification.error({
-        message: 'Enable Failed',
-        description: errorMessage,
-        placement: 'topRight'
-      });
+      showCustomNotification('Enable Failed', errorMessage, 'error');
       logger.info(`✅ UI Modal: Error notification shown with message: ${errorMessage}`);
     } finally {
       setLoading(false);

@@ -7,7 +7,6 @@ import React, { useState } from 'react';
 import { 
   FloatButton, 
   Badge, 
-  notification,
   Dropdown,
   Menu,
   Space,
@@ -41,6 +40,7 @@ import type {
 import type { ImportResult } from '../../usecases/ImportPresets.usecase';
 import type { CalendarPreset, Calendar } from '../../core';
 import logger from '../../infrastructure/logger';
+import { showCustomNotification } from '../utils/customNotification';
 
 /**
  * Lens Extension Icon Component
@@ -208,20 +208,11 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
       const refreshTime = performance.now() - refreshStartTime;
       logger.info(`⚡ UI Performance: Calendar refresh took ${refreshTime.toFixed(2)}ms`);
       
-      notification.success({
-        message: `Applied "${presetName}"`,
-        description: `Calendar preset applied successfully (${applyTime.toFixed(0)}ms)`,
-        placement: 'topRight',
-        duration: 3
-      });
+      showCustomNotification(`Applied "${presetName}"`, `Calendar preset applied successfully (${applyTime.toFixed(0)}ms)`, 'success');
       logger.info(`🎯 UI Event: Success notification shown for preset "${presetName}"`);
     } catch (error: any) {
       logger.error(`🎯 UI Event: Failed to apply preset "${presetName}":`, error);
-      notification.error({
-        message: 'Preset Failed',
-        description: `Failed to apply preset "${presetName}". Please try again.`,
-        placement: 'topRight'
-      });
+      showCustomNotification('Preset Failed', `Failed to apply preset "${presetName}". Please try again.`, 'error');
       // Reset selection on error
       setSelectedPreset(undefined);
       logger.info(`🎯 UI Event: Selection reset due to error for preset "${presetName}"`);
@@ -236,11 +227,7 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
    */
   const handleSavePreset = async () => {
     if (!newPresetName.trim()) {
-      notification.error({
-        message: 'Invalid Name',
-        description: 'Please enter a preset name.',
-        placement: 'topRight'
-      });
+      showCustomNotification('Invalid Name', 'Please enter a preset name.', 'error');
       return;
     }
 
@@ -263,11 +250,7 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
             setNewPresetName('');
             setSelectedPreset(newPresetName.trim());
             
-            notification.success({
-              message: 'Preset Updated',
-              description: `Preset "${newPresetName}" has been updated successfully.`,
-              placement: 'topRight'
-            });
+            showCustomNotification('Preset Updated', `Preset "${newPresetName}" has been updated successfully.`, 'success');
           }
         });
       } else {
@@ -277,19 +260,11 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
         setNewPresetName('');
         setSelectedPreset(newPresetName.trim());
         
-        notification.success({
-          message: 'Preset Saved',
-          description: `Preset "${newPresetName}" has been saved successfully.`,
-          placement: 'topRight'
-        });
+        showCustomNotification('Preset Saved', `Preset "${newPresetName}" has been saved successfully.`, 'success');
       }
     } catch (error: any) {
       logger.error('Failed to save preset:', error);
-      notification.error({
-        message: 'Save Failed',
-        description: error.message || 'Failed to save preset. Please try again.',
-        placement: 'topRight'
-      });
+      showCustomNotification('Save Failed', error.message || 'Failed to save preset. Please try again.', 'error');
     } finally {
       setIsOperating(false);
     }
@@ -300,11 +275,7 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
    */
   const handleUpdatePreset = async () => {
     if (!selectedPreset) {
-      notification.error({
-        message: 'No Preset Selected',
-        description: 'Please select a preset to update.',
-        placement: 'topRight'
-      });
+      showCustomNotification('No Preset Selected', 'Please select a preset to update.', 'error');
       return;
     }
 
@@ -319,18 +290,10 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
           await savePresetUseCase.execute({ name: selectedPreset, overwrite: true });
           await onPresetsChange();
           
-          notification.success({
-            message: 'Preset Updated',
-            description: `Preset "${selectedPreset}" has been updated successfully.`,
-            placement: 'topRight'
-          });
+          showCustomNotification('Preset Updated', `Preset "${selectedPreset}" has been updated successfully.`, 'success');
         } catch (error: any) {
           logger.error('Failed to update preset:', error);
-          notification.error({
-            message: 'Update Failed',
-            description: error.message || 'Failed to update preset. Please try again.',
-            placement: 'topRight'
-          });
+          showCustomNotification('Update Failed', error.message || 'Failed to update preset. Please try again.', 'error');
         } finally {
           setIsOperating(false);
         }
@@ -343,11 +306,7 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
    */
   const handleDeletePreset = async () => {
     if (!selectedPreset) {
-      notification.error({
-        message: 'No Preset Selected',
-        description: 'Please select a preset to delete.',
-        placement: 'topRight'
-      });
+      showCustomNotification('No Preset Selected', 'Please select a preset to delete.', 'error');
       return;
     }
 
@@ -364,18 +323,10 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
           await onPresetsChange();
           setSelectedPreset(undefined);
           
-          notification.success({
-            message: 'Preset Deleted',
-            description: `Preset "${selectedPreset}" has been deleted successfully.`,
-            placement: 'topRight'
-          });
+          showCustomNotification('Preset Deleted', `Preset "${selectedPreset}" has been deleted successfully.`, 'success');
         } catch (error: any) {
           logger.error('Failed to delete preset:', error);
-          notification.error({
-            message: 'Delete Failed',
-            description: error.message || 'Failed to delete preset. Please try again.',
-            placement: 'topRight'
-          });
+          showCustomNotification('Delete Failed', error.message || 'Failed to delete preset. Please try again.', 'error');
         } finally {
           setIsOperating(false);
         }
@@ -419,19 +370,11 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
       const refreshTime = performance.now() - refreshStartTime;
       logger.info(`⚡ UI Performance: Calendar refresh took ${refreshTime.toFixed(2)}ms`);
       
-      notification.success({
-        message: 'All Calendars Cleared',
-        description: `All calendars have been hidden successfully (${clearTime.toFixed(0)}ms)`,
-        placement: 'topRight'
-      });
+      showCustomNotification('All Calendars Cleared', `All calendars have been hidden successfully (${clearTime.toFixed(0)}ms)`, 'success');
       logger.info('🧹 UI Event: Success notification shown for clear operation');
     } catch (error: any) {
       logger.error('🧹 UI Event: Failed to clear calendars:', error);
-      notification.error({
-        message: 'Clear Failed',
-        description: 'Failed to clear calendars. Please try again.',
-        placement: 'topRight'
-      });
+      showCustomNotification('Clear Failed', 'Failed to clear calendars. Please try again.', 'error');
       logger.info('🧹 UI Event: Error notification shown for clear operation');
     } finally {
       setIsOperating(false);
@@ -468,19 +411,11 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
       URL.revokeObjectURL(url);
       logger.debug('📤 UI Event: Download initiated and DOM cleaned up');
 
-      notification.success({
-        message: 'Export Successful',
-        description: 'Calendar presets have been exported successfully.',
-        placement: 'topRight'
-      });
+      showCustomNotification('Export Successful', 'Calendar presets have been exported successfully.', 'success');
       logger.info('📤 UI Event: Success notification shown for export');
     } catch (error: any) {
       logger.error('📤 UI Event: Failed to export presets:', error);
-      notification.error({
-        message: 'Export Failed',
-        description: 'Failed to export presets. Please try again.',
-        placement: 'topRight'
-      });
+      showCustomNotification('Export Failed', 'Failed to export presets. Please try again.', 'error');
       logger.info('📤 UI Event: Error notification shown for export');
     } finally {
       setIsOperating(false);
@@ -500,20 +435,23 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
       }
 
       const text = await file.originFileObj.text();
-      const result: ImportResult = await importPresetsUseCase.execute(text, true); // Always overwrite existing presets
+      logger.info('📥 UI Event: Starting import operation...');
+      const result: ImportResult = await importPresetsUseCase.execute(text);
+      logger.info('📥 UI Event: Import operation completed', result);
       
       // Show success message with details
-      const importedCount = result.imported.length;
-      const overwrittenCount = result.overwritten.length;
-      const deletedCount = result.deleted.length;
-      const totalCount = importedCount + overwrittenCount;
+      const importedCount = result.imported?.length || 0;
+      const overwrittenCount = result.overwritten?.length || 0;
+      const deletedCount = result.deleted?.length || 0;
+      const errorCount = result.errors?.length || 0;
       
       let description = '';
       const parts = [];
       
-      if (importedCount > 0) parts.push(`${importedCount} new presets imported`);
-      if (overwrittenCount > 0) parts.push(`${overwrittenCount} existing presets updated`);
-      if (deletedCount > 0) parts.push(`${deletedCount} presets removed`);
+      if (importedCount > 0) parts.push(`${importedCount} new preset${importedCount === 1 ? '' : 's'} imported`);
+      if (overwrittenCount > 0) parts.push(`${overwrittenCount} existing preset${overwrittenCount === 1 ? '' : 's'} updated`);
+      if (deletedCount > 0) parts.push(`${deletedCount} preset${deletedCount === 1 ? '' : 's'} removed`);
+      if (errorCount > 0) parts.push(`${errorCount} error${errorCount === 1 ? '' : 's'}`);
       
       if (parts.length > 0) {
         description = parts.join(', ') + '.';
@@ -521,21 +459,20 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
         description = 'No changes made.';
       }
       
-      notification.success({
-        message: 'Import Complete',
-        description,
-        placement: 'topRight'
-      });
+      // Show appropriate notification based on results
+      if (errorCount > 0 && (importedCount + overwrittenCount + deletedCount) === 0) {
+        showCustomNotification('Import Failed', description, 'error');
+      } else if (errorCount > 0) {
+        showCustomNotification('Import Completed with Errors', description, 'warning');
+      } else {
+        showCustomNotification('Import Successful', description, 'success');
+      }
       
       // Refresh presets list
       await onPresetsChange();
     } catch (error: any) {
-      logger.error('Failed to import presets:', error);
-      notification.error({
-        message: 'Import Failed',
-        description: 'Failed to import presets. Please check the file format.',
-        placement: 'topRight'
-      });
+      logger.error('📥 UI Event: Failed to import presets:', error);
+      showCustomNotification('Import Failed', 'Failed to import presets. Please check the file format.', 'error');
     } finally {
       setIsOperating(false);
     }

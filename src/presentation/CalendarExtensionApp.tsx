@@ -4,9 +4,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ConfigProvider, theme, notification } from 'antd';
+import { ConfigProvider, theme } from 'antd';
 import { LensHeaderButton } from './components/CalendarToolbar.component';
 import logger from '../infrastructure/logger';
+import { showCustomNotification } from './utils/customNotification';
 import type { 
   ClearCalendarsUseCase,
   EnableCalendarUseCase,
@@ -109,10 +110,7 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
         logger.info('🚀 App Initialization: App state updated with loaded data');
       } catch (error) {
         logger.error('🚀 App Initialization: Failed to load data:', error);
-        notification.error({
-          message: 'Failed to load data',
-          description: 'Unable to load calendar presets and current state.'
-        });
+        showCustomNotification('Failed to load data', 'Unable to load calendar presets and current state.', 'error');
       } finally {
         setLoading(false);
         logger.info('🚀 App Initialization: Data loading completed - loading state set to false');
