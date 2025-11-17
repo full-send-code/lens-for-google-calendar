@@ -46,7 +46,14 @@ jobs:
       run: |
         # Check required files
         test -f dist/manifest.json || (echo "❌ manifest.json missing" && exit 1)
-        test -f dist/background.js || (echo "❌ background.js missing" && exit 1)
+        
+        # Check for background script (Vite generates with hash)
+        if ls dist/assets/background*.js 1> /dev/null 2>&1; then
+          echo "✅ Background script found: $(ls dist/assets/background*.js)"
+        else
+          echo "❌ Background script missing"
+          exit 1
+        fi
         
         # Validate manifest
         node -e 'const manifest = require("./dist/manifest.json"); if (manifest.manifest_version !== 3) throw new Error("Must be Manifest V3"); if (!manifest.name || !manifest.version) throw new Error("Missing name/version"); console.log("✅ Build valid:", manifest.name, "v" + manifest.version);'
