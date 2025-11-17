@@ -201,12 +201,8 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
       const applyTime = performance.now() - startTime;
       logger.info(`⚡ UI Performance: Preset "${presetName}" applied in ${applyTime.toFixed(2)}ms`);
       
-      // Refresh calendar state after applying preset (this may be cached)
-      logger.debug('🎯 UI Event: Refreshing calendar state after preset application...');
-      const refreshStartTime = performance.now();
-      await onCalendarsChange();
-      const refreshTime = performance.now() - refreshStartTime;
-      logger.info(`⚡ UI Performance: Calendar refresh took ${refreshTime.toFixed(2)}ms`);
+      // Note: No need to refresh calendar state here - the useCase already applied changes
+      // and the next natural UI update will pick up any state changes via cached discovery
       
       showCustomNotification(`Applied "${presetName}"`, `Calendar preset applied successfully (${applyTime.toFixed(0)}ms)`, 'success');
       logger.info(`🎯 UI Event: Success notification shown for preset "${presetName}"`);
@@ -412,12 +408,8 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
       const clearTime = performance.now() - startTime;
       logger.info(`⚡ UI Performance: Calendars cleared in ${clearTime.toFixed(2)}ms`);
       
-      // Refresh calendar state
-      logger.debug('🧹 UI Event: Refreshing calendar state after clear...');
-      const refreshStartTime = performance.now();
-      await onCalendarsChange();
-      const refreshTime = performance.now() - refreshStartTime;
-      logger.info(`⚡ UI Performance: Calendar refresh took ${refreshTime.toFixed(2)}ms`);
+      // Note: No need to refresh calendar state here - the useCase already applied changes
+      // and the next natural UI update will pick up any state changes via cached discovery
       
       showCustomNotification('All Calendars Cleared', `All calendars have been hidden successfully (${clearTime.toFixed(0)}ms)`, 'success');
       logger.info('🧹 UI Event: Success notification shown for clear operation');

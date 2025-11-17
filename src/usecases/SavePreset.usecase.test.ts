@@ -15,7 +15,8 @@ describe('SavePresetUseCase', () => {
     mockCalendarRepository = {
       discoverCalendars: jest.fn(),
       applyCalendarVisibility: jest.fn(),
-      getCurrentCalendarStates: jest.fn()
+      getCurrentCalendarStates: jest.fn(),
+      getCurrentCalendarStatesFresh: jest.fn()
     };
 
     mockPresetRepository = {

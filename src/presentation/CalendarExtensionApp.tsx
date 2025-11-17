@@ -96,10 +96,13 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
         logger.info('🚀 App Initialization: URL validation passed - on Google Calendar');
         
         // Load presets and current calendar state in parallel
-        logger.info('🚀 App Initialization: Loading presets and calendar state in parallel...');
+        logger.info('🚀 App Initialization: Loading presets and fresh calendar state in parallel...');
         const [loadedPresets, calendars] = await Promise.all([
           presetRepository.getAllPresets(),
-          calendarRepository.getCurrentCalendarStates()
+          // Use fresh state on app initialization to ensure we have current DOM state
+          (calendarRepository as any).getCurrentCalendarStatesFresh ? 
+            (calendarRepository as any).getCurrentCalendarStatesFresh() : 
+            calendarRepository.getCurrentCalendarStates()
         ]);
         
         logger.info(`🚀 App Initialization: Data loaded - Presets: ${loadedPresets.length}, Calendars: ${calendars.length}`);

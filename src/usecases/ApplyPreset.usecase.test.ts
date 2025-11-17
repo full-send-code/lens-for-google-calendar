@@ -5,7 +5,8 @@ import { PresetNotFoundError, CalendarRepository, PresetRepository, Calendar, Ca
 const mockCalendarRepository = (): jest.Mocked<CalendarRepository> => ({
   discoverCalendars: jest.fn(),
   applyCalendarVisibility: jest.fn(),
-  getCurrentCalendarStates: jest.fn()
+  getCurrentCalendarStates: jest.fn(),
+  getCurrentCalendarStatesFresh: jest.fn()
 });
 
 const mockPresetRepository = (): jest.Mocked<PresetRepository> => ({

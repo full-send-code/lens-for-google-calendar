@@ -5,7 +5,8 @@ import { CalendarNotFoundError, CalendarRepository, Calendar } from '../core';
 const mockCalendarRepository = (): jest.Mocked<CalendarRepository> => ({
   discoverCalendars: jest.fn(),
   applyCalendarVisibility: jest.fn(),
-  getCurrentCalendarStates: jest.fn()
+  getCurrentCalendarStates: jest.fn(),
+  getCurrentCalendarStatesFresh: jest.fn()
 });
 
 describe('EnableCalendarUseCase', () => {

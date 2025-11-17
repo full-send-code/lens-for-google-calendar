@@ -174,9 +174,18 @@ export class GoogleCalendarRepository implements CalendarRepository {
 
   /**
    * Get current state of all calendars
-   * Forces a fresh discovery to get the most current state
+   * Uses cached state when available (within cache duration) for better performance
+   * Only forces refresh when explicitly needed (app initialization, etc.)
    */
   async getCurrentCalendarStates(): Promise<Calendar[]> {
+    return this.discoverCalendars(false); // Use cache when available for better performance
+  }
+
+  /**
+   * Get fresh current state of all calendars (bypasses cache)
+   * Use this only when you need guaranteed fresh state (app initialization, etc.)
+   */
+  async getCurrentCalendarStatesFresh(): Promise<Calendar[]> {
     return this.discoverCalendars(true); // Force refresh to get current state
   }
 

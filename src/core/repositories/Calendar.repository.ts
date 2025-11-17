@@ -18,6 +18,13 @@ export interface CalendarRepository {
 
   /**
    * Get current visibility state of all calendars
+   * Uses cache when available for better performance
    */
   getCurrentCalendarStates(): Promise<Calendar[]>;
+
+  /**
+   * Get fresh current state of all calendars (bypasses cache)
+   * Use this only when you need guaranteed fresh state
+   */
+  getCurrentCalendarStatesFresh(): Promise<Calendar[]>;
 }
