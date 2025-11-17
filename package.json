@@ -4,7 +4,7 @@
   "description": "Save and restore groups of calendars in Google Calendar",
   "main": "dist/background.js",
   "scripts": {
-    "build": "vite build",
+    "build": "tsc && vite build",
     "build:watch": "vite build --watch",
     "dev": "vite",
     "test": "jest",
