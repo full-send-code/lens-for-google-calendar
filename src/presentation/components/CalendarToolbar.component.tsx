@@ -505,15 +505,20 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
       // Show success message with details
       const importedCount = result.imported.length;
       const overwrittenCount = result.overwritten.length;
+      const deletedCount = result.deleted.length;
       const totalCount = importedCount + overwrittenCount;
       
-      let description = `Successfully processed ${totalCount} presets.`;
-      if (importedCount > 0 && overwrittenCount > 0) {
-        description = `Imported ${importedCount} new presets and updated ${overwrittenCount} existing presets.`;
-      } else if (importedCount > 0) {
-        description = `Imported ${importedCount} new presets.`;
-      } else if (overwrittenCount > 0) {
-        description = `Updated ${overwrittenCount} existing presets.`;
+      let description = '';
+      const parts = [];
+      
+      if (importedCount > 0) parts.push(`${importedCount} new presets imported`);
+      if (overwrittenCount > 0) parts.push(`${overwrittenCount} existing presets updated`);
+      if (deletedCount > 0) parts.push(`${deletedCount} presets removed`);
+      
+      if (parts.length > 0) {
+        description = parts.join(', ') + '.';
+      } else {
+        description = 'No changes made.';
       }
       
       notification.success({

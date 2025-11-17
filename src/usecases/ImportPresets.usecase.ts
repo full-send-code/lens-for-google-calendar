@@ -14,6 +14,7 @@ export interface PresetImportData {
 export interface ImportResult {
   imported: string[];
   overwritten: string[];
+  deleted: string[];
   errors: string[];
 }
 
@@ -68,6 +69,7 @@ export class ImportPresetsUseCase {
 
       const importedPresets: string[] = [];
       const overwrittenPresets: string[] = [];
+      const deletedPresets: string[] = [];
       const errorPresets: string[] = [];
 
       // Process each preset in the import data
@@ -101,8 +103,16 @@ export class ImportPresetsUseCase {
 
           // Check if preset already exists to track new vs overwritten
           logger.debug(`📥 Import Presets: Checking if preset "${presetName}" already exists...`);
-          const existingPreset = await this.presetRepository.loadPreset(presetName);
-          const isOverwrite = !!existingPreset;
+          let existingPreset;
+          let isOverwrite = false;
+          try {
+            existingPreset = await this.presetRepository.loadPreset(presetName);
+            isOverwrite = !!existingPreset;
+          } catch (loadError) {
+            // Preset doesn't exist, will be imported as new
+            logger.debug(`📥 Import Presets: Preset "${presetName}" not found, will create as new`);
+            isOverwrite = false;
+          }
           
           if (isOverwrite) {
             logger.debug(`📥 Import Presets: Will overwrite existing preset "${presetName}"`);
@@ -136,21 +146,48 @@ export class ImportPresetsUseCase {
         }
       }
       
+      // Delete presets that exist in storage but are not in the import data
+      logger.debug('📥 Import Presets: Checking for presets to delete...');
+      try {
+        const allExistingPresets = await this.presetRepository.getAllPresets();
+        const importedPresetNames = Object.keys(importData);
+        
+        for (const existingPreset of allExistingPresets) {
+          if (!importedPresetNames.includes(existingPreset.name)) {
+            try {
+              logger.debug(`📥 Import Presets: Deleting preset "${existingPreset.name}" (not in import)`);
+              await this.presetRepository.deletePreset(existingPreset.name);
+              deletedPresets.push(existingPreset.name);
+              logger.info(`📥 Import Presets: Successfully deleted preset "${existingPreset.name}"`);
+            } catch (deleteError) {
+              logger.error(`📥 Import Presets: Failed to delete preset "${existingPreset.name}":`, deleteError);
+              // Delete errors are logged but don't affect the import result
+            }
+          }
+        }
+      } catch (getAllError) {
+        logger.error('📥 Import Presets: Failed to get existing presets for deletion check:', getAllError);
+      }
+      
       // Log summary
-      logger.info(`📥 Import Presets: Import complete - New: ${importedPresets.length}, Overwritten: ${overwrittenPresets.length}, Errors: ${errorPresets.length}`);
+      logger.info(`📥 Import Presets: Import complete - New: ${importedPresets.length}, Overwritten: ${overwrittenPresets.length}, Deleted: ${deletedPresets.length}, Errors: ${errorPresets.length}`);
       if (importedPresets.length > 0) {
         logger.info(`📥 Import Presets: Successfully imported new: ${importedPresets.join(', ')}`);
       }
       if (overwrittenPresets.length > 0) {
         logger.info(`📥 Import Presets: Successfully overwritten: ${overwrittenPresets.join(', ')}`);
       }
+      if (deletedPresets.length > 0) {
+        logger.info(`📥 Import Presets: Successfully deleted: ${deletedPresets.join(', ')}`);
+      }
       if (errorPresets.length > 0) {
-        logger.warn(`📥 Import Presets: Failed to import: ${errorPresets.join(', ')}`);
+        logger.warn(`📥 Import Presets: Failed to process: ${errorPresets.join(', ')}`);
       }
 
       return {
         imported: importedPresets,
         overwritten: overwrittenPresets,
+        deleted: deletedPresets,
         errors: errorPresets
       };
 

@@ -16,6 +16,8 @@ describe('ImportPresetsUseCase', () => {
 
   beforeEach(() => {
     presetRepo = mockPresetRepository();
+    // Default mock for getAllPresets to return empty array
+    presetRepo.getAllPresets.mockResolvedValue([]);
     useCase = new ImportPresetsUseCase(presetRepo);
   });
 
@@ -283,6 +285,7 @@ describe('ImportPresetsUseCase', () => {
       };
       const jsonData = JSON.stringify(importData);
       presetRepo.loadPreset.mockRejectedValue('string error');
+      presetRepo.savePreset.mockRejectedValue(new Error('Save failed'));
 
       // Act
       const result = await useCase.execute(jsonData);
@@ -379,6 +382,110 @@ describe('ImportPresetsUseCase', () => {
       expect(result.errors).toEqual([]);
       expect(presetRepo.savePreset).toHaveBeenCalledTimes(1);
       expect(presetRepo.savePreset.mock.calls[0][0].calendarEmails).toEqual(['new@example.com']);
+    });
+
+    it('should delete existing presets not in import data', async () => {
+      // Arrange
+      const importData: PresetImportData = {
+        'keepThis': ['keep@example.com']
+      };
+      const jsonData = JSON.stringify(importData);
+      
+      // Mock existing presets
+      const existingPresets = [
+        new CalendarPreset('keepThis', ['old@example.com']),
+        new CalendarPreset('deleteThis', ['delete@example.com']),
+        new CalendarPreset('alsoDelete', ['also@example.com'])
+      ];
+      presetRepo.getAllPresets.mockResolvedValue(existingPresets);
+      presetRepo.loadPreset.mockResolvedValue(new CalendarPreset('keepThis', ['old@example.com']));
+
+      // Act
+      const result = await useCase.execute(jsonData);
+
+      // Assert
+      expect(result.imported).toEqual([]);
+      expect(result.overwritten).toEqual(['keepThis']);
+      expect(result.deleted).toEqual(['deleteThis', 'alsoDelete']);
+      expect(result.errors).toEqual([]);
+      expect(presetRepo.deletePreset).toHaveBeenCalledTimes(2);
+      expect(presetRepo.deletePreset).toHaveBeenCalledWith('deleteThis');
+      expect(presetRepo.deletePreset).toHaveBeenCalledWith('alsoDelete');
+    });
+
+    it('should handle empty import (delete all existing presets)', async () => {
+      // Arrange
+      const importData: PresetImportData = {};
+      const jsonData = JSON.stringify(importData);
+      
+      // Mock existing presets
+      const existingPresets = [
+        new CalendarPreset('preset1', ['test1@example.com']),
+        new CalendarPreset('preset2', ['test2@example.com'])
+      ];
+      presetRepo.getAllPresets.mockResolvedValue(existingPresets);
+
+      // Act
+      const result = await useCase.execute(jsonData);
+
+      // Assert
+      expect(result.imported).toEqual([]);
+      expect(result.overwritten).toEqual([]);
+      expect(result.deleted).toEqual(['preset1', 'preset2']);
+      expect(result.errors).toEqual([]);
+      expect(presetRepo.deletePreset).toHaveBeenCalledTimes(2);
+      expect(presetRepo.deletePreset).toHaveBeenCalledWith('preset1');
+      expect(presetRepo.deletePreset).toHaveBeenCalledWith('preset2');
+    });
+
+    it('should handle delete errors gracefully', async () => {
+      // Arrange
+      const importData: PresetImportData = {
+        'keepThis': ['keep@example.com']
+      };
+      const jsonData = JSON.stringify(importData);
+      
+      // Mock existing presets
+      const existingPresets = [
+        new CalendarPreset('keepThis', ['old@example.com']),
+        new CalendarPreset('deleteThis', ['delete@example.com'])
+      ];
+      presetRepo.getAllPresets.mockResolvedValue(existingPresets);
+      presetRepo.loadPreset.mockResolvedValue(new CalendarPreset('keepThis', ['old@example.com']));
+      presetRepo.deletePreset.mockRejectedValue(new Error('Delete failed'));
+
+      // Act
+      const result = await useCase.execute(jsonData);
+
+      // Assert
+      expect(result.imported).toEqual([]);
+      expect(result.overwritten).toEqual(['keepThis']);
+      expect(result.deleted).toEqual([]); // Delete failed, so no successful deletions
+      expect(result.errors).toEqual([]); // Delete errors are logged but don't affect import result
+      expect(presetRepo.deletePreset).toHaveBeenCalledTimes(1);
+      expect(presetRepo.deletePreset).toHaveBeenCalledWith('deleteThis');
+    });
+
+    it('should handle getAllPresets error gracefully', async () => {
+      // Arrange
+      const importData: PresetImportData = {
+        'newPreset': ['new@example.com']
+      };
+      const jsonData = JSON.stringify(importData);
+      
+      presetRepo.getAllPresets.mockRejectedValue(new Error('Failed to get presets'));
+      presetRepo.loadPreset.mockRejectedValue(new Error('Preset not found'));
+      presetRepo.savePreset.mockResolvedValue(undefined);
+
+      // Act
+      const result = await useCase.execute(jsonData);
+
+      // Assert - Import should still work even if delete check fails
+      expect(result.imported).toEqual(['newPreset']);
+      expect(result.overwritten).toEqual([]);
+      expect(result.deleted).toEqual([]);
+      expect(result.errors).toEqual([]);
+      expect(presetRepo.savePreset).toHaveBeenCalledTimes(1);
     });
   });
 
