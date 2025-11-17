@@ -39,6 +39,7 @@ import type {
   ExportPresetsUseCase
 } from '../../usecases';
 import type { CalendarPreset, Calendar } from '../../core';
+import logger from '../../infrastructure/logger';
 
 /**
  * Lens Extension Icon Component
@@ -61,7 +62,7 @@ const LensIcon: React.FC<{ style?: React.CSSProperties; size?: number }> = ({ st
             setIconSrc(iconUrl);
           };
           testImg.onerror = () => {
-            console.warn('Extension icon failed to load, using fallback');
+            logger.warn('Extension icon failed to load, using fallback');
             setHasError(true);
           };
           testImg.src = iconUrl;
@@ -70,7 +71,7 @@ const LensIcon: React.FC<{ style?: React.CSSProperties; size?: number }> = ({ st
           setHasError(true);
         }
       } catch (error) {
-        console.warn('Error loading extension icon:', error);
+        logger.warn('Error loading extension icon:', error);
         setHasError(true);
       }
     };
@@ -167,7 +168,10 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
    * Handle preset selection and automatic application (with debouncing)
    */
   const handlePresetSelect = async (presetName: string) => {
+    logger.info(`🎯 UI Event: Preset selection initiated - "${presetName || 'undefined'}"`);
+    
     if (!presetName) {
+      logger.info('🎯 UI Event: Empty preset name - clearing selection');
       setSelectedPreset(undefined);
       return;
     }
@@ -175,29 +179,33 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
     // Debounce rapid selections
     const now = Date.now();
     if (now - lastOperationTime < OPERATION_DEBOUNCE_MS) {
-      console.log('🚫 Debouncing rapid preset selection');
+      logger.debug(`🚫 UI Event: Debouncing rapid preset selection for "${presetName}"`);
       return;
     }
     setLastOperationTime(now);
+    logger.info(`🎯 UI Event: Processing preset selection - "${presetName}"`);
 
     try {
       setIsOperating(true);
       setSelectedPreset(presetName);
+      logger.debug(`🎯 UI Event: State updated - selectedPreset: "${presetName}", isOperating: true`);
       
-      console.log(`🎯 Applying preset: ${presetName}`);
+      logger.info(`🎯 UI Event: Starting preset application - "${presetName}"`);
       const startTime = performance.now();
       
       // Automatically apply the preset when selected
+      logger.debug(`🎯 UI Event: Calling applyPresetUseCase.execute("${presetName}")`);
       await applyPresetUseCase.execute(presetName);
       
       const applyTime = performance.now() - startTime;
-      console.log(`⚡ Preset applied in ${applyTime.toFixed(2)}ms`);
+      logger.info(`⚡ UI Performance: Preset "${presetName}" applied in ${applyTime.toFixed(2)}ms`);
       
       // Refresh calendar state after applying preset (this may be cached)
+      logger.debug('🎯 UI Event: Refreshing calendar state after preset application...');
       const refreshStartTime = performance.now();
       await onCalendarsChange();
       const refreshTime = performance.now() - refreshStartTime;
-      console.log(`🔄 Calendar refresh took ${refreshTime.toFixed(2)}ms`);
+      logger.info(`⚡ UI Performance: Calendar refresh took ${refreshTime.toFixed(2)}ms`);
       
       notification.success({
         message: `Applied "${presetName}"`,
@@ -205,8 +213,9 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
         placement: 'topRight',
         duration: 3
       });
+      logger.info(`🎯 UI Event: Success notification shown for preset "${presetName}"`);
     } catch (error: any) {
-      console.error('Failed to apply preset:', error);
+      logger.error(`🎯 UI Event: Failed to apply preset "${presetName}":`, error);
       notification.error({
         message: 'Preset Failed',
         description: `Failed to apply preset "${presetName}". Please try again.`,
@@ -214,8 +223,10 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
       });
       // Reset selection on error
       setSelectedPreset(undefined);
+      logger.info(`🎯 UI Event: Selection reset due to error for preset "${presetName}"`);
     } finally {
       setIsOperating(false);
+      logger.debug(`🎯 UI Event: Preset selection completed - "${presetName}", isOperating: false`);
     }
   };
 
@@ -272,7 +283,7 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
         });
       }
     } catch (error: any) {
-      console.error('Failed to save preset:', error);
+      logger.error('Failed to save preset:', error);
       notification.error({
         message: 'Save Failed',
         description: error.message || 'Failed to save preset. Please try again.',
@@ -313,7 +324,7 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
             placement: 'topRight'
           });
         } catch (error: any) {
-          console.error('Failed to update preset:', error);
+          logger.error('Failed to update preset:', error);
           notification.error({
             message: 'Update Failed',
             description: error.message || 'Failed to update preset. Please try again.',
@@ -358,7 +369,7 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
             placement: 'topRight'
           });
         } catch (error: any) {
-          console.error('Failed to delete preset:', error);
+          logger.error('Failed to delete preset:', error);
           notification.error({
             message: 'Delete Failed',
             description: error.message || 'Failed to delete preset. Please try again.',
@@ -375,46 +386,55 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
    * Handle clear all calendars operation (with debouncing and performance logging)
    */
   const handleClear = async () => {
+    logger.info('🧹 UI Event: Clear all calendars button clicked');
+    
     // Debounce rapid clear operations
     const now = Date.now();
     if (now - lastOperationTime < OPERATION_DEBOUNCE_MS) {
-      console.log('🚫 Debouncing rapid clear operation');
+      logger.debug('🚫 UI Event: Debouncing rapid clear operation');
       return;
     }
     setLastOperationTime(now);
+    logger.info('🧹 UI Event: Processing clear all calendars operation');
 
     try {
       setIsOperating(true);
       setSelectedPreset(undefined);
+      logger.debug('🧹 UI Event: State updated - isOperating: true, selectedPreset: undefined');
       
-      console.log('🧹 Clearing all calendars...');
+      logger.info('🧹 UI Event: Starting clear calendars operation...');
       const startTime = performance.now();
       
+      logger.debug('🧹 UI Event: Calling clearCalendarsUseCase.execute()');
       await clearCalendarsUseCase.execute();
       
       const clearTime = performance.now() - startTime;
-      console.log(`⚡ Calendars cleared in ${clearTime.toFixed(2)}ms`);
+      logger.info(`⚡ UI Performance: Calendars cleared in ${clearTime.toFixed(2)}ms`);
       
       // Refresh calendar state
+      logger.debug('🧹 UI Event: Refreshing calendar state after clear...');
       const refreshStartTime = performance.now();
       await onCalendarsChange();
       const refreshTime = performance.now() - refreshStartTime;
-      console.log(`🔄 Calendar refresh took ${refreshTime.toFixed(2)}ms`);
+      logger.info(`⚡ UI Performance: Calendar refresh took ${refreshTime.toFixed(2)}ms`);
       
       notification.success({
         message: 'All Calendars Cleared',
         description: `All calendars have been hidden successfully (${clearTime.toFixed(0)}ms)`,
         placement: 'topRight'
       });
+      logger.info('🧹 UI Event: Success notification shown for clear operation');
     } catch (error: any) {
-      console.error('Failed to clear calendars:', error);
+      logger.error('🧹 UI Event: Failed to clear calendars:', error);
       notification.error({
         message: 'Clear Failed',
         description: 'Failed to clear calendars. Please try again.',
         placement: 'topRight'
       });
+      logger.info('🧹 UI Event: Error notification shown for clear operation');
     } finally {
       setIsOperating(false);
+      logger.debug('🧹 UI Event: Clear all calendars operation completed - isOperating: false');
     }
   };
 
@@ -422,35 +442,48 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
    * Handle preset export
    */
   const handleExport = async () => {
+    logger.info('📤 UI Event: Export button clicked');
+    
     try {
       setIsOperating(true);
+      logger.debug('📤 UI Event: State updated - isOperating: true');
+      
+      logger.debug('📤 UI Event: Calling exportPresetsUseCase.execute()');
       const exportData = await exportPresetsUseCase.execute();
+      logger.info(`📤 UI Event: Export data received, length: ${exportData.length} characters`);
       
       // Create and download file
+      logger.debug('📤 UI Event: Creating download file...');
       const blob = new Blob([exportData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
+      const filename = `lens-calendar-presets-${new Date().toISOString().split('T')[0]}.json`;
       const link = document.createElement('a');
       link.href = url;
-      link.download = `lens-calendar-presets-${new Date().toISOString().split('T')[0]}.json`;
+      link.download = filename;
       document.body.appendChild(link);
+      logger.info(`📤 UI Event: Triggering download for file: ${filename}`);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      logger.debug('📤 UI Event: Download initiated and DOM cleaned up');
 
       notification.success({
         message: 'Export Successful',
         description: 'Calendar presets have been exported successfully.',
         placement: 'topRight'
       });
+      logger.info('📤 UI Event: Success notification shown for export');
     } catch (error: any) {
-      console.error('Failed to export presets:', error);
+      logger.error('📤 UI Event: Failed to export presets:', error);
       notification.error({
         message: 'Export Failed',
         description: 'Failed to export presets. Please try again.',
         placement: 'topRight'
       });
+      logger.info('📤 UI Event: Error notification shown for export');
     } finally {
       setIsOperating(false);
+      logger.debug('📤 UI Event: Export operation completed - isOperating: false');
     }
   };
 
@@ -477,7 +510,7 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
       // Refresh presets list
       await onPresetsChange();
     } catch (error: any) {
-      console.error('Failed to import presets:', error);
+      logger.error('Failed to import presets:', error);
       notification.error({
         message: 'Import Failed',
         description: 'Failed to import presets. Please check the file format.',
@@ -582,7 +615,10 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
           <Button
             size="small"
             icon={<PlusOutlined />}
-            onClick={() => setEnableModalVisible(true)}
+            onClick={() => {
+              logger.info('✅ UI Event: Enable Calendar button clicked - opening modal');
+              setEnableModalVisible(true);
+            }}
             disabled={isOperating}
             style={{ width: '100%' }}
           >
@@ -591,7 +627,10 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
           <Button
             size="small"
             icon={<SaveOutlined />}
-            onClick={() => setSaveModalVisible(true)}
+            onClick={() => {
+              logger.info('💾 UI Event: Save Current State button clicked - opening modal');
+              setSaveModalVisible(true);
+            }}
             disabled={isOperating || visibleCalendars.length === 0}
             style={{ width: '100%' }}
           >
@@ -612,15 +651,20 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
             size="small"
             icon={<ImportOutlined />}
             onClick={() => {
+              logger.info('📥 UI Event: Import button clicked - creating file input');
               const input = document.createElement('input');
               input.type = 'file';
               input.accept = '.json';
               input.onchange = async (e) => {
                 const file = (e.target as HTMLInputElement).files?.[0];
                 if (file) {
+                  logger.info(`📥 UI Event: File selected for import - ${file.name} (${file.size} bytes)`);
                   await handleImport({ originFileObj: file } as UploadFile);
+                } else {
+                  logger.info('📥 UI Event: No file selected in import dialog');
                 }
               };
+              logger.debug('📥 UI Event: Opening file selection dialog');
               input.click();
             }}
             disabled={isOperating}

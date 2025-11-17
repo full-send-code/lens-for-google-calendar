@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { Modal, Input, Form, notification, Typography, Alert } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import type { EnableCalendarUseCase } from '../../usecases';
+import logger from '../../infrastructure/logger';
 
 const { Text } = Typography;
 
@@ -39,27 +40,39 @@ export const EnableCalendarModal: React.FC<EnableCalendarModalProps> = ({
    * Handle form submission
    */
   const handleSubmit = async () => {
+    logger.info('✅ UI Modal: Enable calendar form submission initiated');
+    
     try {
+      logger.debug('✅ UI Modal: Validating form fields...');
       const values = await form.validateFields();
       const { calendarEmail } = values;
       
+      logger.info(`✅ UI Modal: Form validation passed - email: "${calendarEmail}"`);
+      
       setLoading(true);
+      logger.debug('✅ UI Modal: State updated - loading: true');
+      
+      logger.debug(`✅ UI Modal: Calling enableCalendarUseCase.execute("${calendarEmail.trim()}")`);
       await enableCalendarUseCase.execute(calendarEmail.trim());
+      logger.info(`✅ UI Modal: enableCalendarUseCase completed successfully for: "${calendarEmail}"`);
       
       notification.success({
         message: 'Calendar Enabled',
         description: `Calendar "${calendarEmail}" has been enabled successfully.`,
         placement: 'topRight'
       });
+      logger.info(`✅ UI Modal: Success notification shown for: "${calendarEmail}"`);
       
       form.resetFields();
       onClose();
+      logger.debug('✅ UI Modal: Modal closed and form reset after successful enable');
     } catch (error: any) {
-      console.error('Failed to enable calendar:', error);
+      logger.error('✅ UI Modal: Failed to enable calendar:', error);
       
       let errorMessage = 'Failed to enable calendar. Please try again.';
       if (error.name === 'CalendarNotFoundError') {
         errorMessage = 'Calendar not found. Please check the email address and ensure the calendar is visible in your sidebar.';
+        logger.info(`✅ UI Modal: Calendar not found error for: "${error.message}"`);
       }
       
       notification.error({
@@ -67,8 +80,10 @@ export const EnableCalendarModal: React.FC<EnableCalendarModalProps> = ({
         description: errorMessage,
         placement: 'topRight'
       });
+      logger.info(`✅ UI Modal: Error notification shown with message: ${errorMessage}`);
     } finally {
       setLoading(false);
+      logger.debug('✅ UI Modal: Enable calendar operation completed - loading: false');
     }
   };
 
@@ -76,8 +91,10 @@ export const EnableCalendarModal: React.FC<EnableCalendarModalProps> = ({
    * Handle modal cancel
    */
   const handleCancel = () => {
+    logger.info('✅ UI Modal: Enable calendar modal cancelled by user');
     form.resetFields();
     onClose();
+    logger.debug('✅ UI Modal: Form reset and modal closed after cancel');
   };
 
   /**

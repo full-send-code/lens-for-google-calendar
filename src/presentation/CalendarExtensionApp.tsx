@@ -66,12 +66,15 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
    */
   useEffect(() => {
     const loadData = async () => {
+      logger.info('🚀 App Initialization: Starting calendar extension data loading...');
+      
       try {
         setLoading(true);
+        logger.info('🚀 App Initialization: Loading state set to true');
         
         // Debug: Check current URL and available DOM elements
-        logger.info('🔍 Current URL:', window.location.href);
-        logger.info('🔍 Checking calendar list selectors...');
+        logger.info('🔍 DOM Discovery: Current URL:', window.location.href);
+        logger.info('🔍 DOM Discovery: Checking calendar list selectors...');
         
         // Check for calendar list elements
         const calendarListPrimary = document.querySelector('[data-testid="calendar-list"]');
@@ -79,32 +82,40 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
         const allGrids = document.querySelectorAll('[role="grid"]');
         const allAriaLabels = Array.from(document.querySelectorAll('[aria-label]')).map(el => el.getAttribute('aria-label'));
         
-        logger.info('🔍 Primary selector [data-testid="calendar-list"]:', calendarListPrimary);
-        logger.info('🔍 Alt selector [role="grid"][aria-label*="calendar" i]:', calendarListAlt);
-        logger.info('🔍 All grids found:', allGrids.length, Array.from(allGrids).map(g => g.getAttribute('aria-label')));
-        logger.info('🔍 All aria-labels containing "calendar":', allAriaLabels.filter(label => label?.toLowerCase().includes('calendar')));
+        logger.info('🔍 DOM Discovery: Primary selector [data-testid="calendar-list"]:', !!calendarListPrimary);
+        logger.info('🔍 DOM Discovery: Alt selector [role="grid"][aria-label*="calendar" i]:', !!calendarListAlt);
+        logger.info('🔍 DOM Discovery: All grids found:', allGrids.length, Array.from(allGrids).map(g => g.getAttribute('aria-label')));
+        logger.info('🔍 DOM Discovery: All aria-labels containing "calendar":', allAriaLabels.filter(label => label?.toLowerCase().includes('calendar')));
         
         // Check if we're on the right page
         if (!window.location.href.includes('calendar.google.com')) {
+          logger.error('🚀 App Initialization: Not on Google Calendar page');
           throw new Error('Not on Google Calendar page');
         }
+        logger.info('🚀 App Initialization: URL validation passed - on Google Calendar');
         
         // Load presets and current calendar state in parallel
+        logger.info('🚀 App Initialization: Loading presets and calendar state in parallel...');
         const [loadedPresets, calendars] = await Promise.all([
           presetRepository.getAllPresets(),
           calendarRepository.getCurrentCalendarStates()
         ]);
         
+        logger.info(`🚀 App Initialization: Data loaded - Presets: ${loadedPresets.length}, Calendars: ${calendars.length}`);
+        
         setPresets(loadedPresets);
         setCurrentCalendars(calendars);
+        
+        logger.info('🚀 App Initialization: App state updated with loaded data');
       } catch (error) {
-        logger.error('Failed to load data:', error);
+        logger.error('🚀 App Initialization: Failed to load data:', error);
         notification.error({
           message: 'Failed to load data',
           description: 'Unable to load calendar presets and current state.'
         });
       } finally {
         setLoading(false);
+        logger.info('🚀 App Initialization: Data loading completed - loading state set to false');
       }
     };
 
@@ -115,11 +126,13 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
    * Refresh presets after import/save/delete operations
    */
   const refreshPresets = async () => {
+    logger.info('🔄 Data Refresh: Starting presets refresh...');
     try {
       const updatedPresets = await presetRepository.getAllPresets();
       setPresets(updatedPresets);
+      logger.info(`🔄 Data Refresh: Presets refreshed successfully - ${updatedPresets.length} presets loaded`);
     } catch (error) {
-      logger.error('Failed to refresh presets:', error);
+      logger.error('🔄 Data Refresh: Failed to refresh presets:', error);
     }
   };
 
@@ -127,20 +140,21 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
    * Refresh calendar state after operations (with debouncing to avoid excessive calls)
    */
   const refreshCalendars = React.useCallback(async () => {
+    logger.info('🔄 Data Refresh: Starting calendar state refresh...');
     try {
-      logger.info('🔄 Refreshing calendar state...');
-      
       // Log performance metrics if available
       if ('logPerformanceMetrics' in calendarRepository) {
+        logger.info('🔄 Data Refresh: Logging repository performance metrics...');
         (calendarRepository as any).logPerformanceMetrics();
       }
       
       const updatedCalendars = await calendarRepository.getCurrentCalendarStates();
       setCurrentCalendars(updatedCalendars);
       
-      logger.info(`✅ Calendar state refreshed: ${updatedCalendars.length} calendars found`);
+      const visibleCount = updatedCalendars.filter(cal => cal.isVisible).length;
+      logger.info(`🔄 Data Refresh: Calendar state refreshed successfully - ${updatedCalendars.length} total calendars, ${visibleCount} visible`);
     } catch (error) {
-      logger.error('Failed to refresh calendars:', error);
+      logger.error('🔄 Data Refresh: Failed to refresh calendars:', error);
     }
   }, [calendarRepository]);
 
