@@ -42,22 +42,29 @@ This creates a ZIP file in the `dist/` directory that can be loaded as an unpack
 
 ## 🛠️ Development
 
-### TypeScript Build
+### Modern Build System
 
-The project is written in TypeScript and must be compiled to JavaScript before use:
+The project uses Vite with TypeScript and React for a modern development experience:
 
 ```bash
 # Install dependencies
 npm install
 
-# Build TypeScript to JavaScript
+# Build for production (outputs to dist/)
 npm run build
+
+# Development mode with hot reloading
+npm run dev
 
 # Watch mode (auto-rebuild on changes)
 npm run build:watch
 ```
 
-See [TYPESCRIPT.md](TYPESCRIPT.md) for detailed information about the TypeScript setup and migration.
+The build system uses:
+- **Vite**: Fast build tool with hot module reloading
+- **@crxjs/vite-plugin**: Chrome extension support for Vite
+- **TypeScript**: Strict type checking and modern JavaScript features
+- **React**: Component-based UI with TypeScript integration
 
 ### Testing
 
@@ -74,10 +81,19 @@ npm run test:watch
 npm run test:coverage
 ```
 
-**Test Coverage**: 46 tests across 3 test suites covering:
-- Service worker message handling
-- Calendar management operations
-- UI utility functions and storage integration
+### TypeScript Configuration
+
+The project uses strict TypeScript settings for maximum type safety:
+- **Strict Type Checking**: Full strict mode enabled
+- **Interface-Driven Design**: Extensive use of interfaces for contracts
+- **Generics**: Type-safe repository and use case patterns
+- **Union Types**: Comprehensive error handling with discriminated unions
+
+**Test Coverage**: 46 tests across multiple layers covering:
+- **Domain Layer**: Entity behavior and business rules
+- **Infrastructure Layer**: Repository implementations and external services
+- **Use Cases Layer**: Application service workflows
+- **Presentation Layer**: UI components and user interactions
 
 ## 🎯 How to Use
 
@@ -113,81 +129,104 @@ npm run test:coverage
 
 ## 🏗️ Architecture
 
-### Core Components
+### Domain-Driven Design Architecture
 
-- **CalendarManager** (`src/calendar_manager.ts`): Core logic for calendar discovery and manipulation (compiled to `dist/calendar_manager.js`)
-- **UI Components** (`src/inject/inject.ts`): Vue.js-based user interface injected into Google Calendar (compiled to `dist/inject/inject.js`)
-- **Content Scripts**: Automatically inject the extension into Google Calendar pages
-- **Background Service Worker** (`src/background.ts`): Handles extension lifecycle and messaging (compiled to `dist/background.js`)
+This extension follows **Domain-Driven Design (DDD)** principles with **Clean Architecture** patterns:
 
-### Key Classes
+#### Core Layer (`src/core/`)
+- **Entities**: Domain objects (`Calendar`, `CalendarPreset`) with business logic
+- **Events**: Domain events for decoupled communication
+- **Repositories**: Abstract interfaces for data access
+- **Errors**: Domain-specific error types
 
-- `Calendar`: Represents individual calendar entries with DOM manipulation methods
-- `CalendarList`: Manages collections of calendars with filtering and bulk operations
-- `CalendarDOM`: Handles DOM-specific operations for calendar elements
-- `Overlay`: Provides visual feedback during calendar operations
+#### Use Cases Layer (`src/usecases/`)
+- **Application Services**: Business workflows (Apply Preset, Save Preset, etc.)
+- **Dependency Injection**: Clean interfaces between layers
 
-### Dependencies
+#### Infrastructure Layer (`src/infrastructure/`)
+- **Concrete Repositories**: Chrome storage and DOM implementations
+- **External Services**: Background service worker, DOM utilities
+- **Framework Adapters**: Chrome API integrations
 
-- **jQuery**: DOM manipulation and utilities
-- **Vue.js**: Reactive UI framework for the extension interface
-- **Vuetify**: Material Design component library (scoped to avoid conflicts)
-- **Material Design Lite**: Additional UI components and styling
+#### Presentation Layer (`src/presentation/`)
+- **React Components**: Modern UI with Ant Design
+- **Event Handlers**: User interaction logic
+- **Theme Management**: Light/dark mode support
+
+### Key Components
+
+- **CalendarExtensionApp** (`src/presentation/CalendarExtensionApp.tsx`): Main React component with floating action button UI
+- **Calendar Entity** (`src/core/entities/Calendar.entity.ts`): Immutable domain object representing a calendar
+- **Use Cases** (`src/usecases/`): Business logic services like ApplyPreset, SavePreset
+- **Repositories** (`src/infrastructure/`): Data access implementations for Chrome storage and DOM
+- **Background Service Worker** (`src/infrastructure/background.ts`): Handles extension lifecycle
+
+### Technology Stack
+
+- **TypeScript**: Type-safe JavaScript development with strict typing
+- **React 19**: Modern functional components with hooks
+- **Ant Design**: Comprehensive UI component library
+- **Vite**: Fast build tool with Chrome extension support
+- **Jest**: Testing framework with comprehensive coverage
 - **Mousetrap**: Keyboard shortcut handling
-
-### Development Dependencies
-
-- **TypeScript**: Type-safe JavaScript development
-- **Jest**: Testing framework with jsdom environment
-- **ts-jest**: TypeScript preprocessor for Jest
 
 ## 🔧 Development
 
 ### File Structure
 
 ```
-├── manifest.json           # Extension manifest (Manifest V3, uses dist/ files)
-├── package.json            # npm dependencies and build scripts
-├── tsconfig.json           # TypeScript configuration
-├── jest.config.js          # Jest test configuration
-├── index.html              # Standalone test/demo page
-├── icons/                  # Extension icons (16, 19, 48, 128px)
-├── lib/                    # Third-party libraries
-│   ├── jquery/
-│   ├── vue/
-│   ├── mdl/               # Material Design Lite
-│   └── mousetrap/         # Keyboard shortcuts
-├── src/                    # TypeScript source files
-│   ├── background.ts       # Service worker
-│   ├── calendar_manager.ts # Core calendar logic (~900 lines)
-│   └── inject/
-│       ├── inject.ts       # UI injection and Vue components (~960 lines)
-│       └── inject.css      # Extension-specific styles
-├── dist/                   # Compiled JavaScript (generated by npm run build)
-│   ├── background.js
-│   ├── calendar_manager.js
-│   └── inject/
-│       └── inject.js
-├── tests/                  # Jest test files
-│   ├── setup.ts
-│   ├── background.test.ts  # 4 tests
-│   ├── calendar_manager.test.ts # 21 tests
-│   └── inject.test.ts      # 21 tests
-├── docs/                   # Documentation
-├── screenshots/            # Extension screenshots
-├── TYPESCRIPT.md           # TypeScript migration guide
-└── release.ps1            # Build script
+├── manifest.json                    # Extension manifest (Manifest V3)
+├── package.json                     # Dependencies and build scripts
+├── vite.config.ts                   # Vite build configuration
+├── tsconfig.json                    # TypeScript configuration
+├── jest.config.js                   # Jest test configuration
+├── icons/                           # Extension icons
+├── src/                            # TypeScript source files
+│   ├── main.ts                     # Dependency injection composition root
+│   ├── react-inject.tsx            # React app entry point
+│   ├── core/                       # Domain layer
+│   │   ├── entities/               # Domain entities (Calendar, CalendarPreset)
+│   │   ├── events/                 # Domain events
+│   │   ├── repositories/           # Repository interfaces
+│   │   └── errors/                 # Domain-specific errors
+│   ├── usecases/                   # Application services layer
+│   │   ├── ApplyPreset.usecase.ts
+│   │   ├── SavePreset.usecase.ts
+│   │   └── dependencies.ts         # Use case DI container
+│   ├── infrastructure/             # External concerns layer
+│   │   ├── background.ts           # Chrome service worker
+│   │   ├── ChromeStorageRepository.repository.ts
+│   │   ├── GoogleCalendarRepository.repository.ts
+│   │   └── dependencies.ts         # Infrastructure DI container
+│   └── presentation/               # UI layer
+│       ├── CalendarExtensionApp.tsx # Main React component
+│       ├── components/             # React UI components
+│       └── dependencies.ts         # Presentation DI container
+├── dist/                           # Built extension files (generated by Vite)
+└── screenshots/                    # Extension screenshots
 ```
 
-### Configuration
+### Architecture Principles
 
-The extension uses a centralized configuration object (`CALENDAR_SELECTOR_CONFIG`) in `inject.js` that controls:
+The extension follows these architectural principles:
 
-- Timing delays for various operations
-- CSS selectors for UI injection
-- Storage settings and limits
-- UI text strings for internationalization
-- Keyboard shortcut mappings
+- **Domain-Driven Design**: Business logic is isolated in the core domain layer
+- **Clean Architecture**: Dependencies point inward toward the domain
+- **Dependency Injection**: Loose coupling through constructor injection
+- **Immutable Entities**: Functional programming patterns for state management
+- **Event-Driven**: Domain events enable decoupled communication
+- **Repository Pattern**: Abstract data access behind interfaces
+
+### Troubleshooting
+
+**Build Issues:**
+- Verify TypeScript version: `npx tsc --version` (should be 5.5.3+)
+- Clean install: `rm -rf node_modules package-lock.json && npm install`
+
+**Extension Issues:**
+- Ensure `npm run build` completed successfully
+- Check that `dist/` directory contains compiled files
+- Reload extension in Chrome after rebuilding
 
 ### Browser Permissions
 

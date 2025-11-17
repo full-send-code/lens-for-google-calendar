@@ -1,55 +1,83 @@
 # Lens for Google Calendar - AI Coding Agent Instructions
 
 ## Project Overview
-A Chrome Manifest V3 extension for Google Calendar that allows users to save/restore calendar groups. Built with jQuery, Vue.js (scoped), and Material Design Lite, it injects UI into Google Calendar's DOM to provide calendar management functionality.
+A Chrome Manifest V3 extension for Google Calendar that allows users to save/restore calendar groups. Built with TypeScript, React, and Ant Design, it uses a Domain-Driven Design architecture with clean separation of concerns.
 
-## Architecture & Key Components
+## Architecture Overview
 
-### Core Classes (`src/calendar_manager.js`)
-- **CalendarList**: Singleton array extension managing calendar collections. Use `CalendarList.getInstance()` to access.
-- **Calendar**: Individual calendar representation with DOM manipulation methods
-- **CalendarDOM**: Handles DOM-specific operations for calendar elements with virtual scrolling awareness
-- **Overlay**: Visual feedback system during calendar operations
+This project follows **Domain-Driven Design (DDD)** principles with **Clean Architecture** patterns:
 
-### Content Script Architecture
-- **Entry Point**: `src/inject/inject.js` - Vue.js app that injects into Google Calendar
-- **Centralized Config**: `CALENDAR_SELECTOR_CONFIG` object controls all timing, selectors, and UI text
-- **CSS Variables**: `src/inject/inject.css` uses CSS custom properties for theming (light/dark mode support)
+### Core Layer (`src/core/`)
+- **Entities**: Domain objects (`Calendar`, `CalendarPreset`) with business logic
+- **Events**: Domain events for decoupled communication
+- **Repositories**: Abstract interfaces for data access
+- **Errors**: Domain-specific error types
 
-### Google Calendar DOM Integration
-- **Virtual Scrolling**: Google Calendar destroys/recreates calendar list items offscreen. Always call `ensureValidDOM()` before DOM operations.
-- **Scroll Container**: Use `CalendarList.getScrollContainer()` for calendar list operations
-- **UI Injection Point**: `header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)`
+### Use Cases Layer (`src/usecases/`)
+- **Application Services**: Business workflows (Apply Preset, Save Preset, etc.)
+- **Dependency Injection**: Clean interfaces between layers
 
-## Development Patterns
+### Infrastructure Layer (`src/infrastructure/`)
+- **Concrete Repositories**: Chrome storage and DOM implementations
+- **External Services**: Background service worker, DOM utilities
+- **Framework Adapters**: Chrome API integrations
 
-### Async Operations with DOM Validation
-```javascript
-// Always ensure DOM validity before calendar operations
-const result = await calendarList.ensureValidDOM(calendar, {restoreScroll: true})
-await calendar.toggle()
+### Presentation Layer (`src/presentation/`)
+- **React Components**: Modern UI with Ant Design
+- **Event Handlers**: User interaction logic
+- **Theme Management**: Light/dark mode support
+
+### Domain Entities
+- **Calendar Entity**: Immutable calendar representation with business methods
+- **CalendarPreset Entity**: Named collections of calendar states
+- **Domain Events**: `CalendarVisibilityChanged`, `PresetApplied`, etc.
+
+### Repository Pattern
+```typescript
+// Abstract interface (core layer)
+interface ICalendarRepository {
+  findAll(): Promise<Calendar[]>
+  updateVisibility(email: string, visible: boolean): Promise<void>
+}
+
+// Concrete implementation (infrastructure layer)
+class GoogleCalendarRepository implements ICalendarRepository {
+  // DOM-based implementation
+}
+```
+
+### Use Case Pattern
+```typescript
+// Clean business logic with dependency injection
+class ApplyPresetUseCase {
+  constructor(
+    private calendarRepo: ICalendarRepository,
+    private presetRepo: IPresetRepository
+  ) {}
+  
+  async execute(presetName: string): Promise<void> {
+    // Business logic here
+  }
+}
 ```
 
 ### Storage Structure
 Chrome sync storage uses this format:
-```javascript
-{
-  "group_name": ["email1@domain.com", "email2@domain.com"],
-  "saved_1640995200000": [...],  // Auto-saved with timestamp
-  "__last_saved": ["saved_1640995200000", "work"],  // Restore history
-  "__v": 1  // Version for migrations
+```typescript
+interface PresetData {
+  [presetName: string]: string[]  // Calendar emails
+  __metadata?: PresetMetadata
 }
 ```
 
-### Vue.js Component Pattern
-- Components defined globally: `Vue.component('name', {...})`
-- Main app: Single Vue instance in `vm` variable
-- Use Vuetify scoped to avoid Google Calendar conflicts
+### React Component Pattern
+- **Functional Components**: Modern React with hooks
+- **Ant Design**: Consistent UI component library
+- **Dependency Injection**: Props-based DI for use cases
 
 ### Keyboard Shortcuts
-- Handled via Mousetrap library
+- Handled via Mousetrap library in React components
 - Modifier pattern: `Ctrl+Alt+[key]`
-- Global binds using `mousetrap-global-bind.min.js`
 
 ## Critical Development Considerations
 
@@ -59,44 +87,78 @@ Chrome sync storage uses this format:
 - **Theme Support**: Extension auto-detects light/dark themes via CSS custom properties.
 
 ### Chrome Extension Manifest V3
-- **Service Worker**: `src/background.js` handles extension lifecycle
-- **Content Scripts**: Auto-inject into `https://calendar.google.com/*`
-- **Storage**: Uses `chrome.storage.sync` with 3 auto-save limit
+- **Service Worker**: `src/infrastructure/background.ts` handles extension lifecycle
+- **Content Scripts**: Auto-inject `src/react-inject.tsx` into `https://calendar.google.com/*`
+- **Vite Build**: Uses Vite with CRX plugin for modern build pipeline
+- **Storage**: Uses `chrome.storage.sync` through repository pattern
 
 ### Performance Patterns
-- **Overlay System**: Show/hide loading overlays during calendar operations
-- **Batch Operations**: Use `toggleAll()` for multiple calendar changes
-- **Scroll Position**: Save/restore scroll positions during DOM operations
+- **Event-Driven Architecture**: Domain events for loose coupling
+- **Immutable Entities**: Functional programming patterns for state
+- **Async/Await**: Promise-based operations throughout
+- **React Optimization**: Proper state management and re-rendering
 
 ## Build & Development Workflow
 
-### Local Development
+### TypeScript Development
 ```powershell
-# Load unpacked extension at chrome://extensions/
-# Test on https://calendar.google.com
+# Install dependencies
+npm install
+
+# Build with Vite
+npm run build
+
+# Development with watch mode
+npm run dev
+
+# Run Jest tests
+npm test
 ```
 
 ### Release Process
 ```powershell
-.\release.ps1 [-Version <version>] [-Force]
-# Creates ZIP in dist/ directory
+# Build production version
+npm run build
+
+# Load unpacked extension from project root (uses manifest.json)
+# Vite outputs to dist/ automatically
 ```
 
 ### Testing Considerations
-- Use `index.html` for standalone testing outside Google Calendar
-- Test calendar discovery with drawer visible/hidden
-- Verify keyboard shortcuts don't conflict with Google Calendar
-- Test Chrome sync storage functionality
+- **Jest Test Suite**: 46 tests across domain, infrastructure, and presentation
+- **Test Coverage**: Run `npm run test:coverage` for coverage reports
+- **Domain Testing**: Unit tests for entities and use cases
+- **Integration Testing**: Repository and service integration tests
 
 ## File Organization
-- `manifest.json`: Extension configuration (Manifest V3)
-- `src/calendar_manager.js`: Core calendar logic and DOM handling
-- `src/inject/`: Vue.js UI components and CSS
-- `lib/`: Third-party dependencies (jQuery, Vue, MDL, Mousetrap)
-- `icons/`: Extension icons (16, 19, 48, 128px)
+```
+src/
+├── main.ts                     # Dependency injection composition root
+├── react-inject.tsx           # React app entry point
+├── core/                      # Domain layer (entities, events, interfaces)
+│   ├── entities/              # Domain entities (Calendar, CalendarPreset)
+│   ├── events/                # Domain events
+│   ├── repositories/          # Repository interfaces
+│   └── errors/                # Domain-specific errors
+├── usecases/                  # Application services layer
+│   ├── ApplyPreset.usecase.ts
+│   ├── SavePreset.usecase.ts
+│   └── dependencies.ts        # Use case DI container
+├── infrastructure/            # External concerns layer
+│   ├── background.ts          # Chrome service worker
+│   ├── ChromeStorageRepository.repository.ts
+│   ├── GoogleCalendarRepository.repository.ts
+│   └── dependencies.ts        # Infrastructure DI container
+└── presentation/              # UI layer
+    ├── CalendarExtensionApp.tsx  # Main React component
+    ├── components/            # React UI components
+    └── dependencies.ts        # Presentation DI container
+```
 
 ## Key Integration Points
-- **Calendar Discovery**: Scans Google Calendar's virtual-scrolled list
-- **DOM Injection**: Insert Vue.js UI into Google Calendar header
-- **Chrome APIs**: Uses storage.sync for cross-device calendar groups
-- **Theming**: CSS custom properties automatically adapt to Google Calendar themes
+- **Domain-Driven Design**: Clear separation of business logic from infrastructure
+- **Dependency Injection**: Composition root pattern for clean architecture
+- **React Integration**: Modern React with TypeScript and Ant Design
+- **Chrome Extension APIs**: Abstracted through repository pattern
+- **Event System**: Domain events for decoupled component communication
+- **Testing**: Comprehensive Jest test coverage across all layers
