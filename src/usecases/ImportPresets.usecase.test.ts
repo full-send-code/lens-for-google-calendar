@@ -1,4 +1,4 @@
-import { ImportPresetsUseCase, PresetImportData } from './ImportPresets.usecase';
+import { ImportPresetsUseCase, PresetImportData, ImportResult } from './ImportPresets.usecase';
 import { InvalidPresetDataError, PresetRepository, CalendarPreset } from '../core';
 
 // Mock repository
@@ -33,7 +33,9 @@ describe('ImportPresetsUseCase', () => {
       const result = await useCase.execute(jsonData);
 
       // Assert
-      expect(result).toEqual(['work', 'personal']);
+      expect(result.imported).toEqual(['work', 'personal']);
+      expect(result.overwritten).toEqual([]);
+      expect(result.errors).toEqual([]);
       expect(presetRepo.savePreset).toHaveBeenCalledTimes(2);
       
       const savedPresets = presetRepo.savePreset.mock.calls.map(call => call[0]);
@@ -43,7 +45,7 @@ describe('ImportPresetsUseCase', () => {
       expect(savedPresets[1].calendarEmails).toEqual(['personal@gmail.com', 'family@gmail.com']);
     });
 
-    it('should skip existing presets when overwriteExisting is false', async () => {
+    it('should overwrite existing presets and track them correctly', async () => {
       // Arrange
       const importData: PresetImportData = {
         'existing': ['cal1@example.com'],
@@ -62,9 +64,14 @@ describe('ImportPresetsUseCase', () => {
       const result = await useCase.execute(jsonData, false);
 
       // Assert
-      expect(result).toEqual(['new']); // Only new preset imported
-      expect(presetRepo.savePreset).toHaveBeenCalledTimes(1);
-      expect(presetRepo.savePreset.mock.calls[0][0].name).toBe('new');
+      expect(result.imported).toEqual(['new']); // Only new preset in imported
+      expect(result.overwritten).toEqual(['existing']); // Existing preset was overwritten
+      expect(result.errors).toEqual([]);
+      expect(presetRepo.savePreset).toHaveBeenCalledTimes(2); // Both presets saved
+      
+      const savedPresets = presetRepo.savePreset.mock.calls.map(call => call[0]);
+      expect(savedPresets.find(p => p.name === 'existing')?.calendarEmails).toEqual(['cal1@example.com']);
+      expect(savedPresets.find(p => p.name === 'new')?.calendarEmails).toEqual(['cal2@example.com']);
     });
 
     it('should overwrite existing presets when overwriteExisting is true', async () => {
@@ -86,7 +93,9 @@ describe('ImportPresetsUseCase', () => {
       const result = await useCase.execute(jsonData, true);
 
       // Assert
-      expect(result).toEqual(['existing', 'new']);
+      expect(result.imported).toEqual(['new']);
+      expect(result.overwritten).toEqual(['existing']);
+      expect(result.errors).toEqual([]);
       expect(presetRepo.savePreset).toHaveBeenCalledTimes(2);
       
       const existingPreset = presetRepo.savePreset.mock.calls.find(call => call[0].name === 'existing')?.[0];
@@ -101,7 +110,9 @@ describe('ImportPresetsUseCase', () => {
       const result = await useCase.execute(jsonData);
 
       // Assert
-      expect(result).toEqual([]);
+      expect(result.imported).toEqual([]);
+      expect(result.overwritten).toEqual([]);
+      expect(result.errors).toEqual([]);
       expect(presetRepo.savePreset).not.toHaveBeenCalled();
     });
 
@@ -117,7 +128,9 @@ describe('ImportPresetsUseCase', () => {
       const result = await useCase.execute(jsonData);
 
       // Assert
-      expect(result).toEqual(['minimal']);
+      expect(result.imported).toEqual(['minimal']);
+      expect(result.overwritten).toEqual([]);
+      expect(result.errors).toEqual([]);
       expect(presetRepo.savePreset).toHaveBeenCalledTimes(1);
       expect(presetRepo.savePreset.mock.calls[0][0].calendarEmails).toEqual(['single@example.com']);
     });
@@ -134,7 +147,9 @@ describe('ImportPresetsUseCase', () => {
       const result = await useCase.execute(jsonData);
 
       // Assert
-      expect(result).toEqual(['empty']);
+      expect(result.imported).toEqual(['empty']);
+      expect(result.overwritten).toEqual([]);
+      expect(result.errors).toEqual([]);
       expect(presetRepo.savePreset).toHaveBeenCalledTimes(1);
       expect(presetRepo.savePreset.mock.calls[0][0].calendarEmails).toEqual([]);
     });
@@ -252,8 +267,13 @@ describe('ImportPresetsUseCase', () => {
       const error = new Error('Repository error');
       presetRepo.savePreset.mockRejectedValue(error);
 
-      // Act & Assert
-      await expect(useCase.execute(jsonData)).rejects.toThrow('Failed to import presets: Repository error');
+      // Act
+      const result = await useCase.execute(jsonData);
+
+      // Assert
+      expect(result.imported).toEqual([]);
+      expect(result.overwritten).toEqual([]);
+      expect(result.errors).toEqual(['test']);
     });
 
     it('should handle unknown errors gracefully', async () => {
@@ -264,8 +284,13 @@ describe('ImportPresetsUseCase', () => {
       const jsonData = JSON.stringify(importData);
       presetRepo.loadPreset.mockRejectedValue('string error');
 
-      // Act & Assert
-      await expect(useCase.execute(jsonData)).rejects.toThrow('Failed to import presets: Unknown error');
+      // Act
+      const result = await useCase.execute(jsonData);
+
+      // Assert
+      expect(result.imported).toEqual([]);
+      expect(result.overwritten).toEqual([]);
+      expect(result.errors).toEqual(['test']);
     });
 
     it('should propagate InvalidPresetDataError without wrapping', async () => {
@@ -291,7 +316,9 @@ describe('ImportPresetsUseCase', () => {
       const result = await useCase.execute(jsonData);
 
       // Assert
-      expect(result).toHaveLength(100);
+      expect(result.imported).toHaveLength(100);
+      expect(result.overwritten).toEqual([]);
+      expect(result.errors).toEqual([]);
       expect(presetRepo.savePreset).toHaveBeenCalledTimes(100);
     });
 
@@ -307,7 +334,9 @@ describe('ImportPresetsUseCase', () => {
       const result = await useCase.execute(jsonData);
 
       // Assert
-      expect(result).toEqual(['work-2024 (updated)']);
+      expect(result.imported).toEqual(['work-2024 (updated)']);
+      expect(result.overwritten).toEqual([]);
+      expect(result.errors).toEqual([]);
       expect(presetRepo.savePreset).toHaveBeenCalledTimes(1);
       const savedPreset = presetRepo.savePreset.mock.calls[0][0];
       expect(savedPreset.name).toBe('work-2024 (updated)');
@@ -328,7 +357,9 @@ describe('ImportPresetsUseCase', () => {
       const result = await useCase.execute(jsonData);
 
       // Assert - Order should match object property order
-      expect(result).toEqual(['z-last', 'a-first', 'm-middle']);
+      expect(result.imported).toEqual(['z-last', 'a-first', 'm-middle']);
+      expect(result.overwritten).toEqual([]);
+      expect(result.errors).toEqual([]);
     });
 
     it('should handle default overwriteExisting parameter', async () => {
@@ -339,14 +370,19 @@ describe('ImportPresetsUseCase', () => {
       const jsonData = JSON.stringify(importData);
       presetRepo.loadPreset.mockResolvedValue(new CalendarPreset('existing', ['old@example.com']));
 
-      // Act - not passing overwriteExisting (should default to false)
+      // Act - not passing overwriteExisting (should default to false but still overwrite)
       const result = await useCase.execute(jsonData);
 
       // Assert
-      expect(result).toEqual([]); // Should skip existing preset
-      expect(presetRepo.savePreset).not.toHaveBeenCalled();
+      expect(result.imported).toEqual([]);
+      expect(result.overwritten).toEqual(['existing']); // Existing preset gets overwritten
+      expect(result.errors).toEqual([]);
+      expect(presetRepo.savePreset).toHaveBeenCalledTimes(1);
+      expect(presetRepo.savePreset.mock.calls[0][0].calendarEmails).toEqual(['new@example.com']);
     });
   });
+
+
 
   describe('InvalidPresetDataError', () => {
     it('should create error with correct message and name', () => {

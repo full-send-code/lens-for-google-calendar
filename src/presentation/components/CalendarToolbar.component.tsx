@@ -38,6 +38,7 @@ import type {
   ImportPresetsUseCase,
   ExportPresetsUseCase
 } from '../../usecases';
+import type { ImportResult } from '../../usecases/ImportPresets.usecase';
 import type { CalendarPreset, Calendar } from '../../core';
 import logger from '../../infrastructure/logger';
 
@@ -488,7 +489,7 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
   };
 
   /**
-   * Handle preset import
+   * Handle preset import with conflict resolution
    */
   const handleImport = async (file: UploadFile) => {
     try {
@@ -499,11 +500,25 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
       }
 
       const text = await file.originFileObj.text();
-      const importedPresets = await importPresetsUseCase.execute(text);
+      const result: ImportResult = await importPresetsUseCase.execute(text, true); // Always overwrite existing presets
+      
+      // Show success message with details
+      const importedCount = result.imported.length;
+      const overwrittenCount = result.overwritten.length;
+      const totalCount = importedCount + overwrittenCount;
+      
+      let description = `Successfully processed ${totalCount} presets.`;
+      if (importedCount > 0 && overwrittenCount > 0) {
+        description = `Imported ${importedCount} new presets and updated ${overwrittenCount} existing presets.`;
+      } else if (importedCount > 0) {
+        description = `Imported ${importedCount} new presets.`;
+      } else if (overwrittenCount > 0) {
+        description = `Updated ${overwrittenCount} existing presets.`;
+      }
       
       notification.success({
-        message: 'Import Successful',
-        description: `Successfully imported ${importedPresets.length} calendar presets.`,
+        message: 'Import Complete',
+        description,
         placement: 'topRight'
       });
       
@@ -522,6 +537,8 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
     
     return false; // Prevent default upload behavior
   };
+
+
 
   /**
    * Create the dropdown overlay content with preset selection and management

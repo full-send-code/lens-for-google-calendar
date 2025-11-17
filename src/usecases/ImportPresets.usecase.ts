@@ -9,6 +9,15 @@ export interface PresetImportData {
 }
 
 /**
+ * Result of an import operation showing what was processed.
+ */
+export interface ImportResult {
+  imported: string[];
+  overwritten: string[];
+  errors: string[];
+}
+
+/**
  * Use case for importing calendar presets from JSON data.
  * 
  * This use case takes JSON preset data and saves each preset to storage,
@@ -22,11 +31,11 @@ export class ImportPresetsUseCase {
    * 
    * @param jsonData - The JSON string containing preset data
    * @param overwriteExisting - Whether to overwrite existing presets with same names
-   * @returns Promise that resolves to an array of imported preset names
+   * @returns Promise that resolves to detailed import results
    * @throws InvalidPresetDataError if the JSON data is invalid
    * @throws Error if the operation fails
    */
-  async execute(jsonData: string, overwriteExisting: boolean = false): Promise<string[]> {
+  async execute(jsonData: string, overwriteExisting: boolean = false): Promise<ImportResult> {
     logger.info(`📥 Import Presets: Starting import operation (overwrite: ${overwriteExisting})`);
     logger.debug(`📥 Import Presets: JSON data length: ${jsonData?.length || 0} characters`);
     
@@ -58,7 +67,7 @@ export class ImportPresetsUseCase {
       logger.info(`📥 Import Presets: Found ${presetNames.length} presets to process: ${presetNames.join(', ')}`);
 
       const importedPresets: string[] = [];
-      const skippedPresets: string[] = [];
+      const overwrittenPresets: string[] = [];
       const errorPresets: string[] = [];
 
       // Process each preset in the import data
@@ -90,18 +99,15 @@ export class ImportPresetsUseCase {
           
           logger.debug(`📥 Import Presets: Email validation passed for preset "${presetName}"`);
 
-          // Check if preset already exists
-          if (!overwriteExisting) {
-            logger.debug(`📥 Import Presets: Checking if preset "${presetName}" already exists...`);
-            const existingPreset = await this.presetRepository.loadPreset(presetName);
-            if (existingPreset) {
-              logger.info(`📥 Import Presets: Skipping existing preset "${presetName}" (overwrite=false)`);
-              skippedPresets.push(presetName);
-              continue; // Skip existing preset if not overwriting
-            }
-            logger.debug(`📥 Import Presets: Preset "${presetName}" does not exist - will create`);
+          // Check if preset already exists to track new vs overwritten
+          logger.debug(`📥 Import Presets: Checking if preset "${presetName}" already exists...`);
+          const existingPreset = await this.presetRepository.loadPreset(presetName);
+          const isOverwrite = !!existingPreset;
+          
+          if (isOverwrite) {
+            logger.debug(`📥 Import Presets: Will overwrite existing preset "${presetName}"`);
           } else {
-            logger.debug(`📥 Import Presets: Will overwrite preset "${presetName}" if it exists`);
+            logger.debug(`📥 Import Presets: Will create new preset "${presetName}"`);
           }
 
           // Create and save the preset
@@ -111,8 +117,13 @@ export class ImportPresetsUseCase {
           logger.debug(`📥 Import Presets: Saving preset "${presetName}" to repository...`);
           await this.presetRepository.savePreset(preset);
           
-          importedPresets.push(presetName);
-          logger.info(`📥 Import Presets: Successfully imported preset "${presetName}" with ${calendarEmails.length} calendars`);
+          if (isOverwrite) {
+            overwrittenPresets.push(presetName);
+            logger.info(`📥 Import Presets: Successfully overwritten preset "${presetName}" with ${calendarEmails.length} calendars`);
+          } else {
+            importedPresets.push(presetName);
+            logger.info(`📥 Import Presets: Successfully imported preset "${presetName}" with ${calendarEmails.length} calendars`);
+          }
           
         } catch (presetError) {
           errorPresets.push(presetName);
@@ -126,18 +137,22 @@ export class ImportPresetsUseCase {
       }
       
       // Log summary
-      logger.info(`📥 Import Presets: Import complete - Imported: ${importedPresets.length}, Skipped: ${skippedPresets.length}, Errors: ${errorPresets.length}`);
+      logger.info(`📥 Import Presets: Import complete - New: ${importedPresets.length}, Overwritten: ${overwrittenPresets.length}, Errors: ${errorPresets.length}`);
       if (importedPresets.length > 0) {
-        logger.info(`📥 Import Presets: Successfully imported: ${importedPresets.join(', ')}`);
+        logger.info(`📥 Import Presets: Successfully imported new: ${importedPresets.join(', ')}`);
       }
-      if (skippedPresets.length > 0) {
-        logger.info(`📥 Import Presets: Skipped existing: ${skippedPresets.join(', ')}`);
+      if (overwrittenPresets.length > 0) {
+        logger.info(`📥 Import Presets: Successfully overwritten: ${overwrittenPresets.join(', ')}`);
       }
       if (errorPresets.length > 0) {
         logger.warn(`📥 Import Presets: Failed to import: ${errorPresets.join(', ')}`);
       }
 
-      return importedPresets;
+      return {
+        imported: importedPresets,
+        overwritten: overwrittenPresets,
+        errors: errorPresets
+      };
 
     } catch (error) {
       if (error instanceof InvalidPresetDataError) {
