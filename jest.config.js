@@ -25,6 +25,8 @@ module.exports = {
       }
     }
   },
+  // Suppress console output during tests
+  silent: true,
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy'
   }
