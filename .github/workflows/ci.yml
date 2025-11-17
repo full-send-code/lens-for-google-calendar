@@ -82,7 +82,7 @@ jobs:
         
     - name: Create release ZIP
       run: |
-        VERSION=$(node -e "console.log(require('./dist/manifest.json').version)")
+        VERSION=$(node -e 'console.log(require("./dist/manifest.json").version)')
         cd dist
         zip -r ../lens-for-google-calendar-v${VERSION}.zip .
         echo "📦 Created: lens-for-google-calendar-v${VERSION}.zip"
