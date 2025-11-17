@@ -49,12 +49,7 @@ jobs:
         test -f dist/background.js || (echo "❌ background.js missing" && exit 1)
         
         # Validate manifest
-        node -e "
-          const manifest = require('./dist/manifest.json');
-          if (manifest.manifest_version !== 3) throw new Error('Must be Manifest V3');
-          if (!manifest.name || !manifest.version) throw new Error('Missing name/version');
-          console.log('✅ Build valid:', manifest.name, 'v' + manifest.version);
-        "
+        node -e 'const manifest = require("./dist/manifest.json"); if (manifest.manifest_version !== 3) throw new Error("Must be Manifest V3"); if (!manifest.name || !manifest.version) throw new Error("Missing name/version"); console.log("✅ Build valid:", manifest.name, "v" + manifest.version);'
         
         # Check size
         SIZE=$(du -sm dist/ | cut -f1)
