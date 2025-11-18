@@ -23,7 +23,8 @@ import {
   ImportOutlined, 
   ExportOutlined,
   SaveOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  InfoCircleOutlined
 } from '@ant-design/icons';
 import type { UploadFile } from 'antd/es/upload/interface';
 import type { MenuProps } from 'antd';
@@ -684,8 +685,31 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
 
       {/* Import/Export */}
       <div>
-        <div style={{ fontSize: '12px', color: '#666', marginBottom: '6px', fontWeight: 500 }}>
+        <div style={{ 
+          fontSize: '12px', 
+          color: '#666', 
+          marginBottom: '6px', 
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
           Import/Export
+          <InfoCircleOutlined 
+            style={{ 
+              fontSize: '14px', 
+              color: '#999', 
+              cursor: 'help'
+            }}
+            title={
+              "Keyboard Shortcuts:\n\n" +
+              "⌨️  Ctrl+Alt - Open this menu\n" +
+              "📋 Ctrl+Alt+P - Focus preset dropdown\n" +
+              "✅ Ctrl+Alt+E - Enable calendar\n" +
+              "💾 Ctrl+Alt+S - Save preset\n" +
+              "🚫 Ctrl+Alt+C - Clear all calendars"
+            }
+          />
         </div>
         <Space style={{ width: '100%' }}>
           <Button
