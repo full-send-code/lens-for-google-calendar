@@ -3,8 +3,9 @@
  * Main React application component that coordinates all calendar functionality
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ConfigProvider, theme } from 'antd';
+import * as Mousetrap from 'mousetrap';
 import { LensHeaderButton } from './components/CalendarToolbar.component';
 import logger from '../infrastructure/logger';
 import { showCustomNotification } from './utils/customNotification';
@@ -158,6 +159,138 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
       logger.error('🔄 Data Refresh: Failed to refresh calendars:', error);
     }
   }, [calendarRepository]);
+
+  /**
+   * Handle keyboard shortcuts for various calendar operations
+   */
+  const handleKeyboardShortcuts = useCallback(() => {
+    logger.info('⌨️  Hotkeys: Setting up keyboard shortcuts');
+
+    // Ctrl+Alt: Open Lens menu
+    Mousetrap.bind('ctrl+alt', (e) => {
+      e.preventDefault();
+      logger.info('⌨️  Hotkey: Ctrl+Alt pressed - Open Lens Menu');
+      
+      // Find and click the Lens floating action button to open the menu
+      const lensButton = document.querySelector('[data-testid="lens-floating-button"]') as HTMLElement;
+      if (lensButton) {
+        lensButton.click();
+        logger.info('⌨️  Hotkey: Lens menu opened successfully');
+      } else {
+        logger.warn('⌨️  Hotkey: Lens floating button not found in DOM');
+        showCustomNotification('Menu Access', 'Lens menu button not found. Please try again.', 'warning');
+      }
+      return false;
+    });
+
+    // Ctrl+Alt+E: Enable calendar by name
+    Mousetrap.bind('ctrl+alt+e', (e) => {
+      e.preventDefault();
+      logger.info('⌨️  Hotkey: Ctrl+Alt+E pressed - Enable Calendar');
+      const searchTerm = prompt('Enter calendar name or email to enable:');
+      if (searchTerm) {
+        // Find matching calendars
+        const matchingCalendars = currentCalendars.filter(cal => 
+          cal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          cal.email.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        
+        if (matchingCalendars.length > 0) {
+          const calendar = matchingCalendars[0];
+          enableCalendarUseCase.execute(calendar.email)
+            .then(() => {
+              showCustomNotification('Calendar Enabled', `Calendar "${calendar.name}" has been enabled.`, 'success');
+              refreshCalendars();
+            })
+            .catch((error) => {
+              logger.error('⌨️  Hotkey: Failed to enable calendar:', error);
+              showCustomNotification('Enable Failed', `Failed to enable calendar: ${error.message}`, 'error');
+            });
+        } else {
+          showCustomNotification('Calendar Not Found', `No calendar found matching "${searchTerm}".`, 'warning');
+        }
+      }
+      return false;
+    });
+
+    // Ctrl+Alt+S: Save current state as preset
+    Mousetrap.bind('ctrl+alt+s', (e) => {
+      e.preventDefault();
+      logger.info('⌨️  Hotkey: Ctrl+Alt+S pressed - Save Preset');
+      const presetName = prompt('Enter name for the new preset:');
+      if (presetName) {
+        savePresetUseCase.execute({ name: presetName.trim(), overwrite: false })
+          .then(() => {
+            showCustomNotification('Preset Saved', `Preset "${presetName}" has been saved.`, 'success');
+            refreshPresets();
+          })
+          .catch((error) => {
+            logger.error('⌨️  Hotkey: Failed to save preset:', error);
+            showCustomNotification('Save Failed', `Failed to save preset: ${error.message}`, 'error');
+          });
+      }
+      return false;
+    });
+
+    // Ctrl+Alt+C: Clear all calendars
+    Mousetrap.bind('ctrl+alt+c', (e) => {
+      e.preventDefault();
+      logger.info('⌨️  Hotkey: Ctrl+Alt+C pressed - Clear All Calendars');
+      clearCalendarsUseCase.execute()
+        .then(() => {
+          showCustomNotification('Calendars Cleared', 'All calendars have been hidden. Use Restore to bring them back.', 'success');
+          refreshCalendars();
+        })
+        .catch((error) => {
+          logger.error('⌨️  Hotkey: Failed to clear calendars:', error);
+          showCustomNotification('Clear Failed', `Failed to clear calendars: ${error.message}`, 'error');
+        });
+      return false;
+    });
+
+    // Ctrl+Alt+P: Focus preset dropdown
+    Mousetrap.bind('ctrl+alt+p', (e) => {
+      e.preventDefault();
+      logger.info('⌨️  Hotkey: Ctrl+Alt+P pressed - Focus Preset Dropdown');
+      
+      // First ensure the Lens menu is open
+      const lensButton = document.querySelector('[data-testid="lens-floating-button"]') as HTMLElement;
+      if (lensButton) {
+        lensButton.click();
+        
+        // Wait a brief moment for the dropdown to render, then focus on preset selector
+        setTimeout(() => {
+          const presetDropdown = document.querySelector('.ant-select-selector') as HTMLElement;
+          if (presetDropdown) {
+            presetDropdown.click();
+            logger.info('⌨️  Hotkey: Preset dropdown focused successfully');
+          } else {
+            logger.warn('⌨️  Hotkey: Preset dropdown not found in DOM');
+            showCustomNotification('Dropdown Access', 'Preset dropdown not found. Please ensure Lens menu is open.', 'warning');
+          }
+        }, 100);
+      } else {
+        logger.warn('⌨️  Hotkey: Lens floating button not found in DOM');
+        showCustomNotification('Menu Access', 'Lens menu button not found. Please try again.', 'warning');
+      }
+      return false;
+    });
+
+    logger.info('⌨️  Hotkeys: All keyboard shortcuts registered successfully');
+  }, [currentCalendars, enableCalendarUseCase, savePresetUseCase, clearCalendarsUseCase, refreshPresets, refreshCalendars]);
+
+  /**
+   * Setup keyboard shortcuts when component mounts
+   */
+  useEffect(() => {
+    handleKeyboardShortcuts();
+    
+    // Cleanup function to unbind shortcuts on unmount
+    return () => {
+      logger.info('⌨️  Hotkeys: Cleaning up keyboard shortcuts');
+      Mousetrap.unbind(['ctrl+alt', 'ctrl+alt+e', 'ctrl+alt+s', 'ctrl+alt+c', 'ctrl+alt+p']);
+    };
+  }, [handleKeyboardShortcuts]);
 
   return (
     <ConfigProvider

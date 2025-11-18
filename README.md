@@ -115,12 +115,11 @@ The project uses strict TypeScript settings for maximum type safety:
 
 ### Keyboard Shortcuts
 
-- `Ctrl+Alt+E`: **Enable** calendar by name or regex pattern (prompts for input)
-- `Ctrl+Alt+S`: **Save As** - Save current calendar selection as a named preset
-- `Ctrl+Alt+R`: **Restore** previous calendar selection 
-- `Ctrl+Alt+C`: **Clear** all calendars (saves current state for restoration)
-- `Ctrl+Alt+T`: **Toggle** calendar visibility by name (prompts for calendar name/regex)
-- `Ctrl+Alt` (hold): Show keyboard shortcut hints overlay
+- `Ctrl+Alt`: **Open Lens Menu** - Opens the floating action button menu
+- `Ctrl+Alt+P`: **Focus Preset Dropdown** - Opens menu and focuses on preset selector
+- `Ctrl+Alt+E`: **Enable Calendar** - Search and enable calendar by name or email
+- `Ctrl+Alt+S`: **Save Preset** - Save current calendar selection as a named preset
+- `Ctrl+Alt+C`: **Clear All** - Hide all calendars (saves current state for restoration)
 
 ### Import/Export
 

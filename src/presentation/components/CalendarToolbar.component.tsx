@@ -758,6 +758,7 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
             borderColor: '#595959',
           }}
           tooltip="Lens Calendar Manager"
+          data-testid="lens-floating-button"
         />
       </Dropdown>
 
