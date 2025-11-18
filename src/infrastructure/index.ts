@@ -7,6 +7,13 @@
 export { GoogleCalendarRepository } from './GoogleCalendarRepository.repository';
 export { ChromeStorageRepository } from './ChromeStorageRepository.repository';
 
+// Specialized Calendar Services
+export { CalendarDOMSelector } from './CalendarDOMSelector.service';
+export { CalendarDataExtractor } from './CalendarDataExtractor.service';
+export { CalendarCacheManager } from './CalendarCacheManager.service';
+export { VirtualScrollHandler } from './VirtualScrollHandler.service';
+export { CalendarVisibilityManager } from './CalendarVisibilityManager.service';
+
 // Utility Services
 export { DOMUtils } from './DOMUtils.util';
 export { JsonImportExportService } from './JsonImportExport.service';

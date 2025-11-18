@@ -10,5 +10,3 @@ chrome.runtime.onMessage.addListener(
     return true; // Keep message channel open for async response
   }
 );
-
-// setTimeout( () => chrome.browserAction.disable(), 5000 )
