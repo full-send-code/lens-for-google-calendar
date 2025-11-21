@@ -6,7 +6,6 @@
 import { Calendar } from '../core';
 import { CalendarDOMSelector } from './CalendarDOMSelector.service';
 import { CalendarDataExtractor } from './CalendarDataExtractor.service';
-import { CalendarCacheManager } from './CalendarCacheManager.service';
 import { DOMUtils } from './DOMUtils.util';
 import logger from './logger';
 
@@ -20,9 +19,46 @@ export class CalendarVisibilityManager {
 
   constructor(
     private domSelector: CalendarDOMSelector,
-    private dataExtractor: CalendarDataExtractor,
-    private cacheManager: CalendarCacheManager
+    private dataExtractor: CalendarDataExtractor
   ) {}
+
+  /**
+   * Process a single calendar element and set its visibility if needed
+   * New approach: Process calendars as we encounter them during scroll
+   */
+  async processCalendarElement(
+    element: Element,
+    desiredEmailsVisible: Set<string>
+  ): Promise<void> {
+    try {
+      // Extract calendar data
+      const calendarData = this.dataExtractor.extractCalendarData(element);
+      if (!calendarData) return;
+
+      // Determine what the visibility should be
+      const shouldBeVisible = desiredEmailsVisible.has(calendarData.email);
+      
+      // If current state matches desired, skip
+      if (calendarData.isVisible === shouldBeVisible) {
+        logger.debug(`Calendar ${calendarData.email} already in correct state: ${shouldBeVisible}`);
+        return;
+      }
+
+      // Find and click checkbox
+      const checkbox = this.domSelector.getCheckboxFromCalendarElement(element);
+      if (!checkbox || !(checkbox instanceof HTMLElement)) {
+        logger.warn(`No checkbox found for calendar: ${calendarData.email}`);
+        return;
+      }
+
+      logger.info(`Clicking calendar ${calendarData.email} to set visibility: ${shouldBeVisible}`);
+      checkbox.click();
+      await this.delay(100); // Brief delay after click
+
+    } catch (error) {
+      logger.warn('Error processing calendar element:', error);
+    }
+  }
 
   /**
    * Apply calendar visibility changes to Google Calendar
@@ -149,16 +185,10 @@ export class CalendarVisibilityManager {
   }
 
   /**
-   * Find calendar element by email using cached elements when possible
+   * Find calendar element by email by searching DOM directly
    */
   async findCalendarElementByEmail(email: string): Promise<Element | null> {
-    // First check cache
-    const cachedElement = this.cacheManager.getCachedElement(email);
-    if (cachedElement) {
-      return cachedElement;
-    }
-    
-    // Final fallback: search DOM directly
+    // Search DOM directly
     const calendarElements = this.domSelector.getCalendarElements();
     
     for (const element of calendarElements) {

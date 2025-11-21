@@ -33,15 +33,7 @@ describe('GoogleCalendarRepository Public API', () => {
       expect(typeof repository.setCalendarVisibility).toBe('function');
       
       // Utility methods
-      expect(typeof repository.clearCache).toBe('function');
-      expect(typeof repository.logPerformanceMetrics).toBe('function');
       expect(typeof repository.findCalendarElementByEmail).toBe('function');
-    });
-
-    it('should provide synchronous cache management', () => {
-      // These methods should be synchronous and not throw
-      expect(() => repository.clearCache()).not.toThrow();
-      expect(() => repository.logPerformanceMetrics()).not.toThrow();
     });
   });
 

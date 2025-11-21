@@ -354,4 +354,23 @@ export class CalendarDOMSelector {
     }
     return -1;
   }
+
+  /**
+   * Get checkbox element from a calendar element
+   */
+  getCheckboxFromCalendarElement(calendarElement: Element): Element | null {
+    // Try multiple selectors for checkbox
+    const selectors = [
+      'input[type="checkbox"]',
+      '[role="checkbox"]',
+      '.KGC9Kd-MPu53c input'
+    ];
+    
+    for (const selector of selectors) {
+      const checkbox = calendarElement.querySelector(selector);
+      if (checkbox) return checkbox;
+    }
+    
+    return null;
+  }
 }

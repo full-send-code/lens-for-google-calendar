@@ -4,7 +4,6 @@
  */
 
 import { CalendarDOMSelector } from './CalendarDOMSelector.service';
-import { CalendarCacheManager } from './CalendarCacheManager.service';
 import logger from './logger';
 
 /**
@@ -17,8 +16,7 @@ export class VirtualScrollHandler {
   };
 
   constructor(
-    private domSelector: CalendarDOMSelector,
-    private cacheManager: CalendarCacheManager
+    private domSelector: CalendarDOMSelector
   ) {}
 
   /**
@@ -158,7 +156,6 @@ export class VirtualScrollHandler {
       if (element instanceof HTMLElement) {
         logger.info(`🔘 Button Click: Clicking to expand collapsed section: ${ariaLabel || textContent}`);
         element.click();
-        this.cacheManager.invalidateCache(); // Cache might be stale after expanding
         logger.debug('🔘 Button Click: Waiting 500ms for expansion animation to complete...');
         await this.delay(VirtualScrollHandler.TIMEOUTS.EXPANSION_ANIMATION);
         logger.debug('🔘 Button Click: Expansion animation wait complete');
@@ -183,7 +180,6 @@ export class VirtualScrollHandler {
       logger.info(`🔘 Button Selection: Found chevron with parent button: "${parentLabel}"`);
       logger.info(`🔘 Button Click: Clicking chevron expand button: ${parentLabel}`);
       parentButton.click();
-      this.cacheManager.invalidateCache(); // Cache might be stale after expanding
       logger.debug('🔘 Button Click: Waiting 500ms for chevron expansion animation...');
       await this.delay(VirtualScrollHandler.TIMEOUTS.EXPANSION_ANIMATION);
       logger.debug('🔘 Button Click: Chevron expansion wait complete');
@@ -192,6 +188,55 @@ export class VirtualScrollHandler {
       logger.debug('🔘 Button Selection: Chevron element has no clickable parent button');
       return { clicked: false };
     }
+  }
+
+  /**
+   * Scroll through calendar container and process each visible calendar immediately
+   * New approach: No caching, process calendars as they appear during scroll
+   */
+  async scrollAndProcessCalendars(
+    container: Element,
+    processor: (calendarElements: Element[]) => Promise<void>
+  ): Promise<void> {
+    const scrollContainer = this.domSelector.getScrollContainer(container);
+    if (!scrollContainer) {
+      logger.warn('No scroll container found, processing visible calendars only');
+      const visibleCalendars = this.domSelector.getCalendarElementsInContainer(container);
+      await processor(visibleCalendars);
+      return;
+    }
+
+    logger.info('Starting scroll-and-process for container');
+
+    // Scroll to top first
+    scrollContainer.scrollTop = 0;
+    await this.delay(300);
+
+    let previousScrollTop = -1;
+    let scrollAttempt = 0;
+    const maxScrollAttempts = 10;
+    
+    while (scrollContainer.scrollTop !== previousScrollTop && scrollAttempt < maxScrollAttempts) {
+      previousScrollTop = scrollContainer.scrollTop;
+      scrollAttempt++;
+      
+      // Get visible calendars at current scroll position
+      const visibleCalendars = this.domSelector.getCalendarElementsInContainer(container);
+      logger.debug(`Scroll attempt ${scrollAttempt}: Processing ${visibleCalendars.length} visible calendars`);
+      
+      // Process them immediately via callback
+      await processor(visibleCalendars);
+      
+      // Scroll down one viewport height
+      scrollContainer.scrollTop += scrollContainer.clientHeight;
+      await this.delay(300); // Let DOM settle
+    }
+    
+    logger.info(`Scroll-and-process complete after ${scrollAttempt} scroll attempts`);
+    
+    // Scroll back to top when done
+    scrollContainer.scrollTop = 0;
+    await this.delay(300);
   }
 
   /**
