@@ -1,7 +1,7 @@
 # Lens for Google Calendar - AI Coding Agent Instructions
 
 ## Project Overview
-A Chrome Manifest V3 extension for Google Calendar that allows users to save/restore calendar groups. Built with jQuery, Vue.js (scoped), and Material Design Lite, it injects UI into Google Calendar's DOM to provide calendar management functionality.
+A Chrome Manifest V3 extension for Google Calendar that allows users to save/restore calendar groups. Built with React, TypeScript, and Ant Design, it injects UI into Google Calendar's DOM to provide calendar management functionality following Domain-Driven Design and Clean Architecture principles.
 
 ## Current Epic: Foundation & Core Infrastructure
 
@@ -10,34 +10,36 @@ Refer to `docs/prd/epic-1-foundation-core-infrastructure.md` for detailed requir
 This epic establishes the Chrome extension setup, UI injection into Google Calendar, and basic calendar visibility controls (enable specific calendar and clear all) to enable reliable manual toggling without presets. It focuses on creating a stable base that handles virtual scrolling and DOM manipulation, allowing users to manually adjust calendar visibility as a stepping stone to automated presets.
 
 Key stories include:
-- Story 1.1: Set up Chrome Extension Infrastructure (Manifest V3, background service worker, content script injection with Vue.js component)
+- Story 1.1: Set up Chrome Extension Infrastructure (Manifest V3, background service worker, content script injection with React component)
 - Story 1.2: Implement Calendar Discovery (scan sidebar, handle virtual scrolling, dynamic updates)
 - Story 1.3: Enable Specific Calendar Toggle (input field, scroll and toggle, feedback)
 - Story 1.4: Clear All Calendars (button to uncheck all, handle unlimited calendars, confirmation)
 
-Note: The acceptance criteria in the PRD incorrectly reference "React component"; it should be "Vue.js component" as per the project guidelines.
-
 ## Architecture & Key Components
 
-### Core Classes (`src/calendar_manager.js`)
-- **CalendarList**: Singleton array extension managing calendar collections. Use `CalendarList.getInstance()` to access.
-- **Calendar**: Individual calendar representation with DOM manipulation methods
-- **CalendarDOM**: Handles DOM-specific operations for calendar elements with virtual scrolling awareness
-- **Overlay**: Visual feedback system during calendar operations
+### Core Entities (`src/core/entities/`)
+- **Calendar**: Immutable entity representing an individual calendar with email, name, and visibility state
+- **CalendarPreset**: Immutable entity representing a named collection of calendar emails
 
 ### Content Script Architecture
-- **Entry Point**: `src/inject/inject.js` - Vue.js app that injects into Google Calendar
-- **Centralized Config**: `CALENDAR_SELECTOR_CONFIG` object controls all timing, selectors, and UI text
-- **CSS Variables**: `src/inject/inject.css` uses CSS custom properties for theming (light/dark mode support)
+- **Entry Point**: `src/react-inject.tsx` - React app that injects into Google Calendar
+- **Main Component**: `src/presentation/CalendarExtensionApp.tsx` - Root React component
+- **Dependency Injection**: Composition root in `src/main.ts` wires up dependencies
 
 ### Google Calendar DOM Integration
 - **Virtual Scrolling**: Google Calendar destroys/recreates calendar list items offscreen. Always call `ensureValidDOM()` before DOM operations.
 - **Scroll Container**: Use `CalendarList.getScrollContainer()` for calendar list operations
 - **UI Injection Point**: `header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)`
 
-// Concrete implementation (infrastructure layer)
+### Repository Pattern
+```typescript
+// Infrastructure layer implementations
 class GoogleCalendarRepository implements ICalendarRepository {
-  // DOM-based implementation
+  // DOM-based implementation for calendar discovery and manipulation
+}
+
+class ChromeStorageRepository implements IPresetRepository {
+  // Chrome storage sync implementation for preset persistence
 }
 ```
 
