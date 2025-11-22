@@ -1,44 +1,39 @@
 # Lens for Google Calendar - AI Coding Agent Instructions
 
 ## Project Overview
-A Chrome Manifest V3 extension for Google Calendar that allows users to save/restore calendar groups. Built with TypeScript, React, and Ant Design, it uses a Domain-Driven Design architecture with clean separation of concerns.
+A Chrome Manifest V3 extension for Google Calendar that allows users to save/restore calendar groups. Built with jQuery, Vue.js (scoped), and Material Design Lite, it injects UI into Google Calendar's DOM to provide calendar management functionality.
 
-## Architecture Overview
+## Current Epic: Foundation & Core Infrastructure
 
-This project follows **Domain-Driven Design (DDD)** principles with **Clean Architecture** patterns:
+Refer to `docs/prd/epic-1-foundation-core-infrastructure.md` for detailed requirements.
 
-### Core Layer (`src/core/`)
-- **Entities**: Domain objects (`Calendar`, `CalendarPreset`) with business logic
-- **Events**: Domain events for decoupled communication
-- **Repositories**: Abstract interfaces for data access
-- **Errors**: Domain-specific error types
+This epic establishes the Chrome extension setup, UI injection into Google Calendar, and basic calendar visibility controls (enable specific calendar and clear all) to enable reliable manual toggling without presets. It focuses on creating a stable base that handles virtual scrolling and DOM manipulation, allowing users to manually adjust calendar visibility as a stepping stone to automated presets.
 
-### Use Cases Layer (`src/usecases/`)
-- **Application Services**: Business workflows (Apply Preset, Save Preset, etc.)
-- **Dependency Injection**: Clean interfaces between layers
+Key stories include:
+- Story 1.1: Set up Chrome Extension Infrastructure (Manifest V3, background service worker, content script injection with Vue.js component)
+- Story 1.2: Implement Calendar Discovery (scan sidebar, handle virtual scrolling, dynamic updates)
+- Story 1.3: Enable Specific Calendar Toggle (input field, scroll and toggle, feedback)
+- Story 1.4: Clear All Calendars (button to uncheck all, handle unlimited calendars, confirmation)
 
-### Infrastructure Layer (`src/infrastructure/`)
-- **Concrete Repositories**: Chrome storage and DOM implementations
-- **External Services**: Background service worker, DOM utilities
-- **Framework Adapters**: Chrome API integrations
+Note: The acceptance criteria in the PRD incorrectly reference "React component"; it should be "Vue.js component" as per the project guidelines.
 
-### Presentation Layer (`src/presentation/`)
-- **React Components**: Modern UI with Ant Design
-- **Event Handlers**: User interaction logic
-- **Theme Management**: Light/dark mode support
+## Architecture & Key Components
 
-### Domain Entities
-- **Calendar Entity**: Immutable calendar representation with business methods
-- **CalendarPreset Entity**: Named collections of calendar states
-- **Domain Events**: `CalendarVisibilityChanged`, `PresetApplied`, etc.
+### Core Classes (`src/calendar_manager.js`)
+- **CalendarList**: Singleton array extension managing calendar collections. Use `CalendarList.getInstance()` to access.
+- **Calendar**: Individual calendar representation with DOM manipulation methods
+- **CalendarDOM**: Handles DOM-specific operations for calendar elements with virtual scrolling awareness
+- **Overlay**: Visual feedback system during calendar operations
 
-### Repository Pattern
-```typescript
-// Abstract interface (core layer)
-interface ICalendarRepository {
-  findAll(): Promise<Calendar[]>
-  updateVisibility(email: string, visible: boolean): Promise<void>
-}
+### Content Script Architecture
+- **Entry Point**: `src/inject/inject.js` - Vue.js app that injects into Google Calendar
+- **Centralized Config**: `CALENDAR_SELECTOR_CONFIG` object controls all timing, selectors, and UI text
+- **CSS Variables**: `src/inject/inject.css` uses CSS custom properties for theming (light/dark mode support)
+
+### Google Calendar DOM Integration
+- **Virtual Scrolling**: Google Calendar destroys/recreates calendar list items offscreen. Always call `ensureValidDOM()` before DOM operations.
+- **Scroll Container**: Use `CalendarList.getScrollContainer()` for calendar list operations
+- **UI Injection Point**: `header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)`
 
 // Concrete implementation (infrastructure layer)
 class GoogleCalendarRepository implements ICalendarRepository {
