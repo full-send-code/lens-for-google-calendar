@@ -35,35 +35,44 @@ Note: The acceptance criteria in the PRD incorrectly reference "React component"
 - **Scroll Container**: Use `CalendarList.getScrollContainer()` for calendar list operations
 - **UI Injection Point**: `header > div:nth-child(2) > div:nth-child(2) > div:nth-child(1)`
 
-## Development Patterns
+// Concrete implementation (infrastructure layer)
+class GoogleCalendarRepository implements ICalendarRepository {
+  // DOM-based implementation
+}
+```
 
-### Async Operations with DOM Validation
-```javascript
-// Always ensure DOM validity before calendar operations
-const result = await calendarList.ensureValidDOM(calendar, {restoreScroll: true})
-await calendar.toggle()
+### Use Case Pattern
+```typescript
+// Clean business logic with dependency injection
+class ApplyPresetUseCase {
+  constructor(
+    private calendarRepo: ICalendarRepository,
+    private presetRepo: IPresetRepository
+  ) {}
+  
+  async execute(presetName: string): Promise<void> {
+    // Business logic here
+  }
+}
 ```
 
 ### Storage Structure
 Chrome sync storage uses this format:
-```javascript
-{
-  "group_name": ["email1@domain.com", "email2@domain.com"],
-  "saved_1640995200000": [...],  // Auto-saved with timestamp
-  "__last_saved": ["saved_1640995200000", "work"],  // Restore history
-  "__v": 1  // Version for migrations
+```typescript
+interface PresetData {
+  [presetName: string]: string[]  // Calendar emails
+  __metadata?: PresetMetadata
 }
 ```
 
-### Vue.js Component Pattern
-- Components defined globally: `Vue.component('name', {...})`
-- Main app: Single Vue instance in `vm` variable
-- Use Vuetify scoped to avoid Google Calendar conflicts
+### React Component Pattern
+- **Functional Components**: Modern React with hooks
+- **Ant Design**: Consistent UI component library
+- **Dependency Injection**: Props-based DI for use cases
 
 ### Keyboard Shortcuts
-- Handled via Mousetrap library
+- Handled via Mousetrap library in React components
 - Modifier pattern: `Ctrl+Alt+[key]`
-- Global binds using `mousetrap-global-bind.min.js`
 
 ## Critical Development Considerations
 
@@ -73,66 +82,78 @@ Chrome sync storage uses this format:
 - **Theme Support**: Extension auto-detects light/dark themes via CSS custom properties.
 
 ### Chrome Extension Manifest V3
-- **Service Worker**: `src/background.js` handles extension lifecycle
-- **Content Scripts**: Auto-inject into `https://calendar.google.com/*`
-- **Storage**: Uses `chrome.storage.sync` with 3 auto-save limit
+- **Service Worker**: `src/infrastructure/background.ts` handles extension lifecycle
+- **Content Scripts**: Auto-inject `src/react-inject.tsx` into `https://calendar.google.com/*`
+- **Vite Build**: Uses Vite with CRX plugin for modern build pipeline
+- **Storage**: Uses `chrome.storage.sync` through repository pattern
 
 ### Performance Patterns
-- **Overlay System**: Show/hide loading overlays during calendar operations
-- **Batch Operations**: Use `toggleAll()` for multiple calendar changes
-- **Scroll Position**: Save/restore scroll positions during DOM operations
+- **Event-Driven Architecture**: Domain events for loose coupling
+- **Immutable Entities**: Functional programming patterns for state
+- **Async/Await**: Promise-based operations throughout
+- **React Optimization**: Proper state management and re-rendering
 
 ## Build & Development Workflow
 
-### Local Development
+### TypeScript Development
 ```powershell
-# Load unpacked extension at chrome://extensions/
-# Test on https://calendar.google.com
+# Install dependencies
+npm install
+
+# Build with Vite
+npm run build
+
+# Development with watch mode
+npm run dev
+
+# Run Jest tests
+npm test
 ```
 
 ### Release Process
 ```powershell
-.\release.ps1 [-Version <version>] [-Force]
-# Creates ZIP in dist/ directory
+# Build production version
+npm run build
+
+# Load unpacked extension from project root (uses manifest.json)
+# Vite outputs to dist/ automatically
 ```
 
 ### Testing Considerations
-- Use `index.html` for standalone testing outside Google Calendar
-- Test calendar discovery with drawer visible/hidden
-- Verify keyboard shortcuts don't conflict with Google Calendar
-- Test Chrome sync storage functionality
+- **Jest Test Suite**: 46 tests across domain, infrastructure, and presentation
+- **Test Coverage**: Run `npm run test:coverage` for coverage reports
+- **Domain Testing**: Unit tests for entities and use cases
+- **Integration Testing**: Repository and service integration tests
 
 ## File Organization
-- `manifest.json`: Extension configuration (Manifest V3)
-- `src/calendar_manager.js`: Core calendar logic and DOM handling
-- `src/inject/`: Vue.js UI components and CSS
-- `lib/`: Third-party dependencies (jQuery, Vue, MDL, Mousetrap)
-- `icons/`: Extension icons (16, 19, 48, 128px)
+```
+src/
+├── main.ts                     # Dependency injection composition root
+├── react-inject.tsx           # React app entry point
+├── core/                      # Domain layer (entities, events, interfaces)
+│   ├── entities/              # Domain entities (Calendar, CalendarPreset)
+│   ├── events/                # Domain events
+│   ├── repositories/          # Repository interfaces
+│   └── errors/                # Domain-specific errors
+├── usecases/                  # Application services layer
+│   ├── ApplyPreset.usecase.ts
+│   ├── SavePreset.usecase.ts
+│   └── dependencies.ts        # Use case DI container
+├── infrastructure/            # External concerns layer
+│   ├── background.ts          # Chrome service worker
+│   ├── ChromeStorageRepository.repository.ts
+│   ├── GoogleCalendarRepository.repository.ts
+│   └── dependencies.ts        # Infrastructure DI container
+└── presentation/              # UI layer
+    ├── CalendarExtensionApp.tsx  # Main React component
+    ├── components/            # React UI components
+    └── dependencies.ts        # Presentation DI container
+```
 
 ## Key Integration Points
-- **Calendar Discovery**: Scans Google Calendar's virtual-scrolled list
-- **DOM Injection**: Insert Vue.js UI into Google Calendar header
-- **Chrome APIs**: Uses storage.sync for cross-device calendar groups
-- **Theming**: CSS custom properties automatically adapt to Google Calendar themes
-
-## Documentation References
-
-For additional context and detailed specifications, refer to the following documentation files:
-
-- **Project Brief**: `docs/brief.md` - Executive summary, problem statement, solution overview, target users, goals, and MVP scope
-- **Product Requirements Document (PRD)**: `docs/prd/` - Complete requirements including goals, functional/non-functional requirements, technical assumptions, UI design goals, and epic breakdowns
-  - `docs/prd/index.md` - PRD table of contents
-  - `docs/prd/goals-and-background-context.md` - Project goals and background
-  - `docs/prd/requirements.md` - Functional and non-functional requirements
-  - `docs/prd/technical-assumptions.md` - Technical constraints and assumptions
-  - `docs/prd/user-interface-design-goals.md` - UI/UX design principles
-  - `docs/prd/epic-list.md` - List of development epics
-  - `docs/prd/epic-1-foundation-core-infrastructure.md` - Current epic details
-  - `docs/prd/epic-2-preset-management-core.md` - Preset management epic
-  - `docs/prd/epic-3-importexport-refinements.md` - Import/export refinements epic
-- **Architecture Document**: `docs/architecture.md` - Detailed technical architecture (Note: This document references React/Ant Design, but the project uses Vue.js/Material Design Lite as per the current implementation)
-- **Workflows**: `docs/Workflows.md` - Detailed user workflows for the 8 core MVP features
-- **Additional PRD Sections**:
-  - `docs/prd/checklist-results-report.md` - Architecture checklist results
-  - `docs/prd/next-steps.md` - Implementation next steps
-  - `docs/prd/ui-design-goals.md` - UI design goals (duplicate of user-interface-design-goals.md)
+- **Domain-Driven Design**: Clear separation of business logic from infrastructure
+- **Dependency Injection**: Composition root pattern for clean architecture
+- **React Integration**: Modern React with TypeScript and Ant Design
+- **Chrome Extension APIs**: Abstracted through repository pattern
+- **Event System**: Domain events for decoupled component communication
+- **Testing**: Comprehensive Jest test coverage across all layers
