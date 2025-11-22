@@ -25,7 +25,7 @@
      - Scroll through the calendar list taking note of all of the checked calendars
      - Save the checked calendars as the desired state for the selected preset
 6. Delete Preset
-   - User selects preset and teh Apply Preset usecase is executed.
+   - User selects preset and the Apply Preset usecase is executed.
    - User clicks the delete button next to preset drop down.
    - Ask for confirmation
    - If yes:
