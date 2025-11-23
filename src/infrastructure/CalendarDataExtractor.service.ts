@@ -4,7 +4,6 @@
  */
 
 import { CalendarState } from '../core';
-import { DOMUtils } from './DOMUtils.util';
 import logger from './logger';
 
 /**
@@ -88,7 +87,7 @@ export class CalendarDataExtractor {
     }
 
     // Try to find email in aria-label or title
-    const labelElement = DOMUtils.query(CalendarDataExtractor.SELECTORS.CALENDAR_LABEL, element);
+    const labelElement = element.querySelector(CalendarDataExtractor.SELECTORS.CALENDAR_LABEL);
     if (labelElement) {
       const ariaLabel = labelElement.getAttribute('aria-label') || '';
       const title = labelElement.getAttribute('title') || '';
@@ -98,7 +97,7 @@ export class CalendarDataExtractor {
     }
 
     // If no email found but we have a checkbox element, try to generate an ID from the aria-label
-    const checkbox = DOMUtils.query<HTMLInputElement>('input[type="checkbox"]', element);
+    const checkbox = element.querySelector<HTMLInputElement>('input[type="checkbox"]');
     if (checkbox) {
       const ariaLabel = checkbox.getAttribute('aria-label') || '';
       if (ariaLabel) {
@@ -118,7 +117,7 @@ export class CalendarDataExtractor {
    */
   extractCalendarName(element: Element): string | null {
     // Try aria-label first
-    const labelElement = DOMUtils.query(CalendarDataExtractor.SELECTORS.CALENDAR_LABEL, element);
+    const labelElement = element.querySelector(CalendarDataExtractor.SELECTORS.CALENDAR_LABEL);
     if (labelElement) {
       const ariaLabel = labelElement.getAttribute('aria-label');
       if (ariaLabel) {
@@ -149,7 +148,7 @@ export class CalendarDataExtractor {
     ];
 
     for (const selector of selectors) {
-      const checkbox = DOMUtils.query<HTMLInputElement>(selector, element);
+      const checkbox = element.querySelector<HTMLInputElement>(selector);
       if (checkbox) {
         logger.debug(`Found checkbox with selector ${selector}, checked: ${checkbox.checked}`);
         return checkbox.checked || false;

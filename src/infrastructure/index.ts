@@ -14,7 +14,6 @@ export { VirtualScrollHandler } from './VirtualScrollHandler.service';
 export { CalendarVisibilityManager } from './CalendarVisibilityManager.service';
 
 // Utility Services
-export { DOMUtils } from './DOMUtils.util';
 export { JsonImportExportService } from './JsonImportExport.service';
 
 // Dependency Registration

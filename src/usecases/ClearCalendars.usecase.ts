@@ -33,15 +33,16 @@ export class ClearCalendarsUseCase {
         logger.debug(`🧹 Clear Calendars: Visible calendars to hide: ${visibleNames}`);
       }
       
-      // Hide all calendars using domain entity methods
-      logger.debug('🧹 Clear Calendars: Applying hide() to all calendars...');
-      const hiddenCalendars = currentCalendars.map(calendar => calendar.hide());
+      // Create a list of all calendars set to hidden (regardless of current state)
+      // This is more reliable than trying to detect which ones are currently visible
+      logger.debug('🧹 Clear Calendars: Creating hidden state for all calendars...');
+      const allCalendarsHidden = currentCalendars.map(calendar => calendar.hide());
       
-      // Apply the changes to the repository
+      // Apply the changes to the repository (hide all calendars)
       logger.debug('🧹 Clear Calendars: Applying calendar visibility changes...');
-      await this.calendarRepository.applyCalendarVisibility(hiddenCalendars);
+      await this.calendarRepository.applyCalendarVisibility(allCalendarsHidden);
       
-      logger.info(`🧹 Clear Calendars: Successfully cleared all calendars (${hiddenCalendars.length} calendars processed)`);
+      logger.info(`🧹 Clear Calendars: Successfully cleared all calendars (${allCalendarsHidden.length} calendars processed)`);
     } catch (error) {
       logger.error('🧹 Clear Calendars: Failed to clear calendars:', error);
       throw new Error(`Failed to clear calendars: ${error instanceof Error ? error.message : 'Unknown error'}`);

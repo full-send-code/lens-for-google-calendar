@@ -25,74 +25,58 @@ export class GoogleCalendarRepository implements CalendarRepository {
     this.domSelector = new CalendarDOMSelector();
     this.dataExtractor = new CalendarDataExtractor();
     this.virtualScrollHandler = new VirtualScrollHandler(this.domSelector);
-    this.visibilityManager = new CalendarVisibilityManager(this.domSelector, this.dataExtractor);
+    this.visibilityManager = new CalendarVisibilityManager(this.domSelector, this.dataExtractor, this.virtualScrollHandler);
   }
 
   /**
    * Discover all calendars in Google Calendar
-   * Handles virtual scrolling to ensure all calendars are found
+   * Delegates to VirtualScrollHandler for element discovery and CalendarDataExtractor for data extraction
    */
   async discoverCalendars(forceRefresh: boolean = false): Promise<Calendar[]> {
     try {
       logger.info('Starting calendar discovery...');
-      
-      // Find all calendar containers (This already handles virtual scrolling)
-      const calendarContainers = await this.findAllCalendarContainers();
-      logger.info(`Found ${calendarContainers.length} calendar containers`);
-      
-      const calendars: Calendar[] = [];
 
-      // Process each calendar container
-      for (const container of calendarContainers) {
-        const containerLabel = container.getAttribute('aria-label') || 'Unknown';
-        logger.info(`Processing container: ${containerLabel}`);
-        
-        let calendarElements: Element[] = [];
+      // Delegate to VirtualScrollHandler for element discovery (handles scrolling and expansion)
+      const calendarElements = await this.virtualScrollHandler.discoverCalendars();
+      logger.info(`VirtualScrollHandler discovered ${calendarElements.length} calendar elements`);
 
-        // Check if this is a dummy container with pre-discovered elements
-        if ((container as any)._discoveredCalendars) {
-          calendarElements = (container as any)._discoveredCalendars;
-          logger.info(`Using pre-discovered elements: ${calendarElements.length} calendars`);
-        } else {
-          // Fallback to container-based extraction
-          calendarElements = this.domSelector.getCalendarElementsInContainer(container);
-          logger.info(`Found ${calendarElements.length} calendar elements in container: ${containerLabel}`);
-        }
-        
-        for (const element of calendarElements) {
+      if (calendarElements.length === 0) {
+        logger.warn('No calendars discovered by VirtualScrollHandler, falling back to global search');
+        const fallbackElements = this.domSelector.getCalendarElements();
+        logger.info(`Global search found ${fallbackElements.length} calendar elements`);
+        // Use fallback elements
+        const calendars: Calendar[] = [];
+        for (const element of fallbackElements) {
           try {
             const calendarData = this.dataExtractor.extractCalendarData(element);
             if (calendarData) {
               calendars.push(new Calendar(calendarData));
               logger.info(`Successfully extracted calendar: ${calendarData.name} (${calendarData.email})`);
             } else {
-              logger.info('Failed to extract calendar data from element:', element);
+              logger.debug('Failed to extract calendar data from element - no data returned');
             }
           } catch (error) {
-            logger.warn('Failed to extract calendar data from element:', element, error);
+            logger.warn('Failed to extract calendar data from element:', error);
           }
         }
+        logger.info(`Fallback discovery complete. Found ${calendars.length} calendars.`);
+        return calendars;
       }
 
-      // If no calendars found in containers, fall back to global search
-      // (Virtual scrolling has already been performed, so all calendars should be rendered)
-      if (calendars.length === 0) {
-        logger.info('No calendars found in containers, falling back to global search after virtual scroll');
-        const globalElements = this.domSelector.getCalendarElements();
-        logger.info(`Found ${globalElements.length} calendar elements globally`);
-        
-        for (const element of globalElements) {
-          try {
-            const calendarData = this.dataExtractor.extractCalendarData(element);
-            if (calendarData) {
-              calendars.push(new Calendar(calendarData));
-              logger.info(`Successfully extracted calendar: ${calendarData.name} (${calendarData.email})`);
-            } else {
-              logger.info('Failed to extract calendar data from element:', element);
-            }
-          } catch (error) {
-            logger.warn('Failed to extract calendar data from element:', element, error);
+      const calendars: Calendar[] = [];
+
+      // Delegate to CalendarDataExtractor for data extraction from each element
+      for (const element of calendarElements) {
+        try {
+          const calendarData = this.dataExtractor.extractCalendarData(element);
+          if (calendarData) {
+            calendars.push(new Calendar(calendarData));
+            logger.info(`Successfully extracted calendar: ${calendarData.name} (${calendarData.email})`);
+          } else {
+            logger.debug('Failed to extract calendar data from element - no data returned');
           }
+        } catch (error) {
+          logger.warn('Failed to extract calendar data from element:', error);
         }
       }
 
@@ -106,76 +90,39 @@ export class GoogleCalendarRepository implements CalendarRepository {
 
   /**
    * Apply calendar visibility changes to Google Calendar
-   * New approach: Scroll through each section and process calendars immediately
+   * Uses optimized scrolling approach for clear all, traditional approach for selective visibility
    */
   async applyCalendarVisibility(calendars: Calendar[]): Promise<void> {
     try {
       logger.info(`Applying visibility for ${calendars.length} calendars`);
-      
+
       // Build set of emails that should be visible
       const desiredVisible = new Set<string>(
         calendars.filter(c => c.isVisible).map(c => c.email)
       );
-      
+
       logger.info(`${desiredVisible.size} calendars should be visible`);
 
-      // Find "My Calendars" container
-      const myCalendarsContainer = await this.findMyCalendarsContainer();
-      if (myCalendarsContainer) {
-        logger.info('Processing "My Calendars" section...');
-        await this.scrollAndProcess(myCalendarsContainer, desiredVisible);
+      // Special case: if no calendars should be visible (clear all), use optimized scrolling approach
+      if (desiredVisible.size === 0) {
+        await this.applyCalendarVisibilityByScrolling(desiredVisible);
+        return;
       }
 
-      // Find "Other Calendars" container
-      const otherCalendarsContainer = await this.findOtherCalendarsContainer();
-      if (otherCalendarsContainer) {
-        logger.info('Processing "Other Calendars" section...');
-        await this.scrollAndProcess(otherCalendarsContainer, desiredVisible);
+      // For selective visibility changes, use the traditional approach
+      // This maintains compatibility with existing tests and behavior
+      const allCalendarElements = await this.virtualScrollHandler.discoverCalendars();
+      logger.info(`Processing ${allCalendarElements.length} discovered calendar elements`);
+
+      // Process all calendar elements
+      for (const element of allCalendarElements) {
+        await this.visibilityManager.processCalendarElement(element, desiredVisible);
       }
 
       logger.info('Calendar visibility application complete');
     } catch (error) {
       throw new Error(`Failed to apply calendar visibility: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }
-
-  private async scrollAndProcess(
-    container: Element,
-    desiredVisible: Set<string>
-  ): Promise<void> {
-    await this.virtualScrollHandler.scrollAndProcessCalendars(
-      container,
-      async (elements: Element[]) => {
-        for (const element of elements) {
-          await this.visibilityManager.processCalendarElement(
-            element,
-            desiredVisible
-          );
-        }
-      }
-    );
-  }
-
-  private async findMyCalendarsContainer(): Promise<Element | null> {
-    const containers = this.domSelector.findCalendarContainers();
-    for (const container of containers) {
-      const label = container.getAttribute('aria-label')?.toLowerCase() || '';
-      if (label.includes('my calendars')) {
-        return container;
-      }
-    }
-    return null;
-  }
-
-  private async findOtherCalendarsContainer(): Promise<Element | null> {
-    const containers = this.domSelector.findCalendarContainers();
-    for (const container of containers) {
-      const label = container.getAttribute('aria-label')?.toLowerCase() || '';
-      if (label.includes('other')) {
-        return container;
-      }
-    }
-    return null;
   }
 
   /**
@@ -193,38 +140,6 @@ export class GoogleCalendarRepository implements CalendarRepository {
   }
 
   /**
-   * Find all calendar containers (My calendars, Other calendars, etc.)
-   * Simplified: Uses direct element discovery instead of complex container logic
-   */
-  private async findAllCalendarContainers(): Promise<Element[]> {
-    try {
-      logger.info('Finding calendar containers...');
-
-      // Use simplified scroll and discover to get all calendar elements
-      const discoveredElements = await this.virtualScrollHandler.simpleScrollAndDiscover();
-      logger.info(`Discovered ${discoveredElements.length} calendar elements`);
-
-      // Create a dummy container to hold the discovered elements
-      const dummyContainer = document.createElement('div');
-      dummyContainer.setAttribute('aria-label', 'Discovered Calendars Container');
-      dummyContainer.setAttribute('data-discovered', 'true');
-
-      // Store the elements on the dummy container for later retrieval
-      (dummyContainer as any)._discoveredCalendars = discoveredElements;
-
-      logger.info('Created dummy container with discovered calendars');
-      return [dummyContainer];
-
-    } catch (error) {
-      logger.warn('Error finding calendar containers:', error);
-      // Fallback to a dummy container that will trigger global search
-      const dummyContainer = document.createElement('div');
-      dummyContainer.setAttribute('aria-label', 'Global Search Fallback');
-      return [dummyContainer];
-    }
-  }
-
-  /**
    * Find calendar element by email (delegated to visibility manager)
    */
   public async findCalendarElementByEmail(email: string): Promise<Element | null> {
@@ -232,9 +147,46 @@ export class GoogleCalendarRepository implements CalendarRepository {
   }
 
   /**
+   * Optimized method to apply calendar visibility by scrolling through the list
+   * Much faster than discovering all calendars first, then processing individually
+   */
+  private async applyCalendarVisibilityByScrolling(desiredVisible: Set<string>): Promise<void> {
+    logger.info('🌀 Starting optimized calendar visibility application by scrolling');
+
+    try {
+      // Use VirtualScrollHandler's scrollAndProcessCalendars method
+      // This handles all the scrolling logic and calls our processor for each batch of visible elements
+      await this.virtualScrollHandler.scrollAndProcessCalendars(async (visibleElements: Element[]) => {
+        logger.debug(`🌀 Processing batch of ${visibleElements.length} visible calendar elements`);
+
+        // Process all visible elements (apply desired visibility state)
+        for (const element of visibleElements) {
+          try {
+            await this.visibilityManager.processCalendarElement(element, desiredVisible);
+          } catch (error) {
+            logger.warn('🌀 Error processing calendar element:', error);
+          }
+        }
+      });
+
+      logger.info('🌀 Optimized visibility application complete');
+    } catch (error) {
+      logger.error('🌀 Failed to apply calendar visibility by scrolling:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Set individual calendar visibility (for external use)
    */
   public async setCalendarVisibility(email: string, isVisible: boolean): Promise<void> {
     await this.visibilityManager.setCalendarVisibility(email, isVisible);
+  }
+
+  /**
+   * Utility method for delays
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }

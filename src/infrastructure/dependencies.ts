@@ -12,7 +12,6 @@ import { CalendarRepository, PresetRepository } from '../core';
 import { 
   GoogleCalendarRepository, 
   ChromeStorageRepository, 
-  DOMUtils, 
   JsonImportExportService 
 } from './';
 
@@ -23,7 +22,6 @@ import {
 export interface InfrastructureDependencies {
   calendarRepository: CalendarRepository;
   presetRepository: PresetRepository;
-  domUtils: typeof DOMUtils;
   jsonImportExportService: typeof JsonImportExportService;
 }
 
@@ -39,7 +37,6 @@ export function createInfrastructureDependencies(): InfrastructureDependencies {
   return {
     calendarRepository,
     presetRepository,
-    domUtils: DOMUtils,
     jsonImportExportService: JsonImportExportService
   };
 }
@@ -50,6 +47,5 @@ export function createInfrastructureDependencies(): InfrastructureDependencies {
 export const INFRASTRUCTURE_TOKENS = {
   CALENDAR_REPOSITORY: 'calendarRepository',
   PRESET_REPOSITORY: 'presetRepository', 
-  DOM_UTILS: 'domUtils',
   JSON_IMPORT_EXPORT_SERVICE: 'jsonImportExportService'
 } as const;

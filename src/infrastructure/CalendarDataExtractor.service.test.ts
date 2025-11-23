@@ -3,11 +3,6 @@
  */
 
 import { CalendarDataExtractor } from './CalendarDataExtractor.service';
-import { DOMUtils } from './DOMUtils.util';
-
-// Mock DOMUtils
-jest.mock('./DOMUtils.util');
-const mockDOMUtils = DOMUtils as jest.Mocked<typeof DOMUtils>;
 
 // Mock logger
 jest.mock('./logger', () => ({
@@ -92,7 +87,6 @@ describe('CalendarDataExtractor', () => {
       const element = document.createElement('div');
       // Base64 encoded 'not-an-email-address' - should use data-id as identifier
       element.setAttribute('data-id', 'bm90LWFuLWVtYWlsLWFkZHJlc3M=');
-      mockDOMUtils.query.mockReturnValue(null);
       
       const email = extractor.extractCalendarEmail(element);
       expect(email).toBe('bm90LWFuLWVtYWlsLWFkZHJlc3M=');
@@ -114,7 +108,7 @@ describe('CalendarDataExtractor', () => {
       const labelElement = document.createElement('span');
       labelElement.setAttribute('aria-label', 'Calendar Name');
       labelElement.setAttribute('title', 'No Email Here');
-      mockDOMUtils.query.mockReturnValue(labelElement);
+      element.appendChild(labelElement);
       
       const email = extractor.extractCalendarEmail(element);
       expect(email).toBe('invalidbase64');
@@ -122,7 +116,6 @@ describe('CalendarDataExtractor', () => {
 
     it('should return null if no email found', () => {
       const element = document.createElement('div');
-      mockDOMUtils.query.mockReturnValue(null);
       
       const email = extractor.extractCalendarEmail(element);
       expect(email).toBeNull();
@@ -142,10 +135,7 @@ describe('CalendarDataExtractor', () => {
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.setAttribute('aria-label', 'Holidays in United States');
-      
-      mockDOMUtils.query
-        .mockReturnValueOnce(null) // No label element
-        .mockReturnValueOnce(checkbox); // Find checkbox
+      element.appendChild(checkbox);
       
       const email = extractor.extractCalendarEmail(element);
       expect(email).toBe('holidays.in.united.states@google.calendar');
@@ -157,7 +147,7 @@ describe('CalendarDataExtractor', () => {
       const element = document.createElement('div');
       const labelElement = document.createElement('span');
       labelElement.setAttribute('aria-label', 'Family Calendar (family@example.com)');
-      mockDOMUtils.query.mockReturnValue(labelElement);
+      element.appendChild(labelElement);
       
       const name = extractor.extractCalendarName(element);
       expect(name).toBe('Family Calendar');
@@ -170,7 +160,7 @@ describe('CalendarDataExtractor', () => {
       const checkbox = document.createElement('input') as HTMLInputElement;
       checkbox.type = 'checkbox';
       checkbox.checked = true;
-      mockDOMUtils.query.mockReturnValue(checkbox);
+      element.appendChild(checkbox);
       
       const isVisible = extractor.extractCalendarVisibility(element);
       expect(isVisible).toBe(true);
@@ -186,7 +176,7 @@ describe('CalendarDataExtractor', () => {
       const checkbox = document.createElement('input') as HTMLInputElement;
       checkbox.type = 'checkbox';
       checkbox.checked = true;
-      mockDOMUtils.query.mockReturnValue(checkbox);
+      element.appendChild(checkbox);
       
       const data = extractor.extractCalendarData(element);
       expect(data).toEqual({
@@ -198,7 +188,6 @@ describe('CalendarDataExtractor', () => {
 
     it('should return null if no email found', () => {
       const element = document.createElement('div');
-      mockDOMUtils.query.mockReturnValue(null);
       
       const data = extractor.extractCalendarData(element);
       expect(data).toBeNull();
@@ -208,13 +197,13 @@ describe('CalendarDataExtractor', () => {
       const element = document.createElement('div');
       element.setAttribute('data-email', 'test@example.com');
       
-      // Mock DOMUtils.query to throw an error
-      mockDOMUtils.query.mockImplementation(() => {
-        throw new Error('DOM query failed');
-      });
-      
+      // The extraction should work normally since we're using direct DOM APIs
       const data = extractor.extractCalendarData(element);
-      expect(data).toBeNull();
+      expect(data).toEqual({
+        email: 'test@example.com',
+        name: 'test@example.com', // falls back to email
+        isVisible: false // no checkbox found
+      });
     });
   });
 });

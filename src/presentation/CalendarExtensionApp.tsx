@@ -303,7 +303,6 @@ export const CalendarExtensionApp: React.FC<CalendarExtensionAppProps> = ({
         },
       }}
     >
-      {/* Remove the wrapper div since we're using a floating panel */}
       <LensHeaderButton
         clearCalendarsUseCase={clearCalendarsUseCase}
         enableCalendarUseCase={enableCalendarUseCase}

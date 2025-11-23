@@ -6,7 +6,7 @@
 import { Calendar } from '../core';
 import { CalendarDOMSelector } from './CalendarDOMSelector.service';
 import { CalendarDataExtractor } from './CalendarDataExtractor.service';
-import { DOMUtils } from './DOMUtils.util';
+import { VirtualScrollHandler } from './VirtualScrollHandler.service';
 import logger from './logger';
 
 /**
@@ -19,169 +19,117 @@ export class CalendarVisibilityManager {
 
   constructor(
     private domSelector: CalendarDOMSelector,
-    private dataExtractor: CalendarDataExtractor
+    private dataExtractor: CalendarDataExtractor,
+    private virtualScrollHandler: VirtualScrollHandler
   ) {}
 
   /**
-   * Process a single calendar element and set its visibility if needed
-   * New approach: Process calendars as we encounter them during scroll
+   * Process a single calendar element and set its visibility
+   * Used during batch operations when elements are already discovered
    */
   async processCalendarElement(
     element: Element,
     desiredEmailsVisible: Set<string>
   ): Promise<void> {
     try {
-      // Extract calendar data
       const calendarData = this.dataExtractor.extractCalendarData(element);
       if (!calendarData) return;
 
-      // Determine what the visibility should be
       const shouldBeVisible = desiredEmailsVisible.has(calendarData.email);
+      const checkbox = this.domSelector.getCheckboxFromCalendarElement(element) as HTMLInputElement;
       
-      // If current state matches desired, skip
-      if (calendarData.isVisible === shouldBeVisible) {
-        logger.debug(`Calendar ${calendarData.email} already in correct state: ${shouldBeVisible}`);
-        return;
-      }
-
-      // Find and click checkbox
-      const checkbox = this.domSelector.getCheckboxFromCalendarElement(element);
-      if (!checkbox || !(checkbox instanceof HTMLElement)) {
+      if (!checkbox) {
         logger.warn(`No checkbox found for calendar: ${calendarData.email}`);
         return;
       }
 
-      logger.info(`Clicking calendar ${calendarData.email} to set visibility: ${shouldBeVisible}`);
-      checkbox.click();
-      await this.delay(100); // Brief delay after click
-
+      await this.setCheckboxState(checkbox, shouldBeVisible, calendarData.email);
     } catch (error) {
       logger.warn('Error processing calendar element:', error);
     }
   }
 
   /**
-   * Apply calendar visibility changes to Google Calendar
-   * Optimized to batch operations and avoid redundant discovery calls
-   */
-  async applyBatchVisibilityChanges(calendars: Calendar[]): Promise<void> {
-    logger.info(`Applying visibility changes to ${calendars.length} calendars...`);
-    
-    // Batch process calendar visibility changes without individual delays
-    const promises = calendars.map(async (calendar) => {
-      return this.setCalendarVisibilityOptimized(calendar.email, calendar.isVisible);
-    });
-    
-    // Execute all visibility changes in parallel
-    const results = await Promise.allSettled(promises);
-    
-    // Check for failures
-    const failures = results.filter(result => result.status === 'rejected');
-    if (failures.length > 0) {
-      logger.warn(`${failures.length} calendar visibility updates failed`);
-      failures.forEach((failure, index) => {
-        if (failure.status === 'rejected') {
-          logger.warn(`Calendar ${calendars[index].email} failed:`, failure.reason);
-        }
-      });
-    }
-    
-    logger.info(`Applied visibility changes to ${results.length - failures.length}/${calendars.length} calendars`);
-  }
-
-  /**
-   * Set calendar visibility by email (legacy method with delays)
+   * Set calendar visibility by email with full error handling and scrolling
+   * Used for individual calendar operations that need reliability
    */
   async setCalendarVisibility(email: string, isVisible: boolean): Promise<void> {
     const calendarElement = await this.findCalendarElementByEmail(email);
     if (!calendarElement) {
-      logger.error(`🔘 Checkbox Click (Legacy): Calendar element not found for email: ${email}`);
       throw new Error(`Calendar element not found for email: ${email}`);
     }
 
-    const checkbox = DOMUtils.query<HTMLInputElement>(
-      CalendarVisibilityManager.SELECTORS.CALENDAR_CHECKBOX,
-      calendarElement
+    // Scroll element into view for reliable interaction
+    await this.virtualScrollHandler.scrollElementIntoView(calendarElement);
+
+    const checkbox = calendarElement.querySelector<HTMLInputElement>(
+      CalendarVisibilityManager.SELECTORS.CALENDAR_CHECKBOX
     );
 
     if (!checkbox) {
-      logger.error(`🔘 Checkbox Click (Legacy): Calendar checkbox not found for email: ${email}`);
       throw new Error(`Calendar checkbox not found for email: ${email}`);
     }
 
-    const currentState = checkbox.checked;
-    logger.debug(`🔘 Checkbox Click (Legacy): Calendar "${email}" current state: ${currentState}, target state: ${isVisible}`);
-
-    if (checkbox.checked !== isVisible) {
-      logger.info(`🔘 Checkbox Click (Legacy): Toggling calendar visibility for "${email}" from ${currentState} to ${isVisible}`);
-      
-      // Scroll element into view if needed
-      logger.debug(`🔘 Checkbox Click (Legacy): Scrolling calendar element into view for: ${email}`);
-      DOMUtils.scrollIntoViewIfNeeded(calendarElement);
-      
-      // Wait a moment for scroll to complete
-      logger.debug('🔘 Checkbox Click (Legacy): Waiting 100ms for scroll to complete...');
-      await this.delay(100);
-      
-      // Click the checkbox to toggle visibility
-      logger.debug(`🔘 Checkbox Click (Legacy): Setting checkbox state for: ${email}`);
-      checkbox.checked = isVisible;
-      
-      // Trigger change event to notify Google Calendar
-      logger.debug(`🔘 Checkbox Click (Legacy): Triggering 'change' event for: ${email}`);
-      DOMUtils.triggerEvent(checkbox, 'change', null, { bubbles: true });
-      
-      // Also trigger click event as some implementations may listen for it
-      logger.debug(`🔘 Checkbox Click (Legacy): Triggering 'click' event for: ${email}`);
-      DOMUtils.triggerEvent(checkbox, 'click', null, { bubbles: true });
-      
-      logger.info(`🔘 Checkbox Click (Legacy): Successfully updated visibility for calendar: ${email}`);
-    } else {
-      logger.debug(`🔘 Checkbox Click (Legacy): No change needed for calendar "${email}" - already in desired state: ${isVisible}`);
-    }
+    await this.setCheckboxState(checkbox, isVisible, email);
   }
 
   /**
-   * Optimized set calendar visibility - no delays, minimal DOM operations
+   * Set calendar visibility by email (optimized for batch operations)
+   * Used internally for performance-critical batch operations
    */
-  private async setCalendarVisibilityOptimized(email: string, isVisible: boolean): Promise<void> {
+  async setCalendarVisibilityOptimized(email: string, isVisible: boolean): Promise<void> {
     const calendarElement = await this.findCalendarElementByEmail(email);
     if (!calendarElement) {
-      logger.warn(`🔘 Checkbox Click: Calendar element not found for email: ${email}`);
-      return; // Don't throw, just warn and continue
+      logger.warn(`Calendar element not found for email: ${email}`);
+      return; // Continue with other calendars in batch
     }
 
-    const checkbox = DOMUtils.query<HTMLInputElement>(
-      CalendarVisibilityManager.SELECTORS.CALENDAR_CHECKBOX,
-      calendarElement
+    const checkbox = calendarElement.querySelector<HTMLInputElement>(
+      CalendarVisibilityManager.SELECTORS.CALENDAR_CHECKBOX
     );
 
     if (!checkbox) {
-      logger.warn(`🔘 Checkbox Click: Calendar checkbox not found for email: ${email}`);
-      return; // Don't throw, just warn and continue
+      logger.warn(`Calendar checkbox not found for email: ${email}`);
+      return; // Continue with other calendars in batch
     }
 
-    const currentState = checkbox.checked;
-    logger.debug(`🔘 Checkbox Click: Calendar "${email}" current state: ${currentState}, target state: ${isVisible}`);
+    await this.setCheckboxState(checkbox, isVisible, email);
+  }
 
-    if (checkbox.checked !== isVisible) {
-      logger.info(`🔘 Checkbox Click: Toggling calendar visibility for "${email}" from ${currentState} to ${isVisible}`);
-      
-      // Set checkbox state directly (no scrolling delays)
-      checkbox.checked = isVisible;
-      logger.debug(`🔘 Checkbox Click: Checkbox state updated to: ${checkbox.checked}`);
-      
-      // Trigger events to notify Google Calendar
-      logger.debug(`🔘 Checkbox Click: Triggering 'change' event for calendar: ${email}`);
-      DOMUtils.triggerEvent(checkbox, 'change', null, { bubbles: true });
-      
-      logger.debug(`🔘 Checkbox Click: Triggering 'click' event for calendar: ${email}`);
-      DOMUtils.triggerEvent(checkbox, 'click', null, { bubbles: true });
-      
-      logger.info(`🔘 Checkbox Click: Successfully updated visibility for calendar: ${email}`);
-    } else {
-      logger.debug(`🔘 Checkbox Click: No change needed for calendar "${email}" - already in desired state: ${isVisible}`);
+  /**
+   * Apply calendar visibility changes to Google Calendar
+   * Processes calendars sequentially for reliability
+   */
+  async applyBatchVisibilityChanges(calendars: Calendar[]): Promise<void> {
+    logger.info(`Applying visibility changes to ${calendars.length} calendars...`);
+    
+    // Process calendars sequentially to avoid overwhelming the DOM
+    for (const calendar of calendars) {
+      await this.setCalendarVisibilityOptimized(calendar.email, calendar.isVisible);
     }
+    
+    logger.info(`Applied visibility changes to ${calendars.length} calendars`);
+  }
+
+  /**
+   * Core method for setting checkbox state
+   * Single responsibility: handle the actual DOM interaction
+   */
+  private async setCheckboxState(
+    checkbox: HTMLInputElement, 
+    isVisible: boolean, 
+    email: string
+  ): Promise<void> {
+    logger.info(`Setting calendar visibility for "${email}" to ${isVisible}`);
+    
+    // Set checkbox state directly
+    checkbox.checked = isVisible;
+    
+    // Trigger events to notify Google Calendar
+    this.triggerEvent(checkbox, 'change', null, { bubbles: true });
+    this.triggerEvent(checkbox, 'click', null, { bubbles: true });
+    
+    logger.info(`Successfully updated visibility for calendar: ${email}`);
   }
 
   /**
@@ -206,5 +154,21 @@ export class CalendarVisibilityManager {
    */
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Trigger a DOM event on an element
+   */
+  private triggerEvent(
+    element: Element, 
+    eventType: string, 
+    eventData: any = null, 
+    options: { bubbles?: boolean } = {}
+  ): void {
+    const event = new Event(eventType, { bubbles: options.bubbles || false });
+    if (eventData) {
+      Object.assign(event, eventData);
+    }
+    element.dispatchEvent(event);
   }
 }

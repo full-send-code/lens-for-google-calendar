@@ -3,7 +3,6 @@
  * Handles DOM selection logic and selectors
  */
 
-import { DOMUtils } from './DOMUtils.util';
 import logger from './logger';
 
 /**
@@ -30,6 +29,56 @@ export class CalendarDOMSelector {
   };
 
   /**
+   * Wait for an element to appear using MutationObserver
+   */
+  private async waitForElementMutation(selector: string, options: { timeout?: number } = {}): Promise<Element | null> {
+    const { timeout = 5000 } = options;
+
+    return new Promise((resolve) => {
+      // First check if element already exists
+      const existingElement = document.querySelector(selector);
+      if (existingElement) {
+        resolve(existingElement);
+        return;
+      }
+
+      // Set up mutation observer
+      const observer = new MutationObserver(() => {
+        const element = document.querySelector(selector);
+        if (element) {
+          observer.disconnect();
+          resolve(element);
+        }
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+
+      // Set timeout
+      setTimeout(() => {
+        observer.disconnect();
+        resolve(null);
+      }, timeout);
+    });
+  }
+
+  /**
+   * Query selector with optional context
+   */
+  private query(selector: string, context: Document | Element = document): Element | null {
+    return context.querySelector(selector);
+  }
+
+  /**
+   * Query all selectors with optional context
+   */
+  private queryAll(selector: string, context: Document | Element = document): Element[] {
+    return Array.from(context.querySelectorAll(selector));
+  }
+
+  /**
    * Wait for Google Calendar list to be available
    */
   async waitForCalendarList(): Promise<Element> {
@@ -43,7 +92,7 @@ export class CalendarDOMSelector {
     // Try each selector in order
     for (const selector of selectors) {
       try {
-        const element = await DOMUtils.waitForElementMutation(
+        const element = await this.waitForElementMutation(
           selector,
           { timeout: 2000 } // Shorter timeout for each attempt
         );
@@ -107,7 +156,7 @@ export class CalendarDOMSelector {
     logger.debug('🔄 Scroll Container: Searching for scroll container within calendar list');
     
     // Try to find scroll container within calendar list
-    let scrollContainer = DOMUtils.query(
+    let scrollContainer = this.query(
       CalendarDOMSelector.SELECTORS.SCROLL_CONTAINER, 
       calendarList
     );
@@ -116,7 +165,7 @@ export class CalendarDOMSelector {
       logger.info(`🔄 Scroll Container: Found using primary selector: ${CalendarDOMSelector.SELECTORS.SCROLL_CONTAINER}`);
     } else {
       logger.debug(`🔄 Scroll Container: Primary selector failed, trying alternative: ${CalendarDOMSelector.SELECTORS.SCROLL_CONTAINER_ALT}`);
-      scrollContainer = DOMUtils.query(
+      scrollContainer = this.query(
         CalendarDOMSelector.SELECTORS.SCROLL_CONTAINER_ALT, 
         calendarList
       );
@@ -148,7 +197,7 @@ export class CalendarDOMSelector {
     ];
 
     for (const selector of selectors) {
-      const elements = DOMUtils.queryAll(selector);
+      const elements = this.queryAll(selector);
       if (elements.length > 0) {
         logger.info(`Found ${elements.length} calendar elements using selector: ${selector}`);
         return elements;
@@ -156,7 +205,7 @@ export class CalendarDOMSelector {
     }
 
     // If no elements found with specific selectors, try to find any checkboxes
-    const checkboxes = DOMUtils.queryAll('input[type="checkbox"]');
+    const checkboxes = this.queryAll('input[type="checkbox"]');
     logger.debug(`Found ${checkboxes.length} total checkboxes as fallback`);
     
     // Filter to likely calendar checkboxes (ones with nearby text containing calendar info)

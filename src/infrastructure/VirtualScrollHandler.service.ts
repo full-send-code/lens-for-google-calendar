@@ -354,6 +354,34 @@ export class VirtualScrollHandler {
       expandableSections: ariaExpandedElements
     };
   }  /**
+   * Scroll element into view for interaction
+   * Different from container scrolling - this ensures individual elements are visible before interaction
+   */
+  async scrollElementIntoView(element: Element): Promise<void> {
+    if (!this.isElementVisible(element)) {
+      logger.debug('🔄 Scrolling element into view for interaction');
+      element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      await this.delay(100); // Allow scroll to complete
+    }
+  }
+
+  /**
+   * Check if element is visible in viewport
+   */
+  private isElementVisible(element: Element): boolean {
+    const rect = element.getBoundingClientRect();
+    const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+    const windowWidth = window.innerWidth || document.documentElement.clientWidth;
+
+    return (
+      rect.top >= 0 &&
+      rect.left >= 0 &&
+      rect.bottom <= windowHeight &&
+      rect.right <= windowWidth
+    );
+  }
+
+  /**
    * Utility method for delays
    */
   private delay(ms: number): Promise<void> {
@@ -382,11 +410,63 @@ export class VirtualScrollHandler {
     return this.expandSections();
   }
 
+  /**
+   * Scroll through calendar list and process visible elements
+   * Optimized for applying visibility changes without full discovery
+   */
   async scrollAndProcessCalendars(
-    container: Element,
-    processor: (calendarElements: Element[]) => Promise<void>
+    processor: (visibleElements: Element[]) => Promise<void>
   ): Promise<void> {
-    const elements = await this.discoverCalendars();
-    await processor(elements);
+    logger.info('🔄 Starting scroll-and-process operation');
+
+    const scrollContainer = this.findScrollContainer();
+    if (!scrollContainer) {
+      logger.warn('🔄 No scroll container found, processing currently visible calendars');
+      const visibleElements = this.domSelector.getCalendarElements();
+      await processor(visibleElements);
+      return;
+    }
+
+    // Ensure we're at the top
+    scrollContainer.scrollTop = 0;
+    await this.delay(VirtualScrollHandler.TIMEOUTS.SCROLL_SETTLE);
+
+    let hasMoreContent = true;
+    let totalProcessed = 0;
+
+    while (hasMoreContent) {
+      // Find all currently visible calendar elements
+      const visibleElements = this.domSelector.getCalendarElementsInContainer(scrollContainer);
+      logger.debug(`🔄 Found ${visibleElements.length} visible calendar elements in current viewport`);
+
+      if (visibleElements.length > 0) {
+        // Process the visible elements
+        await processor(visibleElements);
+        totalProcessed += visibleElements.length;
+      }
+
+      // Check if we've reached the bottom
+      const scrollTop = scrollContainer.scrollTop;
+      const scrollHeight = scrollContainer.scrollHeight;
+      const clientHeight = scrollContainer.clientHeight;
+
+      if (scrollTop + clientHeight >= scrollHeight - 10) { // 10px tolerance
+        logger.debug('🔄 Reached bottom of scroll container');
+        hasMoreContent = false;
+      } else {
+        // Scroll down to reveal more calendars
+        const scrollIncrement = clientHeight * 0.8; // Scroll by 80% of viewport height
+        scrollContainer.scrollTop += scrollIncrement;
+        await this.delay(VirtualScrollHandler.TIMEOUTS.SCROLL_SETTLE);
+
+        // Double-check if we actually scrolled (sometimes virtual scrolling prevents it)
+        if (scrollContainer.scrollTop === scrollTop) {
+          logger.debug('🔄 Scroll position did not change, likely reached end');
+          hasMoreContent = false;
+        }
+      }
+    }
+
+    logger.info(`🔄 Scroll-and-process complete: processed ${totalProcessed} total elements`);
   }
 }
