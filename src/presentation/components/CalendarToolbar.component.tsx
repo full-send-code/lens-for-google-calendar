@@ -202,6 +202,7 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
         visible={enableModalVisible}
         onClose={() => setEnableModalVisible(false)}
         enableCalendarUseCase={enableCalendarUseCase}
+        onSuccess={onCalendarsChange}
       />
 
       {/* Save Preset Modal */}

@@ -3,8 +3,9 @@
  * Modal dialog for enabling specific calendars by email input
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Modal, Input, Form, Typography, Alert } from 'antd';
+import type { InputRef } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import type { EnableCalendarUseCase } from '../../usecases';
 import logger from '../../infrastructure/logger';
@@ -19,6 +20,7 @@ export interface EnableCalendarModalProps {
   visible: boolean;
   onClose: () => void;
   enableCalendarUseCase: EnableCalendarUseCase;
+  onSuccess?: () => void;
 }
 
 /**
@@ -32,10 +34,12 @@ export interface EnableCalendarModalProps {
 export const EnableCalendarModal: React.FC<EnableCalendarModalProps> = ({
   visible,
   onClose,
-  enableCalendarUseCase
+  enableCalendarUseCase,
+  onSuccess
 }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const inputRef = useRef<InputRef>(null);
 
   /**
    * Handle form submission
@@ -62,6 +66,12 @@ export const EnableCalendarModal: React.FC<EnableCalendarModalProps> = ({
       
       form.resetFields();
       onClose();
+      
+      // Call success callback to refresh calendar state
+      if (onSuccess) {
+        onSuccess();
+      }
+      
       logger.debug('✅ UI Modal: Modal closed and form reset after successful enable');
     } catch (error: any) {
       logger.error('✅ UI Modal: Failed to enable calendar:', error);
@@ -88,6 +98,18 @@ export const EnableCalendarModal: React.FC<EnableCalendarModalProps> = ({
     form.resetFields();
     onClose();
     logger.debug('✅ UI Modal: Form reset and modal closed after cancel');
+  };
+
+  /**
+   * Handle modal open/close
+   */
+  const handleAfterOpenChange = (open: boolean) => {
+    if (open && inputRef.current) {
+      // Focus the input after modal opens
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
   };
 
   /**
@@ -118,6 +140,7 @@ export const EnableCalendarModal: React.FC<EnableCalendarModalProps> = ({
       width={480}
       destroyOnClose
       zIndex={2000}
+      afterOpenChange={handleAfterOpenChange}
     >
       <div style={{ marginBottom: '16px' }}>
         <Alert
@@ -142,9 +165,9 @@ export const EnableCalendarModal: React.FC<EnableCalendarModalProps> = ({
           ]}
         >
           <Input
+            ref={inputRef}
             prefix={<MailOutlined />}
             placeholder="example@gmail.com"
-            autoFocus
             onPressEnter={handleSubmit}
           />
         </Form.Item>

@@ -58,9 +58,16 @@ export class EnableCalendarUseCase {
       logger.debug(`✅ Enable Calendar: Applying show() to calendar: "${calendarEmail}"`);
       const enabledCalendar = targetCalendar.show();
       
-      // Apply the change to the repository (only the target calendar)
-      logger.debug(`✅ Enable Calendar: Applying visibility change to repository...`);
-      await this.calendarRepository.applyCalendarVisibility([enabledCalendar]);
+      // Create the complete desired state: all currently visible calendars + the newly enabled one
+      logger.debug(`✅ Enable Calendar: Building complete desired state...`);
+      const currentlyVisibleCalendars = currentCalendars.filter(cal => cal.isVisible && cal.email !== calendarEmail);
+      const desiredCalendars = [...currentlyVisibleCalendars, enabledCalendar];
+      
+      logger.info(`✅ Enable Calendar: Desired state - ${desiredCalendars.length} calendars visible: ${desiredCalendars.map(c => c.email).join(', ')}`);
+      
+      // Apply the complete desired state to the repository
+      logger.debug(`✅ Enable Calendar: Applying complete visibility change to repository...`);
+      await this.calendarRepository.applyCalendarVisibility(desiredCalendars);
       
       logger.info(`✅ Enable Calendar: Successfully enabled calendar: "${calendarEmail}"`);
     } catch (error) {

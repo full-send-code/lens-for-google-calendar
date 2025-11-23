@@ -36,9 +36,17 @@ describe('EnableCalendarUseCase', () => {
       expect(calendarRepo.applyCalendarVisibility).toHaveBeenCalledTimes(1);
       
       const appliedCalendars = calendarRepo.applyCalendarVisibility.mock.calls[0][0];
-      expect(appliedCalendars).toHaveLength(1);
-      expect(appliedCalendars[0].email).toBe('work@example.com');
-      expect(appliedCalendars[0].isVisible).toBe(true);
+      expect(appliedCalendars).toHaveLength(2);
+      
+      // Should include the currently visible calendar (team@example.com)
+      const teamCalendar = appliedCalendars.find(c => c.email === 'team@example.com');
+      expect(teamCalendar).toBeDefined();
+      expect(teamCalendar!.isVisible).toBe(true);
+      
+      // Should include the newly enabled calendar (work@example.com)
+      const workCalendar = appliedCalendars.find(c => c.email === 'work@example.com');
+      expect(workCalendar).toBeDefined();
+      expect(workCalendar!.isVisible).toBe(true);
     });
 
     it('should enable already visible calendar', async () => {
