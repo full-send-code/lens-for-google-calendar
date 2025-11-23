@@ -59,7 +59,10 @@ describe('GoogleCalendarRepository Integration', () => {
     mockScrollHandler = {
       scrollToDiscoverAllCalendars: jest.fn().mockResolvedValue(void 0),
       expandCollapsedSections: jest.fn().mockResolvedValue(void 0),
-      scrollAndProcessCalendars: jest.fn().mockResolvedValue(void 0)
+      scrollAndProcessCalendars: jest.fn().mockResolvedValue(void 0),
+      simpleExpandCollapse: jest.fn().mockResolvedValue(void 0),
+      simpleScrollAndCount: jest.fn().mockResolvedValue(1),
+      simpleScrollAndDiscover: jest.fn().mockResolvedValue([document.createElement('div')])
     } as any;
     
     mockVisibilityManager = {
@@ -89,14 +92,10 @@ describe('GoogleCalendarRepository Integration', () => {
 
   describe('discoverCalendars', () => {
     it('should perform full discovery without using cache', async () => {
-      const calendarListElement = document.createElement('div');
-      const containerElement = document.createElement('div');
       const calendarElement = document.createElement('div');
       
-      // Mock DOM operations
-      mockDOMSelector.waitForCalendarList.mockResolvedValue(calendarListElement);
-      mockDOMSelector.findCalendarContainers.mockReturnValue([containerElement]);
-      mockDOMSelector.getCalendarElementsInContainer.mockReturnValue([calendarElement]);
+      // Mock simplified discovery
+      mockScrollHandler.simpleScrollAndDiscover.mockResolvedValue([calendarElement]);
       
       // Mock data extraction
       const calendarData = { email: 'test@example.com', name: 'Test Calendar', isVisible: true };
@@ -108,12 +107,8 @@ describe('GoogleCalendarRepository Integration', () => {
       expect(result[0]).toBeInstanceOf(Calendar);
       expect(result[0].email).toBe('test@example.com');
       
-      // Verify the full discovery flow
-      expect(mockDOMSelector.waitForCalendarList).toHaveBeenCalled();
-      expect(mockScrollHandler.scrollToDiscoverAllCalendars).toHaveBeenCalledWith(calendarListElement);
-      expect(mockScrollHandler.expandCollapsedSections).toHaveBeenCalled();
-      expect(mockDOMSelector.findCalendarContainers).toHaveBeenCalled();
-      expect(mockDOMSelector.getCalendarElementsInContainer).toHaveBeenCalledWith(containerElement);
+      // Verify the simplified discovery flow
+      expect(mockScrollHandler.simpleScrollAndDiscover).toHaveBeenCalled();
       expect(mockDataExtractor.extractCalendarData).toHaveBeenCalledWith(calendarElement);
     });
 
@@ -129,11 +124,11 @@ describe('GoogleCalendarRepository Integration', () => {
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it('should fall back to global search when no containers found', async () => {
+    it('should fall back to global search when no calendars discovered', async () => {
       const calendarElement = document.createElement('div');
       
-      mockDOMSelector.waitForCalendarList.mockResolvedValue(document.createElement('div'));
-      mockDOMSelector.findCalendarContainers.mockReturnValue([]);
+      // Mock simpleScrollAndDiscover to return empty (no calendars found)
+      mockScrollHandler.simpleScrollAndDiscover.mockResolvedValue([]);
       mockDOMSelector.getCalendarElements.mockReturnValue([calendarElement]);
       
       const calendarData = { email: 'fallback@example.com', name: 'Fallback Calendar', isVisible: true };
@@ -193,9 +188,7 @@ describe('GoogleCalendarRepository Integration', () => {
   describe('Public Interface Methods', () => {
     it('should delegate getCurrentCalendarStates to discoverCalendars', async () => {
       const calendarElement = document.createElement('div');
-      mockDOMSelector.waitForCalendarList.mockResolvedValue(document.createElement('div'));
-      mockDOMSelector.findCalendarContainers.mockReturnValue([document.createElement('div')]);
-      mockDOMSelector.getCalendarElementsInContainer.mockReturnValue([calendarElement]);
+      mockScrollHandler.simpleScrollAndDiscover.mockResolvedValue([calendarElement]);
       
       const calendarData = { email: 'test@example.com', name: 'Test', isVisible: true };
       mockDataExtractor.extractCalendarData.mockReturnValue(calendarData);
@@ -208,9 +201,7 @@ describe('GoogleCalendarRepository Integration', () => {
 
     it('should delegate getCurrentCalendarStatesFresh to discoverCalendars with force refresh', async () => {
       const calendarElement = document.createElement('div');
-      mockDOMSelector.waitForCalendarList.mockResolvedValue(document.createElement('div'));
-      mockDOMSelector.findCalendarContainers.mockReturnValue([document.createElement('div')]);
-      mockDOMSelector.getCalendarElementsInContainer.mockReturnValue([calendarElement]);
+      mockScrollHandler.simpleScrollAndDiscover.mockResolvedValue([calendarElement]);
       
       const calendarData = { email: 'fresh@example.com', name: 'Fresh Calendar', isVisible: true };
       mockDataExtractor.extractCalendarData.mockReturnValue(calendarData);
@@ -219,7 +210,6 @@ describe('GoogleCalendarRepository Integration', () => {
       
       expect(result).toHaveLength(1);
       expect(result[0].email).toBe('fresh@example.com');
-      expect(mockDOMSelector.waitForCalendarList).toHaveBeenCalled();
     });
 
     it('should delegate findCalendarElementByEmail to visibility manager', async () => {

@@ -1,13 +1,18 @@
 /**
  * Virtual Scroll Handler Service
- * Handles virtual scrolling behavior for Google Calendar
+ * Orchestrates virtual scrolling operations for Google Calendar
+ *
+ * Follows SOLID principles:
+ * - Single Responsibility: Orchestrates scrolling operations
+ * - Open/Closed: Extensible through composition
+ * - Dependency Inversion: Depends on abstractions (CalendarDOMSelector)
  */
 
 import { CalendarDOMSelector } from './CalendarDOMSelector.service';
 import logger from './logger';
 
 /**
- * Service responsible for handling virtual scrolling behavior
+ * Service responsible for orchestrating virtual scrolling operations
  */
 export class VirtualScrollHandler {
   private static readonly TIMEOUTS = {
@@ -20,223 +25,256 @@ export class VirtualScrollHandler {
   ) {}
 
   /**
-   * Scroll through virtual calendar list to discover all calendars
+   * Expand all collapsed calendar sections
    */
-  async scrollToDiscoverAllCalendars(calendarList: Element): Promise<void> {
-    const scrollContainer = this.domSelector.getScrollContainer(calendarList);
+  async expandSections(): Promise<void> {
+    logger.info('🔘 Expanding collapsed calendar sections...');
+
+    const selectors = [
+      'button[aria-label*="Other calendars" i]',
+      '[role="button"][aria-label*="Other calendars" i]',
+      'button[aria-expanded="false"]'
+    ];
+
+    for (const selector of selectors) {
+      const buttons = Array.from(document.querySelectorAll(selector)) as HTMLElement[];
+      for (const button of buttons) {
+        const label = button.getAttribute('aria-label') || button.textContent || '';
+        if (label.toLowerCase().includes('other') && label.toLowerCase().includes('calendar')) {
+          logger.info(`🔘 Clicking expand button: ${label}`);
+          button.click();
+          await this.delay(VirtualScrollHandler.TIMEOUTS.EXPANSION_ANIMATION);
+        }
+      }
+    }
+
+    logger.info('🔘 Section expansion complete');
+  }
+
+  /**
+   * Count all discoverable calendars through scrolling
+   */
+  async countCalendars(): Promise<number> {
+    const elements = await this.discoverCalendars();
+    return elements.length;
+  }
+
+  /**
+   * Discover all calendar elements through scrolling
+   */
+  async discoverCalendars(): Promise<Element[]> {
+    logger.info('🔄 Starting calendar discovery...');
+
+    const scrollContainer = this.findScrollContainer();
     if (!scrollContainer) {
-      logger.warn('🔄 Virtual Scroll: No scroll container found, skipping virtual scroll');
-      return;
+      logger.warn('🔄 No scroll container found, returning currently visible calendars');
+      return this.domSelector.getCalendarElements();
     }
 
-    logger.info(`🔄 Virtual Scroll: Starting virtual scroll discovery on container with scrollHeight: ${scrollContainer.scrollHeight}px`);
-    
-    let previousCalendarCount = 0;
-    let currentCalendarCount = 0;
-    let scrollAttempts = 0;
-    const maxScrollAttempts = 10;
+    // Expand sections first
+    await this.expandSections();
 
-    do {
-      previousCalendarCount = currentCalendarCount;
-      
-      // Scroll to bottom to trigger virtual scroll loading
-      const previousScrollTop = scrollContainer.scrollTop;
-      scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      logger.debug(`🔄 Virtual Scroll: Attempt ${scrollAttempts + 1} - Scrolled from ${previousScrollTop}px to ${scrollContainer.scrollTop}px (height: ${scrollContainer.scrollHeight}px)`);
-      
-      // Wait for virtual scroll to settle
+    const discoveredElements = new Set<Element>();
+    const stepSize = scrollContainer.clientHeight;
+    const maxScrolls = 20;
+
+    // Scroll to bottom in steps, collecting elements
+    for (let i = 0; i < maxScrolls; i++) {
+      scrollContainer.scrollTop += stepSize;
       await this.delay(VirtualScrollHandler.TIMEOUTS.SCROLL_SETTLE);
-      
-      // Count current calendars
-      currentCalendarCount = this.domSelector.getCalendarElements().length;
-      const calendarsFound = currentCalendarCount - previousCalendarCount;
-      logger.info(`🔄 Virtual Scroll: Attempt ${scrollAttempts + 1} found ${calendarsFound} new calendars (total: ${currentCalendarCount})`);
-      scrollAttempts++;
-      
-    } while (
-      currentCalendarCount > previousCalendarCount && 
-      scrollAttempts < maxScrollAttempts
-    );
 
-    if (scrollAttempts >= maxScrollAttempts) {
-      logger.warn(`🔄 Virtual Scroll: Reached maximum scroll attempts (${maxScrollAttempts}), stopping`);
-    } else {
-      logger.info(`🔄 Virtual Scroll: Discovery complete after ${scrollAttempts} scroll attempts`);
+      const currentElements = this.domSelector.getCalendarElements();
+      currentElements.forEach(el => discoveredElements.add(el));
+
+      if (scrollContainer.scrollTop >= scrollContainer.scrollHeight - scrollContainer.clientHeight) {
+        break; // Reached bottom
+      }
     }
 
-    // Scroll back to top to ensure all calendars are accessible
-    logger.debug('🔄 Virtual Scroll: Scrolling back to top to make all calendars accessible');
+    // Scroll back to top
     scrollContainer.scrollTop = 0;
     await this.delay(VirtualScrollHandler.TIMEOUTS.SCROLL_SETTLE);
-    logger.info(`🔄 Virtual Scroll: Virtual scroll complete. Final calendar count: ${currentCalendarCount}`);
+
+    const elementsArray = Array.from(discoveredElements);
+    logger.info(`🔄 Discovery complete: ${elementsArray.length} unique calendars`);
+    return elementsArray;
   }
 
   /**
-   * Try to expand collapsed calendar sections (like "Other calendars")
+   * Find the scroll container for calendar list
    */
-  async expandCollapsedSections(): Promise<void> {
-    try {
-      logger.info('🔘 Button Selection: Looking for collapsed calendar sections to expand...');
-      
-      // Look for expand/collapse buttons or clickable headers
-      const expandSelectors = [
-        '[aria-label*="Other calendars" i][role="button"]',
-        '[aria-label*="Other calendars" i] button',
-        '[aria-expanded="false"]',
-        'button[aria-expanded="false"]',
-        '[role="button"][aria-expanded="false"]'
-      ];
-      
-      let totalButtonsFound = 0;
-      let buttonsClicked = 0;
-      let buttonsSkipped = 0;
-      
-      for (const selector of expandSelectors) {
-        const elements = Array.from(document.querySelectorAll(selector));
-        logger.debug(`🔘 Button Selection: Selector "${selector}" found ${elements.length} elements`);
-        totalButtonsFound += elements.length;
-        
-        for (const element of elements) {
-          const result = await this.tryExpandElement(element);
-          if (result.clicked) {
-            buttonsClicked++;
-          } else {
-            buttonsSkipped++;
-          }
+  private findScrollContainer(): Element | null {
+    // Try known selectors first
+    const knownSelectors = [
+      '[role="grid"]',
+      '.calendar-list-container',
+      '[data-testid="calendar-list"]'
+    ];
+
+    for (const selector of knownSelectors) {
+      const element = document.querySelector(selector);
+      if (element && this.isScrollable(element)) {
+        logger.info(`🔄 Found scroll container: ${selector}`);
+        return element;
+      }
+    }
+
+    // Fallback: traverse from calendar elements
+    logger.info('🔄 Known selectors failed, traversing from calendar elements...');
+    return this.findScrollContainerByTraversal();
+  }
+
+  /**
+   * Find scroll container by traversing up from calendar elements
+   */
+  private findScrollContainerByTraversal(): Element | null {
+    const calendarElements = this.domSelector.getCalendarElements();
+    if (calendarElements.length === 0) {
+      logger.warn('🔄 No calendar elements found to traverse from');
+      return null;
+    }
+
+    let currentElement: Element | null = calendarElements[0];
+    const visited = new Set<Element>();
+    const candidates: { element: Element; depth: number; calendarCount: number }[] = [];
+
+    // Traverse up, collecting scrollable containers
+    while (currentElement && currentElement !== document.body) {
+      if (visited.has(currentElement)) break;
+      visited.add(currentElement);
+
+      if (this.isScrollable(currentElement)) {
+        const scrollHeight = currentElement.scrollHeight;
+        const clientHeight = currentElement.clientHeight;
+
+        if (scrollHeight > clientHeight && scrollHeight > 100) {
+          const calendarCount = currentElement.querySelectorAll('[data-id]:has(input[type="checkbox"])').length;
+
+          candidates.push({
+            element: currentElement,
+            depth: visited.size,
+            calendarCount
+          });
+
+          logger.debug(`🔄 Candidate: ${currentElement.tagName}.${currentElement.className} - calendars=${calendarCount}, depth=${visited.size}`);
         }
       }
-      
-      // Also look for chevron/arrow icons that might indicate collapsed sections
-      logger.debug('🔘 Button Selection: Searching for chevron/arrow icons in "Other calendars" sections...');
-      const chevronElements = Array.from(document.querySelectorAll('[aria-label*="Other calendars" i] svg, [aria-label*="Other calendars" i] [role="img"]'));
-      logger.debug(`🔘 Button Selection: Found ${chevronElements.length} potential chevron elements`);
-      
-      for (const chevron of chevronElements) {
-        const result = await this.tryExpandChevronElement(chevron);
-        if (result.clicked) {
-          buttonsClicked++;
+
+      currentElement = currentElement.parentElement;
+    }
+
+    // Select best candidate: more calendars, then shallower depth
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => {
+        if (a.calendarCount !== b.calendarCount) {
+          return b.calendarCount - a.calendarCount;
+        }
+        return a.depth - b.depth;
+      });
+
+      const best = candidates[0];
+      logger.info(`🔄 Selected container: ${best.element.tagName}.${best.element.className} - calendars=${best.calendarCount}`);
+      return best.element;
+    }
+
+    // Final fallback: search scrollable elements near calendar area
+    logger.info('🔄 Traversal failed, searching calendar area...');
+    return this.findScrollableInCalendarArea();
+  }
+
+  /**
+   * Find scrollable elements in the calendar area
+   */
+  private findScrollableInCalendarArea(): Element | null {
+    const scrollableDivs = Array.from(document.querySelectorAll('div')).filter(div =>
+      this.isScrollable(div) &&
+      div.scrollHeight > div.clientHeight &&
+      div.scrollHeight > 100
+    );
+
+    const candidates: { element: Element; calendarCount: number; proximity: number }[] = [];
+
+    for (const div of scrollableDivs) {
+      const directCalendars = div.querySelectorAll('[data-id]:has(input[type="checkbox"])');
+      if (directCalendars.length > 0) {
+        candidates.push({
+          element: div,
+          calendarCount: directCalendars.length,
+          proximity: 0
+        });
+        continue;
+      }
+
+      // Check nearby siblings
+      const siblings = Array.from(div.parentElement?.children || []);
+      const divIndex = siblings.indexOf(div);
+
+      let maxProximityCalendars = 0;
+      for (let i = Math.max(0, divIndex - 3); i < Math.min(siblings.length, divIndex + 4); i++) {
+        if (i === divIndex) continue;
+        const siblingCalendars = siblings[i].querySelectorAll('[data-id]:has(input[type="checkbox"])');
+        if (siblingCalendars.length > maxProximityCalendars) {
+          maxProximityCalendars = siblingCalendars.length;
         }
       }
-      
-      logger.info(`🔘 Button Selection: Expansion complete - Total buttons found: ${totalButtonsFound}, Clicked: ${buttonsClicked}, Skipped: ${buttonsSkipped}`);
-      
-    } catch (error) {
-      logger.warn('🔘 Button Selection: Error expanding collapsed sections:', error);
-    }
-  }
 
-  /**
-   * Try to expand a specific element
-   */
-  private async tryExpandElement(element: Element): Promise<{ clicked: boolean }> {
-    const ariaLabel = element.getAttribute('aria-label')?.toLowerCase() || '';
-    const textContent = element.textContent?.toLowerCase() || '';
-    const ariaExpanded = element.getAttribute('aria-expanded');
-    
-    logger.debug(`🔘 Button Selection: Examining element - Label: "${ariaLabel}", Text: "${textContent}", Expanded: ${ariaExpanded}`);
-    
-    // IMPORTANT: Skip "Add other calendars" buttons - we only want expand/collapse buttons
-    if (ariaLabel.includes('add') || textContent.includes('add') || 
-        ariaLabel.includes('create') || textContent.includes('create') ||
-        ariaLabel.includes('subscribe') || textContent.includes('subscribe')) {
-      logger.debug(`🔘 Button Selection: Skipping add/create button: ${ariaLabel || textContent}`);
-      return { clicked: false };
-    }
-    
-    // Check if this looks like a calendar section header that might be collapsed
-    if ((ariaLabel.includes('calendar') || textContent.includes('calendar')) &&
-        (ariaLabel.includes('other') || textContent.includes('other')) &&
-        // Additional check: look for collapsed indicators
-        (element.getAttribute('aria-expanded') === 'false' || 
-         ariaLabel.includes('expand') || textContent.includes('expand'))) {
-      
-      logger.info(`🔘 Button Selection: Found expandable section button - Label: "${ariaLabel || textContent}"`);
-      
-      // Try clicking to expand
-      if (element instanceof HTMLElement) {
-        logger.info(`🔘 Button Click: Clicking to expand collapsed section: ${ariaLabel || textContent}`);
-        element.click();
-        logger.debug('🔘 Button Click: Waiting 500ms for expansion animation to complete...');
-        await this.delay(VirtualScrollHandler.TIMEOUTS.EXPANSION_ANIMATION);
-        logger.debug('🔘 Button Click: Expansion animation wait complete');
-        return { clicked: true };
-      } else {
-        logger.warn(`🔘 Button Selection: Element is not an HTMLElement, cannot click: ${element.constructor.name}`);
-        return { clicked: false };
+      if (maxProximityCalendars > 0) {
+        const calendarIndex = siblings.findIndex(s =>
+          s.querySelectorAll('[data-id]:has(input[type="checkbox"])').length > 0
+        );
+        candidates.push({
+          element: div,
+          calendarCount: maxProximityCalendars,
+          proximity: Math.abs(divIndex - calendarIndex)
+        });
       }
-    } else {
-      logger.debug(`🔘 Button Selection: Element does not match expansion criteria - skipping`);
-      return { clicked: false };
     }
+
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => {
+        if (a.calendarCount !== b.calendarCount) {
+          return b.calendarCount - a.calendarCount;
+        }
+        return a.proximity - b.proximity;
+      });
+
+      const best = candidates[0];
+      logger.info(`🔄 Found container in calendar area: ${best.element.tagName}.${best.element.className} - calendars=${best.calendarCount}`);
+      return best.element;
+    }
+
+    logger.warn('🔄 No suitable scroll container found');
+    return null;
   }
 
   /**
-   * Try to expand a chevron element
+   * Check if element is scrollable
    */
-  private async tryExpandChevronElement(chevron: Element): Promise<{ clicked: boolean }> {
-    const parentButton = chevron.closest('button') || chevron.closest('[role="button"]');
-    if (parentButton && parentButton instanceof HTMLElement) {
-      const parentLabel = parentButton.getAttribute('aria-label') || parentButton.textContent || 'Unknown';
-      logger.info(`🔘 Button Selection: Found chevron with parent button: "${parentLabel}"`);
-      logger.info(`🔘 Button Click: Clicking chevron expand button: ${parentLabel}`);
-      parentButton.click();
-      logger.debug('🔘 Button Click: Waiting 500ms for chevron expansion animation...');
-      await this.delay(VirtualScrollHandler.TIMEOUTS.EXPANSION_ANIMATION);
-      logger.debug('🔘 Button Click: Chevron expansion wait complete');
-      return { clicked: true };
-    } else {
-      logger.debug('🔘 Button Selection: Chevron element has no clickable parent button');
-      return { clicked: false };
-    }
+  private isScrollable(element: Element): boolean {
+    const style = getComputedStyle(element);
+    return style.overflow === 'auto' || style.overflow === 'scroll' ||
+           style.overflowY === 'auto' || style.overflowY === 'scroll';
   }
 
   /**
-   * Scroll through calendar container and process each visible calendar immediately
-   * New approach: No caching, process calendars as they appear during scroll
+   * Debug method to inspect scroll container detection
    */
-  async scrollAndProcessCalendars(
-    container: Element,
-    processor: (calendarElements: Element[]) => Promise<void>
-  ): Promise<void> {
-    const scrollContainer = this.domSelector.getScrollContainer(container);
-    if (!scrollContainer) {
-      logger.warn('No scroll container found, processing visible calendars only');
-      const visibleCalendars = this.domSelector.getCalendarElementsInContainer(container);
-      await processor(visibleCalendars);
-      return;
+  debugScrollContainer(): { container: Element | null; grids: Element[]; isScrollable: boolean; method?: string } {
+    const container = this.findScrollContainer();
+    const grids = Array.from(document.querySelectorAll('[role="grid"]'));
+
+    let method: string | undefined;
+    if (container) {
+      const knownSelectors = ['[role="grid"]', '.calendar-list-container', '[data-testid="calendar-list"]'];
+      method = knownSelectors.find(selector => document.querySelector(selector) === container) || 'traversal';
     }
 
-    logger.info('Starting scroll-and-process for container');
-
-    // Scroll to top first
-    scrollContainer.scrollTop = 0;
-    await this.delay(300);
-
-    let previousScrollTop = -1;
-    let scrollAttempt = 0;
-    const maxScrollAttempts = 10;
-    
-    while (scrollContainer.scrollTop !== previousScrollTop && scrollAttempt < maxScrollAttempts) {
-      previousScrollTop = scrollContainer.scrollTop;
-      scrollAttempt++;
-      
-      // Get visible calendars at current scroll position
-      const visibleCalendars = this.domSelector.getCalendarElementsInContainer(container);
-      logger.debug(`Scroll attempt ${scrollAttempt}: Processing ${visibleCalendars.length} visible calendars`);
-      
-      // Process them immediately via callback
-      await processor(visibleCalendars);
-      
-      // Scroll down one viewport height
-      scrollContainer.scrollTop += scrollContainer.clientHeight;
-      await this.delay(300); // Let DOM settle
-    }
-    
-    logger.info(`Scroll-and-process complete after ${scrollAttempt} scroll attempts`);
-    
-    // Scroll back to top when done
-    scrollContainer.scrollTop = 0;
-    await this.delay(300);
+    return {
+      container,
+      grids,
+      isScrollable: container ? this.isScrollable(container) : false,
+      method
+    };
   }
 
   /**
@@ -244,5 +282,35 @@ export class VirtualScrollHandler {
    */
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Legacy methods for backward compatibility
+
+  async simpleExpandCollapse(): Promise<void> {
+    return this.expandSections();
+  }
+
+  async simpleScrollAndCount(): Promise<number> {
+    return this.countCalendars();
+  }
+
+  async simpleScrollAndDiscover(): Promise<Element[]> {
+    return this.discoverCalendars();
+  }
+
+  async scrollToDiscoverAllCalendars(calendarList: Element): Promise<void> {
+    await this.countCalendars();
+  }
+
+  async expandCollapsedSections(): Promise<void> {
+    return this.expandSections();
+  }
+
+  async scrollAndProcessCalendars(
+    container: Element,
+    processor: (calendarElements: Element[]) => Promise<void>
+  ): Promise<void> {
+    const elements = await this.discoverCalendars();
+    await processor(elements);
   }
 }

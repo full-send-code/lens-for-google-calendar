@@ -47,10 +47,17 @@ export class GoogleCalendarRepository implements CalendarRepository {
         const containerLabel = container.getAttribute('aria-label') || 'Unknown';
         logger.info(`Processing container: ${containerLabel}`);
         
-        // Note: Virtual scrolling is already done in findAllCalendarContainers()
-        // Extract calendar data from this container
-        const calendarElements = this.domSelector.getCalendarElementsInContainer(container);
-        logger.info(`Found ${calendarElements.length} calendar elements in container: ${containerLabel}`);
+        let calendarElements: Element[] = [];
+
+        // Check if this is a dummy container with pre-discovered elements
+        if ((container as any)._discoveredCalendars) {
+          calendarElements = (container as any)._discoveredCalendars;
+          logger.info(`Using pre-discovered elements: ${calendarElements.length} calendars`);
+        } else {
+          // Fallback to container-based extraction
+          calendarElements = this.domSelector.getCalendarElementsInContainer(container);
+          logger.info(`Found ${calendarElements.length} calendar elements in container: ${containerLabel}`);
+        }
         
         for (const element of calendarElements) {
           try {
@@ -187,45 +194,27 @@ export class GoogleCalendarRepository implements CalendarRepository {
 
   /**
    * Find all calendar containers (My calendars, Other calendars, etc.)
-   * Also handles virtual scrolling to ensure all calendars are rendered
+   * Simplified: Uses direct element discovery instead of complex container logic
    */
   private async findAllCalendarContainers(): Promise<Element[]> {
     try {
       logger.info('Finding calendar containers...');
-      
-      // First, wait for the main calendar list to be available
-      const calendarList = await this.domSelector.waitForCalendarList();
-      logger.info('Found main calendar list, performing virtual scroll to load all calendars...');
-      
-      // Perform virtual scrolling on the main calendar list to ensure all calendars are rendered
-      await this.virtualScrollHandler.scrollToDiscoverAllCalendars(calendarList);
-      
-      logger.info('Virtual scroll complete, now searching for calendar containers...');
-      
-      // Try to expand collapsed sections before searching
-      await this.virtualScrollHandler.expandCollapsedSections();
-      
-      // Find containers using the DOM selector service
-      const containers = this.domSelector.findCalendarContainers();
-      
-      // Additional handling for "Other calendars" containers
-      for (const container of containers) {
-        const label = container.getAttribute('aria-label')?.toLowerCase() || '';
-        // If this is the "Other calendars" container, try to scroll it specifically
-        if (label.includes('other')) {
-          logger.info('Found "Other calendars" container, performing specific scroll...');
-          await this.virtualScrollHandler.scrollToDiscoverAllCalendars(container);
-        }
-      }
-      
-      if (containers.length === 0) {
-        logger.info('No specific containers found, using main calendar list as fallback');
-        containers.push(calendarList);
-      }
-      
-      logger.info(`Found ${containers.length} calendar containers`);
-      return containers;
-      
+
+      // Use simplified scroll and discover to get all calendar elements
+      const discoveredElements = await this.virtualScrollHandler.simpleScrollAndDiscover();
+      logger.info(`Discovered ${discoveredElements.length} calendar elements`);
+
+      // Create a dummy container to hold the discovered elements
+      const dummyContainer = document.createElement('div');
+      dummyContainer.setAttribute('aria-label', 'Discovered Calendars Container');
+      dummyContainer.setAttribute('data-discovered', 'true');
+
+      // Store the elements on the dummy container for later retrieval
+      (dummyContainer as any)._discoveredCalendars = discoveredElements;
+
+      logger.info('Created dummy container with discovered calendars');
+      return [dummyContainer];
+
     } catch (error) {
       logger.warn('Error finding calendar containers:', error);
       // Fallback to a dummy container that will trigger global search
