@@ -88,15 +88,37 @@ jobs:
         path: dist/
         
     - name: Create release ZIP
+      shell: pwsh
       run: |
-        VERSION=$(node -e 'console.log(require("./dist/manifest.json").version)')
-        cd dist
-        zip -r ../lens-for-google-calendar-v${VERSION}.zip .
-        echo "📦 Created: lens-for-google-calendar-v${VERSION}.zip"
+        # Get version from built manifest.json
+        $manifest = Get-Content "dist/manifest.json" | ConvertFrom-Json
+        $Version = $manifest.version
+        
+        $RELEASE_FILE = "lens-for-google-calendar-v${Version}.zip"
+        
+        # Check if release file already exists
+        if (Test-Path $RELEASE_FILE) {
+            Write-Host "Removing existing release file: $RELEASE_FILE"
+            Remove-Item $RELEASE_FILE -Force
+        }
+        
+        # Create the zip file from dist directory
+        Write-Host "Creating release ZIP: $RELEASE_FILE"
+        Compress-Archive -Path "dist/*" -DestinationPath $RELEASE_FILE -Force
+        Write-Host "📦 Created: $RELEASE_FILE"
+        
+        # Verify the zip was created
+        if (Test-Path $RELEASE_FILE) {
+            $size = (Get-Item $RELEASE_FILE).Length / 1MB
+            Write-Host "📊 Release size: $([math]::Round($size, 2))MB"
+        } else {
+            Write-Error "❌ Failed to create release ZIP"
+            exit 1
+        }
         
     - name: Upload release
       uses: actions/upload-artifact@v4
       with:
         name: release-package
-        path: "*.zip"
+        path: "lens-for-google-calendar-v*.zip"
         retention-days: 90

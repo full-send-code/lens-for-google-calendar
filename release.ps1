@@ -30,7 +30,7 @@ if (-not $Version) {
 }
 
 $DIST = "dist"
-$RELEASE_FILE = Join-Path $DIST "lens-for-google-calendar.$Version.zip"
+$RELEASE_FILE = Join-Path $DIST "lens-for-google-calendar-v$Version.zip"
 
 # Create dist directory if it doesn't exist
 if (-not (Test-Path $DIST)) {
