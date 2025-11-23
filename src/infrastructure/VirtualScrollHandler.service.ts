@@ -26,29 +26,59 @@ export class VirtualScrollHandler {
 
   /**
    * Expand all collapsed calendar sections
+   *
+   * This method specifically targets only the "My calendars" and "Other calendars"
+   * section headers in Google Calendar. Based on extensive debugging:
+   *
+   * - Uses aria-expanded="false" to find collapsed sections
+   * - Filters by text content containing "My calendars" or "Other calendars" + keyboard arrows
+   * - Avoids auto-generated CSS class names which change with Google Calendar updates
+   * - Skips all other expandable buttons (menus, settings, etc.) to prevent side effects
+   *
+   * This approach ensures reliable expansion without triggering unintended UI interactions.
    */
   async expandSections(): Promise<void> {
     logger.info('🔘 Expanding collapsed calendar sections...');
 
-    const selectors = [
-      'button[aria-label*="Other calendars" i]',
-      '[role="button"][aria-label*="Other calendars" i]',
-      'button[aria-expanded="false"]'
+    // First, let's debug what expandable elements exist
+    const debugResult = this.debugExpandableElements();
+
+    // Target specifically calendar section expand buttons (avoid auto-generated classes)
+    // Note: We use aria-expanded="false" because Google Calendar section headers
+    // have this attribute when collapsed, and we filter by specific text content
+    // to avoid clicking menus, settings buttons, or other expandable elements
+    const calendarSectionSelectors = [
+      'button[aria-expanded="false"]' // Collapsed sections - we'll filter by content
     ];
 
-    for (const selector of selectors) {
+    let expandedCount = 0;
+
+    for (const selector of calendarSectionSelectors) {
       const buttons = Array.from(document.querySelectorAll(selector)) as HTMLElement[];
+
       for (const button of buttons) {
-        const label = button.getAttribute('aria-label') || button.textContent || '';
-        if (label.toLowerCase().includes('other') && label.toLowerCase().includes('calendar')) {
-          logger.info(`🔘 Clicking expand button: ${label}`);
+        const ariaLabel = button.getAttribute('aria-label') || '';
+        const textContent = button.textContent || '';
+
+        // Only expand calendar section headers (My calendars, Other calendars)
+        // Text content patterns observed: "My calendarskeyboard_arrow_up", "Other calendarskeyboard_arrow_down"
+        // This specific filtering prevents clicking:
+        // - "Add other calendars" menu buttons
+        // - Individual calendar option menus (more_vert buttons)
+        // - Settings, support, or other UI buttons
+        if ((textContent.includes('My calendars') || textContent.includes('Other calendars')) &&
+            (textContent.includes('keyboard_arrow_up') || textContent.includes('keyboard_arrow_down'))) {
+          logger.info(`🔘 Clicking calendar section expand button: "${ariaLabel}" (text: "${textContent}")`);
           button.click();
+          expandedCount++;
           await this.delay(VirtualScrollHandler.TIMEOUTS.EXPANSION_ANIMATION);
+        } else {
+          logger.debug(`🔘 Skipping non-calendar section button: "${ariaLabel}" (text: "${textContent}")`);
         }
       }
     }
 
-    logger.info('🔘 Section expansion complete');
+    logger.info(`🔘 Section expansion complete: clicked ${expandedCount} expand buttons`);
   }
 
   /**
@@ -278,6 +308,52 @@ export class VirtualScrollHandler {
   }
 
   /**
+   * Debug method to find all expandable elements
+   */
+  debugExpandableElements(): { buttons: Element[]; expandableSections: Element[] } {
+    // Find all potentially expandable buttons
+    const allButtons = Array.from(document.querySelectorAll('button, [role="button"]'));
+    const expandableButtons = allButtons.filter(button => {
+      const ariaLabel = button.getAttribute('aria-label') || '';
+      const ariaExpanded = button.getAttribute('aria-expanded');
+      const textContent = button.textContent || '';
+
+      // Look for buttons that might be expandable
+      const isExpandable =
+        ariaExpanded !== null || // Has aria-expanded attribute
+        ariaLabel.toLowerCase().includes('expand') ||
+        ariaLabel.toLowerCase().includes('collapse') ||
+        ariaLabel.toLowerCase().includes('show') ||
+        ariaLabel.toLowerCase().includes('hide') ||
+        textContent.toLowerCase().includes('expand') ||
+        textContent.toLowerCase().includes('collapse') ||
+        textContent.toLowerCase().includes('show') ||
+        textContent.toLowerCase().includes('hide');
+
+      return isExpandable;
+    });
+
+    // Find elements with aria-expanded attribute
+    const ariaExpandedElements = Array.from(document.querySelectorAll('[aria-expanded]'));
+
+    logger.info(`🔍 Found ${expandableButtons.length} potentially expandable buttons`);
+    logger.info(`🔍 Found ${ariaExpandedElements.length} elements with aria-expanded`);
+
+    expandableButtons.forEach((button, index) => {
+      const ariaLabel = button.getAttribute('aria-label') || 'no-label';
+      const ariaExpanded = button.getAttribute('aria-expanded') || 'not-set';
+      const textContent = (button.textContent || '').trim();
+      const tagName = button.tagName.toLowerCase();
+      const className = button.className || 'no-class';
+
+      logger.info(`🔍 Expandable Button ${index}: ${tagName}.${className} [aria-label="${ariaLabel}"] [aria-expanded="${ariaExpanded}"] text="${textContent}"`);
+    });
+
+    return {
+      buttons: expandableButtons,
+      expandableSections: ariaExpandedElements
+    };
+  }  /**
    * Utility method for delays
    */
   private delay(ms: number): Promise<void> {
