@@ -13,6 +13,7 @@ import { PresetSelectionSection } from './PresetSelectionSection.component';
 import { CalendarActionsSection } from './CalendarActionsSection.component';
 import { ImportExportSection } from './ImportExportSection.component';
 import { CurrentStateDisplay } from './CurrentStateDisplay.component';
+import { SavePresetModal } from './SavePresetModal.component';
 import {
   useOperationState,
   usePresetOperations,
@@ -84,7 +85,6 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
   // Modal visibility state
   const [enableModalVisible, setEnableModalVisible] = useState(false);
   const [saveModalVisible, setSaveModalVisible] = useState(false);
-  const [newPresetName, setNewPresetName] = useState('');
   
   // Calculate current state
   const visibleCalendars = currentCalendars.filter(cal => cal.isVisible);
@@ -117,17 +117,13 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
   });
 
   /**
-   * Handle saving preset from modal
+   * Handle dropdown open/close
    */
-  const handleSavePreset = async () => {
-    if (!newPresetName.trim()) {
-      showCustomNotification('Invalid Name', 'Please enter a preset name.', 'error');
-      return;
+  const handleDropdownOpenChange = (open: boolean) => {
+    if (open) {
+      // Refresh calendar data when dropdown opens to ensure current state
+      onCalendarsChange();
     }
-
-    await presetOperations.handleSavePreset(newPresetName.trim(), true);
-    setSaveModalVisible(false);
-    setNewPresetName('');
   };
 
   /**
@@ -183,6 +179,7 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
         trigger={['click']}
         placement="topRight"
         arrow={{ pointAtCenter: true }}
+        onOpenChange={handleDropdownOpenChange}
       >
         <FloatButton 
           icon={<LensIcon size={20} />}
@@ -208,36 +205,13 @@ export const LensHeaderButton: React.FC<LensHeaderButtonProps> = ({
       />
 
       {/* Save Preset Modal */}
-      <Modal
-        title="Save Current State as Preset"
-        open={saveModalVisible}
-        onOk={handleSavePreset}
-        onCancel={() => {
-          setSaveModalVisible(false);
-          setNewPresetName('');
-        }}
-        confirmLoading={operationState.isOperating}
-        okText="Save"
-      >
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{ marginBottom: '8px', color: '#666' }}>
-            Current State: {stateIndicator} calendars visible
-          </div>
-          <div style={{ fontSize: '12px', color: '#999' }}>
-            {visibleCalendars.length <= 3 
-              ? visibleCalendars.map(cal => cal.name).join(', ')
-              : `${visibleCalendars.slice(0, 3).map(cal => cal.name).join(', ')} +${visibleCalendars.length - 3} more`
-            }
-          </div>
-        </div>
-        <Input
-          placeholder="Enter preset name..."
-          value={newPresetName}
-          onChange={(e) => setNewPresetName(e.target.value)}
-          onPressEnter={handleSavePreset}
-          maxLength={50}
-        />
-      </Modal>
+      <SavePresetModal
+        visible={saveModalVisible}
+        onClose={() => setSaveModalVisible(false)}
+        savePresetUseCase={savePresetUseCase}
+        visibleCalendars={visibleCalendars}
+        onSuccess={onPresetsChange}
+      />
     </>
   );
 };

@@ -117,6 +117,7 @@ export const EnableCalendarModal: React.FC<EnableCalendarModalProps> = ({
       confirmLoading={loading}
       width={480}
       destroyOnClose
+      zIndex={2000}
     >
       <div style={{ marginBottom: '16px' }}>
         <Alert
