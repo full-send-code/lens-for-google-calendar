@@ -1,0 +1,124 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test-and-build:
+    name: Test & Build
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: TypeScript check
+      run: npx tsc --noEmit
+      
+    - name: Run tests
+      run: npm test
+      
+    - name: Security audit
+      run: npm audit --audit-level high
+      continue-on-error: true
+      
+    - name: Build extension
+      run: npm run build
+      
+    - name: Validate build
+      run: |
+        # Check required files
+        test -f dist/manifest.json || (echo "❌ manifest.json missing" && exit 1)
+        
+        # Check for background script (Vite generates with hash)
+        if ls dist/assets/background*.js 1> /dev/null 2>&1; then
+          echo "✅ Background script found: $(ls dist/assets/background*.js)"
+        else
+          echo "❌ Background script missing"
+          exit 1
+        fi
+        
+        # Validate manifest
+        node -e 'const manifest = require("./dist/manifest.json"); if (manifest.manifest_version !== 3) throw new Error("Must be Manifest V3"); if (!manifest.name || !manifest.version) throw new Error("Missing name/version"); console.log("✅ Build valid:", manifest.name, "v" + manifest.version);'
+        
+        # Check size
+        SIZE=$(du -sm dist/ | cut -f1)
+        echo "📦 Extension size: ${SIZE}MB"
+        [ $SIZE -gt 10 ] && echo "⚠️ Large build size" || echo "✅ Reasonable size"
+        
+    - name: Upload build (Node 20 only)
+      if: matrix.node-version == '20.x'
+      uses: actions/upload-artifact@v4
+      with:
+        name: extension-build
+        path: dist/
+        retention-days: 30
+
+  release:
+    name: Release Package
+    runs-on: ubuntu-latest
+    needs: test-and-build
+    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'release:')
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Download build
+      uses: actions/download-artifact@v4
+      with:
+        name: extension-build
+        path: dist/
+        
+    - name: Create release ZIP
+      shell: pwsh
+      run: |
+        # Get version from built manifest.json
+        $manifest = Get-Content "dist/manifest.json" | ConvertFrom-Json
+        $Version = $manifest.version
+        
+        $RELEASE_FILE = "lens-for-google-calendar-v${Version}.zip"
+        
+        # Check if release file already exists
+        if (Test-Path $RELEASE_FILE) {
+            Write-Host "Removing existing release file: $RELEASE_FILE"
+            Remove-Item $RELEASE_FILE -Force
+        }
+        
+        # Create the zip file from dist directory
+        Write-Host "Creating release ZIP: $RELEASE_FILE"
+        Compress-Archive -Path "dist/*" -DestinationPath $RELEASE_FILE -Force
+        Write-Host "📦 Created: $RELEASE_FILE"
+        
+        # Verify the zip was created
+        if (Test-Path $RELEASE_FILE) {
+            $size = (Get-Item $RELEASE_FILE).Length / 1MB
+            Write-Host "📊 Release size: $([math]::Round($size, 2))MB"
+        } else {
+            Write-Error "❌ Failed to create release ZIP"
+            exit 1
+        }
+        
+    - name: Upload release
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-package
+        path: "lens-for-google-calendar-v*.zip"
+        retention-days: 90
