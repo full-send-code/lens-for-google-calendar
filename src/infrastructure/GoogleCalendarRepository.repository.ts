@@ -103,21 +103,9 @@ export class GoogleCalendarRepository implements CalendarRepository {
 
       logger.info(`${desiredVisible.size} calendars should be visible`);
 
-      // Special case: if no calendars should be visible (clear all), use optimized scrolling approach
-      if (desiredVisible.size === 0) {
-        await this.applyCalendarVisibilityByScrolling(desiredVisible);
-        return;
-      }
-
-      // For selective visibility changes, use the traditional approach
-      // This maintains compatibility with existing tests and behavior
-      const allCalendarElements = await this.virtualScrollHandler.discoverCalendars();
-      logger.info(`Processing ${allCalendarElements.length} discovered calendar elements`);
-
-      // Process all calendar elements
-      for (const element of allCalendarElements) {
-        await this.visibilityManager.processCalendarElement(element, desiredVisible);
-      }
+      // Always use the optimized scrolling approach for better reliability
+      // This ensures we process calendars in the order they appear in the UI
+      await this.applyCalendarVisibilityByScrolling(desiredVisible);
 
       logger.info('Calendar visibility application complete');
     } catch (error) {
@@ -166,6 +154,14 @@ export class GoogleCalendarRepository implements CalendarRepository {
           } catch (error) {
             logger.warn('🌀 Error processing calendar element:', error);
           }
+        }
+
+        // Verify the changes took effect
+        const verifiedCount = await this.visibilityManager.verifyCalendarElementsState(visibleElements, desiredVisible);
+        if (verifiedCount < visibleElements.length) {
+          logger.warn(`🌀 Batch verification incomplete: ${verifiedCount}/${visibleElements.length} elements verified`);
+        } else {
+          logger.debug(`🌀 Batch verification complete: ${verifiedCount}/${visibleElements.length} elements verified`);
         }
       });
 

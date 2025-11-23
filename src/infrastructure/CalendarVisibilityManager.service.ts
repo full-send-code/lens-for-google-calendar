@@ -150,6 +150,38 @@ export class CalendarVisibilityManager {
   }
 
   /**
+   * Verify that calendar elements have the correct visibility state
+   */
+  async verifyCalendarElementsState(
+    elements: Element[],
+    desiredEmailsVisible: Set<string>
+  ): Promise<number> {
+    let verifiedCount = 0;
+
+    for (const element of elements) {
+      try {
+        const calendarData = this.dataExtractor.extractCalendarData(element);
+        if (!calendarData) continue;
+
+        const shouldBeVisible = desiredEmailsVisible.has(calendarData.email);
+        const checkbox = this.domSelector.getCheckboxFromCalendarElement(element) as HTMLInputElement;
+
+        if (!checkbox) continue;
+
+        if (checkbox.checked === shouldBeVisible) {
+          verifiedCount++;
+        } else {
+          logger.warn(`❌ State verification failed for ${calendarData.email}: expected ${shouldBeVisible}, got ${checkbox.checked}`);
+        }
+      } catch (error) {
+        logger.warn('Error verifying calendar element state:', error);
+      }
+    }
+
+    return verifiedCount;
+  }
+
+  /**
    * Utility method for delays
    */
   private delay(ms: number): Promise<void> {

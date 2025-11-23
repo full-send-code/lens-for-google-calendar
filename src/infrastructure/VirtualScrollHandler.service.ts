@@ -427,46 +427,52 @@ export class VirtualScrollHandler {
       return;
     }
 
-    // Ensure we're at the top
+    // Expand sections first
+    await this.expandSections();
+
+    const stepSize = scrollContainer.clientHeight;
+    let totalProcessed = 0;
+    const maxScrolls = 200; // Very high limit to handle many calendars
+    const processedElements = new Set<Element>(); // Track processed elements to avoid duplicates
+
+    // Scroll to top first
     scrollContainer.scrollTop = 0;
     await this.delay(VirtualScrollHandler.TIMEOUTS.SCROLL_SETTLE);
 
-    let hasMoreContent = true;
-    let totalProcessed = 0;
+    // Scroll down step by step, processing visible elements at each step
+    for (let i = 0; i < maxScrolls; i++) {
+      // Get currently visible calendar elements
+      const visibleElements = this.domSelector.getCalendarElements();
 
-    while (hasMoreContent) {
-      // Find all currently visible calendar elements
-      const visibleElements = this.domSelector.getCalendarElementsInContainer(scrollContainer);
-      logger.debug(`🔄 Found ${visibleElements.length} visible calendar elements in current viewport`);
+      // Filter out already processed elements
+      const newElements = visibleElements.filter(element => !processedElements.has(element));
 
-      if (visibleElements.length > 0) {
-        // Process the visible elements
-        await processor(visibleElements);
-        totalProcessed += visibleElements.length;
+      if (newElements.length > 0) {
+        logger.debug(`🔄 Processing ${newElements.length} new visible elements at scroll position ${i}`);
+        await processor(newElements);
+        totalProcessed += newElements.length;
+
+        // Mark these elements as processed
+        newElements.forEach(element => processedElements.add(element));
       }
 
-      // Check if we've reached the bottom
-      const scrollTop = scrollContainer.scrollTop;
-      const scrollHeight = scrollContainer.scrollHeight;
-      const clientHeight = scrollContainer.clientHeight;
+      // Scroll down to next batch
+      const previousScrollTop = scrollContainer.scrollTop;
+      scrollContainer.scrollTop += stepSize;
+      await this.delay(VirtualScrollHandler.TIMEOUTS.SCROLL_SETTLE);
 
-      if (scrollTop + clientHeight >= scrollHeight - 10) { // 10px tolerance
-        logger.debug('🔄 Reached bottom of scroll container');
-        hasMoreContent = false;
-      } else {
-        // Scroll down to reveal more calendars
-        const scrollIncrement = clientHeight * 0.8; // Scroll by 80% of viewport height
-        scrollContainer.scrollTop += scrollIncrement;
-        await this.delay(VirtualScrollHandler.TIMEOUTS.SCROLL_SETTLE);
-
-        // Double-check if we actually scrolled (sometimes virtual scrolling prevents it)
-        if (scrollContainer.scrollTop === scrollTop) {
-          logger.debug('🔄 Scroll position did not change, likely reached end');
-          hasMoreContent = false;
-        }
+      // Check if we reached the bottom
+      if (scrollContainer.scrollTop >= scrollContainer.scrollHeight - scrollContainer.clientHeight ||
+          scrollContainer.scrollTop === previousScrollTop) {
+        logger.info(`🔄 Reached bottom after ${i + 1} scroll steps`);
+        break; // Reached bottom or can't scroll further
       }
     }
 
-    logger.info(`🔄 Scroll-and-process complete: processed ${totalProcessed} total elements`);
+    // Scroll back to top
+    scrollContainer.scrollTop = 0;
+    await this.delay(VirtualScrollHandler.TIMEOUTS.SCROLL_SETTLE);
+
+    logger.info(`🔄 Scroll-and-process complete: processed ${totalProcessed} unique elements`);
   }
 }
