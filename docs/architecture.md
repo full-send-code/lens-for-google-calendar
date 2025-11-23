@@ -466,10 +466,13 @@ lens-for-google-calendar/
 │   │   ├── repositories/         # Concrete repository implementations
 │   │   │   ├── GoogleCalendarRepository.repository.ts
 │   │   │   └── ChromeStorageRepository.repository.ts
-│   │   └── services/             # Infrastructure services
-│   │       ├── CalendarDataExtractor.service.ts
-│   │       ├── VirtualScrollHandler.service.ts
-│   │       └── DOMUtils.util.ts
+│   │   └── services/             # Infrastructure services (DOMUtils consolidated)
+│   │       ├── CalendarDOMSelector.service.ts     # DOM selection logic and selectors
+│   │       ├── CalendarDataExtractor.service.ts   # Calendar data extraction from DOM
+│   │       ├── CalendarVisibilityManager.service.ts # Calendar visibility changes
+│   │       ├── VirtualScrollHandler.service.ts    # Virtual scrolling operations
+│   │       ├── JsonImportExport.service.ts        # Import/export functionality
+│   │       └── logger.ts                          # Logging utility
 │   └── presentation/             # UI layer
 │       ├── CalendarExtensionApp.tsx
 │       ├── components/           # React components
