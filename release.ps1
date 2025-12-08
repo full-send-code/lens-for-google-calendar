@@ -49,28 +49,27 @@ if (Test-Path $RELEASE_FILE) {
     }
 }
 
-# Create the zip file
+# Build the project first
+Write-Host "Building project..."
+npm run build
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Build failed"
+    exit 1
+}
+
+# Create the zip file from the dist folder
 try {
     # PowerShell 5.0+ has Compress-Archive built-in
-    $filesToZip = @(
-        "index.html",
-        "manifest.json",
-        "css",
-        "icons",
-        "lib",
-        "src"
-    )
-    
-    # Filter out files that exist
-    $existingFiles = $filesToZip | Where-Object { Test-Path $_ }
-    
-    if ($existingFiles.Count -eq 0) {
-        Write-Error "No files found to zip"
+    # For Chrome Web Store, we need the compiled dist folder, not source files
+    if (-not (Test-Path $DIST)) {
+        Write-Error "Build output not found: $DIST"
         exit 1
     }
     
-    Compress-Archive -Path $existingFiles -DestinationPath $RELEASE_FILE -Force
+    # Compress the dist folder contents
+    Compress-Archive -Path "$DIST\*" -DestinationPath $RELEASE_FILE -Force
     Write-Host "Created release: $RELEASE_FILE"
+    Write-Host "Release ready for Chrome Web Store submission"
 } catch {
     Write-Error "Failed to create zip file: $_"
     exit 1
