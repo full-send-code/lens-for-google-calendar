@@ -90,31 +90,20 @@ jobs:
     - name: Create release ZIP
       shell: pwsh
       run: |
-        # Get version from built manifest.json
-        $manifest = Get-Content "dist/manifest.json" | ConvertFrom-Json
-        $Version = $manifest.version
-        
-        $RELEASE_FILE = "lens-for-google-calendar-v${Version}.zip"
-        
-        # Check if release file already exists
-        if (Test-Path $RELEASE_FILE) {
-            Write-Host "Removing existing release file: $RELEASE_FILE"
-            Remove-Item $RELEASE_FILE -Force
-        }
-        
-        # Create the zip file from dist directory
-        Write-Host "Creating release ZIP: $RELEASE_FILE"
-        Compress-Archive -Path "dist/*" -DestinationPath $RELEASE_FILE -Force
-        Write-Host "📦 Created: $RELEASE_FILE"
+        # Make release script executable and run it
+        .\release.ps1
         
         # Verify the zip was created
-        if (Test-Path $RELEASE_FILE) {
-            $size = (Get-Item $RELEASE_FILE).Length / 1MB
-            Write-Host "📊 Release size: $([math]::Round($size, 2))MB"
-        } else {
-            Write-Error "❌ Failed to create release ZIP"
-            exit 1
+        $zipFiles = Get-ChildItem -Path "dist" -Filter "lens-for-google-calendar-v*.zip"
+        if ($zipFiles.Count -eq 0) {
+          Write-Error "❌ No release ZIP found in dist/"
+          exit 1
         }
+        
+        $releaseFile = $zipFiles[0]
+        $size = $releaseFile.Length / 1MB
+        Write-Host "📦 Created: $($releaseFile.Name)"
+        Write-Host "📊 Release size: $([math]::Round($size, 2))MB"
         
     - name: Upload release
       uses: actions/upload-artifact@v4
