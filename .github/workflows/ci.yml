@@ -63,8 +63,8 @@ jobs:
         echo "📦 Extension size: ${SIZE}MB"
         [ $SIZE -gt 10 ] && echo "⚠️ Large build size" || echo "✅ Reasonable size"
     
-    - name: Create release ZIP (main branch only)
-      if: github.ref == 'refs/heads/main' && matrix.node-version == '20.x'
+    - name: Create release ZIP
+      if: matrix.node-version == '20.x'
       shell: pwsh
       run: |
         # Make release script executable and run it
@@ -82,7 +82,7 @@ jobs:
         Write-Host "📦 Created: $($releaseFile.Name)"
         Write-Host "📊 Release size: $([math]::Round($size, 2))MB"
         
-    - name: Upload release (main branch only)
+    - name: Upload release
       if: github.ref == 'refs/heads/main' && matrix.node-version == '20.x'
       uses: actions/upload-artifact@v4
       with:
